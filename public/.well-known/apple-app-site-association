@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "5HNY333MY4.com.sellyourshelf.app",
+        "paths": ["/auth/*"]
+      }
+    ]
+  }
+}
