@@ -3,7 +3,7 @@ export default function Terms() {
     <main className="min-h-screen bg-white py-16">
       <div className="max-w-2xl mx-auto px-6">
         <h1 className="text-3xl font-bold mb-8">Terms of Service</h1>
-        <p className="text-gray-600 mb-8">Last updated: January 2025</p>
+        <p className="text-gray-600 mb-8">Last updated: January 2026</p>
 
         <div className="space-y-8 text-gray-700">
           <section>
