@@ -49,7 +49,7 @@ export default function Home() {
 
             {/* App Store Button */}
             <a
-              href="https://apps.apple.com/app/sell-your-shelf"
+              href="https://apps.apple.com/app/sell-your-shelf/id6755662456"
               className="inline-flex items-center gap-3 bg-gray-900 text-white px-6 py-4 rounded-xl hover:bg-gray-800 transition-all hover:-translate-y-0.5 mb-8"
             >
               <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
@@ -239,7 +239,7 @@ export default function Home() {
           </div>
 
           <div className="mt-16 pt-8 border-t border-white/10 text-sm">
-            © 2025 Sell Your Shelf Limited. All rights reserved.
+            © 2026 Sell Your Shelf Limited. All rights reserved.
           </div>
         </div>
       </footer>
