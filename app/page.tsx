@@ -1,16 +1,56 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { createClient } from '@supabase/supabase-js'
 
-export default function Home() {
+export const revalidate = 0
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SECRET_KEY!
+)
+
+export default async function Home() {
+  const { data: recentListings } = await supabase
+    .from('listings')
+    .select('id, title, author, asking_price_gbp, books(cover_url)')
+    .eq('status', 'active')
+    .not('book_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(40)
+
+  const withCovers = (recentListings as any[])?.filter(
+    (l: any) => l.books?.cover_url
+  ) ?? []
+
+  const ticker = [...withCovers, ...withCovers, ...withCovers]
+
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+
+      <style>{`
+        @keyframes ticker {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(calc(-100% / 3)); }
+        }
+        .ticker-track {
+          display: flex;
+          gap: 12px;
+          animation: ticker 60s linear infinite;
+          width: max-content;
+          will-change: transform;
+        }
+        .ticker-track:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+
       {/* Navigation */}
       <nav className="max-w-6xl mx-auto px-6 py-5 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image 
-            src="/logo.png" 
-            alt="Sell Your Shelf" 
-            width={32} 
+          <Image
+            src="/logo.png"
+            alt="Sell Your Shelf"
+            width={32}
             height={32}
             className="h-8 w-auto"
           />
@@ -33,24 +73,20 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-24">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium mb-6" style={{ backgroundColor: 'rgba(45, 74, 62, 0.1)', color: '#2D4A3E', border: '1px solid rgba(45, 74, 62, 0.2)' }}>
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#2D4A3E' }}></span>
               Now live on the App Store
             </div>
 
-            {/* Headline */}
             <h1 className="text-5xl lg:text-6xl text-gray-900 leading-tight tracking-tight mb-6" style={{ fontFamily: 'Georgia, serif' }}>
               Your books deserve<br />
               <span style={{ color: '#2D4A3E' }}>better than boxes</span>
             </h1>
 
-            {/* Description */}
             <p className="text-xl text-gray-500 leading-relaxed mb-10 max-w-lg">
               Scan your entire bookshelf in 90 seconds. Our AI identifies each title, prices it fairly, and connects you with readers who&apos;ll actually treasure them.
             </p>
 
-            {/* App Store Button */}
             <a
               href="https://apps.apple.com/app/sell-your-shelf/id6755662456"
               className="inline-flex items-center gap-3 bg-gray-900 text-white px-6 py-4 rounded-xl hover:bg-gray-800 transition-all hover:-translate-y-0.5 mb-8"
@@ -64,7 +100,6 @@ export default function Home() {
               </div>
             </a>
 
-            {/* Trust Badges */}
             <div className="flex items-center gap-6 text-sm text-gray-500">
               <span className="flex items-center gap-2">
                 <svg className="w-5 h-5" style={{ color: '#2D4A3E' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,6 +145,39 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Live Listings Ticker */}
+      {ticker.length > 0 && (
+        <div style={{ borderTop: '1px solid #E5E3DF', borderBottom: '1px solid #E5E3DF', backgroundColor: '#fff', padding: '24px 0', overflow: 'hidden' }}>
+          <p style={{ textAlign: 'center', fontSize: 12, color: '#999', marginBottom: 16, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Recently listed
+          </p>
+          <div style={{ overflow: 'hidden' }}>
+            <div className="ticker-track">
+              {ticker.map((listing: any, i: number) => (
+                <Link
+                  key={i}
+                  href={`/listing/${listing.id}`}
+                  style={{ flexShrink: 0, display: 'block', textDecoration: 'none' }}
+                >
+                  <div style={{ width: 80, borderRadius: 8, overflow: 'hidden', background: '#2D4A3E' }}>
+                    <div style={{ aspectRatio: '2/3' }}>
+                      <img
+                        src={listing.books.cover_url}
+                        alt={listing.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 11, color: '#666', marginTop: 6, width: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    £{Number(listing.asking_price_gbp).toFixed(2)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* How It Works */}
       <section id="how-it-works" className="bg-white py-24 px-6" style={{ borderTop: '1px solid #E5E3DF', borderBottom: '1px solid #E5E3DF' }}>
@@ -213,10 +281,10 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-start gap-10">
             <div>
               <Link href="/" className="flex items-center gap-2.5 mb-4">
-                <Image 
-                  src="/logo.png" 
-                  alt="Sell Your Shelf" 
-                  width={28} 
+                <Image
+                  src="/logo.png"
+                  alt="Sell Your Shelf"
+                  width={28}
                   height={28}
                   className="h-7 w-auto brightness-0 invert"
                 />
@@ -246,6 +314,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
     </main>
   )
 }
