@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { headers } from 'next/headers'
 import Link from 'next/link'
+import ShelfGrid from '@/app/components/ShelfGrid'
 
 export const revalidate = 0
 
@@ -9,15 +10,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SECRET_KEY!
 )
-
-const CONDITIONS: Record<string, string> = {
-  like_new: 'Like New',
-  very_good: 'Very Good',
-  good: 'Good',
-  acceptable: 'Acceptable',
-}
-
-const APP_STORE_URL = 'https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=shelf&utm_medium=share'
 
 type Props = {
   params: Promise<{ username: string }>
@@ -96,6 +88,8 @@ export default async function SellerShelfPage({ params }: Props) {
     books: { cover_url: string | null } | null
   }>
 
+  const APP_STORE_URL = `https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=shelf&utm_medium=share&utm_campaign=${user.username}`
+
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
@@ -126,52 +120,7 @@ export default async function SellerShelfPage({ params }: Props) {
       </div>
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: 24 }}>
-        {safeListings.length === 0 ? (
-          <p style={{ color: '#999', fontSize: 15, textAlign: 'center', paddingTop: 48 }}>
-            Nothing listed yet.
-          </p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 }}>
-            {safeListings.map((listing) => (
-              <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden' }}>
-                <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  {listing.books?.cover_url ? (
-                    <img
-                      src={listing.books.cover_url}
-                      alt={listing.title}
-                      style={{ height: '100%', width: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, padding: 8, textAlign: 'center' }}>
-                      {listing.title}
-                    </span>
-                  )}
-                </div>
-                <div style={{ padding: 12 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 3 }}>
-                    {listing.title}
-                  </div>
-                  {listing.author && (
-                    <div style={{ fontSize: 12, color: '#999', marginBottom: 10 }}>
-                      {listing.author}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <span style={{ fontSize: 15, fontWeight: 500, color: '#2D4A3E' }}>
-                      £{Number(listing.asking_price_gbp).toFixed(2)}
-                    </span>
-                    <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                      {CONDITIONS[listing.condition] ?? listing.condition}
-                    </span>
-                  </div>
-                  <a href={`/listing/${listing.id}`} style={{ display: 'block', textAlign: 'center', background: '#2D4A3E', color: '#FAF8F5', fontSize: 13, fontWeight: 500, padding: '9px 0', borderRadius: 6, textDecoration: 'none' }}>
-                    Buy on Sell Your Shelf
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <ShelfGrid listings={safeListings} />
       </div>
 
       <div style={{ background: '#2D4A3E', padding: '16px 24px', marginTop: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
