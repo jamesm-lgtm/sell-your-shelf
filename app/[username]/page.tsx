@@ -119,7 +119,7 @@ export default async function SellerShelfPage({ params }: Props) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 840, margin: '0 auto', padding: 24 }}>
+      <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
         <ShelfGrid listings={safeListings} />
       </div>
 
