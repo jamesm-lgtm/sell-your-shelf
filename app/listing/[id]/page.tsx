@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
+import { headers } from 'next/headers'
 import Link from 'next/link'
 
 export const revalidate = 0
@@ -62,6 +63,14 @@ export default async function ListingPage({ params }: Props) {
 
   if (error || !listing) return notFound()
 
+  const headersList = await headers()
+  const referrer = headersList.get('referer') ?? null
+
+  await supabase.from('listing_views').insert({
+    listing_id: listing.id,
+    referrer,
+  })
+
   const cover = (listing.books as any)?.cover_url
   const description = (listing.books as any)?.description
   const category = (listing.books as any)?.category
@@ -71,21 +80,20 @@ export default async function ListingPage({ params }: Props) {
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
-      {/* Deep link script — tries to open app, falls back to App Store */}
       <script dangerouslySetInnerHTML={{ __html: `
-  (function() {
-    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (!isMobile) return;
-    var appUrl = 'sellyourshelf://listing/${listing.id}';
-    var start = Date.now();
-    window.location.href = appUrl;
-    setTimeout(function() {
-      if (Date.now() - start < 2500) {
-        window.location.href = '${appStoreUrl}';
-      }
-    }, 2000);
-  })();
-`}} />
+        (function() {
+          var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          if (!isMobile) return;
+          var appUrl = 'sellyourshelf://listing/${listing.id}';
+          var start = Date.now();
+          window.location.href = appUrl;
+          setTimeout(function() {
+            if (Date.now() - start < 2500) {
+              window.location.href = '${appStoreUrl}';
+            }
+          }, 2000);
+        })();
+      `}} />
 
       <nav style={{ background: '#2D4A3E', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, textDecoration: 'none' }}>
@@ -165,8 +173,7 @@ export default async function ListingPage({ params }: Props) {
             Download the app to purchase — secure payments, tracked shipping
           </p>
           
-          <a
-            href={appStoreUrl}
+          <a  href={appStoreUrl}
             style={{ display: 'inline-block', background: '#FAF8F5', color: '#2D4A3E', fontSize: 14, fontWeight: 600, padding: '12px 32px', borderRadius: 8, textDecoration: 'none' }}
           >
             Download on the App Store

@@ -4,7 +4,7 @@ export async function GET() {
       apps: [],
       details: [
         {
-          appID: '8T8DTZ5WLY.com.sellyourshelf.app',
+          appID: '8T8DTZ5WLY.com.anonymous.SellYourShelf',
           paths: ['/listing/*', '/*']
         }
       ]
