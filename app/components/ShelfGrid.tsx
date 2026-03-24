@@ -10,10 +10,12 @@ type Listing = {
   asking_price_gbp: number
   condition: string
   books: { cover_url: string | null } | null
+  users?: { username: string } | null
 }
 
 type Props = {
   listings: Listing[]
+  showSeller?: boolean
 }
 
 const CONDITIONS: Record<string, string> = {
@@ -30,7 +32,7 @@ const CONDITION_ORDER: Record<string, number> = {
   acceptable: 3,
 }
 
-export default function ShelfGrid({ listings }: Props) {
+export default function ShelfGrid({ listings, showSeller = false }: Props) {
   const [sort, setSort] = useState<'newest' | 'price_asc' | 'price_desc'>('newest')
   const [condition, setCondition] = useState<string>('all')
 
@@ -110,9 +112,17 @@ export default function ShelfGrid({ listings }: Props) {
                   {listing.title}
                 </div>
                 {listing.author && (
-                  <div style={{ fontSize: 12, color: '#999', marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
                     {listing.author}
                   </div>
+                )}
+                {showSeller && listing.users?.username && (
+                  <Link
+                    href={`/${listing.users.username}`}
+                    style={{ fontSize: 11, color: '#2D4A3E', textDecoration: 'none', display: 'block', marginBottom: 8 }}
+                  >
+                    @{listing.users.username}
+                  </Link>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <span style={{ fontSize: 15, fontWeight: 500, color: '#2D4A3E' }}>
