@@ -24,6 +24,14 @@ export default function MarkdownRenderer({ content }: { content: string }) {
         p: ({ children }) => (
           <p className="text-gray-600 leading-relaxed mb-4">{children}</p>
         ),
+        img: ({ src, alt }) => (
+          <img
+            src={src}
+            alt={alt}
+            className="w-full rounded-lg my-6"
+            style={{ border: '1px solid #E5E3DF' }}
+          />
+        ),
         ul: ({ children }) => (
           <ul className="text-gray-600 leading-relaxed mb-4 ml-5 list-disc space-y-1.5">
             {children}

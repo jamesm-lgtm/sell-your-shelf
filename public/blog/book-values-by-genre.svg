@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" font-family="Georgia, serif">
+  <!-- Background -->
+  <rect width="800" height="480" fill="#FAF8F5" rx="16"/>
+  
+  <!-- Title -->
+  <text x="40" y="44" font-size="22" fill="#1a1a1a" font-weight="bold">What are your books worth?</text>
+  <text x="40" y="68" font-size="13" fill="#999" font-family="system-ui, sans-serif">Typical secondhand prices by genre (£)</text>
+
+  <!-- Grid lines -->
+  <line x1="220" y1="90" x2="220" y2="440" stroke="#E5E3DF" stroke-width="1"/>
+  <line x1="348" y1="90" x2="348" y2="440" stroke="#E5E3DF" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="476" y1="90" x2="476" y2="440" stroke="#E5E3DF" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="604" y1="90" x2="604" y2="440" stroke="#E5E3DF" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="732" y1="90" x2="732" y2="440" stroke="#E5E3DF" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- Axis labels -->
+  <text x="220" y="458" font-size="11" fill="#999" text-anchor="middle" font-family="system-ui, sans-serif">£0</text>
+  <text x="348" y="458" font-size="11" fill="#999" text-anchor="middle" font-family="system-ui, sans-serif">£5</text>
+  <text x="476" y="458" font-size="11" fill="#999" text-anchor="middle" font-family="system-ui, sans-serif">£10</text>
+  <text x="604" y="458" font-size="11" fill="#999" text-anchor="middle" font-family="system-ui, sans-serif">£15</text>
+  <text x="732" y="458" font-size="11" fill="#999" text-anchor="middle" font-family="system-ui, sans-serif">£20</text>
+
+  <!-- Textbooks: £5-20 -->
+  <text x="210" y="118" font-size="13" fill="#1a1a1a" text-anchor="end" font-family="system-ui, sans-serif">Textbooks</text>
+  <rect x="220" y="100" width="512" height="28" fill="#2D4A3E" rx="4" opacity="0.15"/>
+  <rect x="220" y="100" width="512" height="28" fill="#2D4A3E" rx="4" opacity="0.9"/>
+  <text x="740" y="119" font-size="12" fill="white" text-anchor="end" font-weight="bold" font-family="system-ui, sans-serif">£5–20+</text>
+
+  <!-- Self-help & business: £5-8 -->
+  <text x="210" y="163" font-size="13" fill="#1a1a1a" text-anchor="end" font-family="system-ui, sans-serif">Self-help &amp; business</text>
+  <rect x="220" y="145" width="205" height="28" fill="#2D4A3E" rx="4" opacity="0.82"/>
+  <text x="417" y="164" font-size="12" fill="white" text-anchor="end" font-weight="bold" font-family="system-ui, sans-serif">£5–8</text>
+
+  <!-- Popular science: £5-7 -->
+  <text x="210" y="208" font-size="13" fill="#1a1a1a" text-anchor="end" font-family="system-ui, sans-serif">Popular science</text>
+  <rect x="220" y="190" width="179" height="28" fill="#2D4A3E" rx="4" opacity="0.74"/>
+  <text x="391" y="209" font-size="12" fill="white" text-anchor="end" font-weight="bold" font-family="system-ui, sans-serif">£5–7</text>
+
+  <!-- Recent bestsellers: £4-7 -->
+  <text x="210" y="253" font-size="13" fill="#1a1a1a" text-anchor="end" font-family="system-ui, sans-serif">Recent bestsellers</text>
+  <rect x="220" y="235" width="179" height="28" fill="#2D4A3E" rx="4" opacity="0.66"/>
+  <text x="391" y="254" font-size="12" fill="white" text-anchor="end" font-weight="bold" font-family="system-ui, sans-serif">£4–7</text>
+
+  <!-- Literary fiction: £4-6 -->
+  <text x="210" y="298" font-size="13" fill="#1a1a1a" text-anchor="end" font-family="system-ui, sans-serif">Literary fiction</text>
+  <rect x="220" y="280" width="154" height="28" fill="#2D4A3E" rx="4" opacity="0.58"/>
+  <text x="366" y="299" font-size="12" fill="white" text-anchor="end" font-weight="bold" font-family="system-ui, sans-serif">£4–6</text>
+
+  <!-- Cookbooks: £3-6 -->
+  <text x="210" y="343" font-size="13" fill="#1a1a1a" text-anchor="end" font-family="system-ui, sans-serif">Cookbooks</text>
+  <rect x="220" y="325" width="154" height="28" fill="#2D4A3E" rx="4" opacity="0.50"/>
+  <text x="366" y="344" font-size="12" fill="white" text-anchor="end" font-weight="bold" font-family="system-ui, sans-serif">£3–6</text>
+
+  <!-- Children's books: £2-5 -->
+  <text x="210" y="388" font-size="13" fill="#1a1a1a" text-anchor="end" font-family="system-ui, sans-serif">Children's books</text>
+  <rect x="220" y="370" width="128" height="28" fill="#2D4A3E" rx="4" opacity="0.42"/>
+  <text x="340" y="389" font-size="12" fill="white" text-anchor="end" font-weight="bold" font-family="system-ui, sans-serif">£2–5</text>
+
+  <!-- Thrillers & romance: £1-3 -->
+  <text x="210" y="433" font-size="13" fill="#1a1a1a" text-anchor="end" font-family="system-ui, sans-serif">Thrillers &amp; romance</text>
+  <rect x="220" y="415" width="77" height="28" fill="#2D4A3E" rx="4" opacity="0.30"/>
+  <text x="305" y="434" font-size="12" fill="#2D4A3E" text-anchor="start" font-weight="bold" font-family="system-ui, sans-serif">£1–3</text>
+</svg>
