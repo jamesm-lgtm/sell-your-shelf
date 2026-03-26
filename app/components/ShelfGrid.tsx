@@ -93,7 +93,7 @@ export default function ShelfGrid({ listings, showSeller = false }: Props) {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 16 }}>
           {filtered.map((listing) => (
-            <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden' }}>
+            <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 {listing.books?.cover_url ? (
                   <img
@@ -107,7 +107,7 @@ export default function ShelfGrid({ listings, showSeller = false }: Props) {
                   </span>
                 )}
               </div>
-              <div style={{ padding: 12 }}>
+              <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 3 }}>
                   {listing.title}
                 </div>
@@ -124,20 +124,22 @@ export default function ShelfGrid({ listings, showSeller = false }: Props) {
                     @{listing.users.username}
                   </Link>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <span style={{ fontSize: 15, fontWeight: 500, color: '#2D4A3E' }}>
-                    £{Number(listing.asking_price_gbp).toFixed(2)}
-                  </span>
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                    {CONDITIONS[listing.condition] ?? listing.condition}
-                  </span>
+                <div style={{ marginTop: 'auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ fontSize: 15, fontWeight: 500, color: '#2D4A3E' }}>
+                      £{Number(listing.asking_price_gbp).toFixed(2)}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                      {CONDITIONS[listing.condition] ?? listing.condition}
+                    </span>
+                  </div>
+                  <Link
+                    href={`/listing/${listing.id}`}
+                    style={{ display: 'block', textAlign: 'center', background: '#2D4A3E', color: '#FAF8F5', fontSize: 13, fontWeight: 500, padding: '9px 0', borderRadius: 6, textDecoration: 'none' }}
+                  >
+                    View listing
+                  </Link>
                 </div>
-                <Link
-                  href={`/listing/${listing.id}`}
-                  style={{ display: 'block', textAlign: 'center', background: '#2D4A3E', color: '#FAF8F5', fontSize: 13, fontWeight: 500, padding: '9px 0', borderRadius: 6, textDecoration: 'none' }}
-                >
-                  Buy on Sell Your Shelf
-                </Link>
               </div>
             </div>
           ))}
