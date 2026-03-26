@@ -27,15 +27,14 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params
 
   const { data } = await supabase
-    .from('listings')
-    .select('title, author, asking_price_gbp, books(cover_url)')
+    .from('marketplace_listings')
+    .select('title, author, asking_price_gbp, edition_cover, work_cover')
     .eq('id', id)
-    .eq('status', 'active')
     .single()
 
   if (!data) return { title: 'Listing not found — Sell Your Shelf' }
 
-  const cover = (data.books as any)?.cover_url
+  const cover = data.edition_cover || data.work_cover
 
   return {
     title: `${data.title} — Sell Your Shelf`,
@@ -53,17 +52,21 @@ export default async function ListingPage({ params }: Props) {
   const { id } = await params
 
   const { data: listing, error } = await supabase
-    .from('listings')
-    .select(`
-      id, title, author, asking_price_gbp, condition, notes, book_id,
-      books(cover_url, description, category, title_normalized, author_normalized),
-      users(username)
-    `)
+    .from('marketplace_listings')
+    .select('*')
     .eq('id', id)
-    .eq('status', 'active')
     .single()
 
   if (error || !listing) return notFound()
+
+  // Check listing is still active (marketplace_listings is a view, double-check status)
+  const { data: rawListing } = await supabase
+    .from('listings')
+    .select('status')
+    .eq('id', id)
+    .single()
+
+  if (!rawListing || rawListing.status !== 'active') return notFound()
 
   const headersList = await headers()
   const referrer = headersList.get('referer') ?? null
@@ -73,21 +76,28 @@ export default async function ListingPage({ params }: Props) {
     referrer,
   })
 
-  const cover = (listing.books as any)?.cover_url
-  const description = (listing.books as any)?.description
-  const category = (listing.books as any)?.category
-  const titleNormalized = (listing.books as any)?.title_normalized
-  const authorNormalized = (listing.books as any)?.author_normalized
-  const username = (listing.users as any)?.username
+  // Use edition cover if available, fallback to work cover
+  const cover = listing.edition_cover || listing.work_cover
+  const description = listing.edition_description || listing.work_description || listing.description
+  const category = listing.category
+  const username = listing.seller_name
+  const hasEditionData = !!(listing.edition_cover || listing.edition_publisher || listing.edition_page_count)
 
-  const bookSlug = listing.book_id && titleNormalized
-    ? `${titleNormalized}-${authorNormalized || ''}`
+  // Get normalized fields for slug from books table
+  const { data: bookData } = listing.book_id ? await supabase
+    .from('books')
+    .select('title_normalized, author_normalized, slug')
+    .eq('id', listing.book_id)
+    .single() : { data: null }
+
+  const bookSlug = bookData?.slug || (bookData?.title_normalized
+    ? `${bookData.title_normalized}-${bookData.author_normalized || ''}`
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '')
-    : null
+    : null)
   const appStoreUrl = `https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=listing&utm_medium=web&utm_campaign=${id}`
 
   return (
@@ -138,7 +148,7 @@ export default async function ListingPage({ params }: Props) {
                 </div>
               )}
             </div>
-            {cover && (
+            {cover && !hasEditionData && (
               <p style={{ fontSize: 10, color: '#999', marginTop: 6, lineHeight: 1.4 }}>
                 Cover image is for illustration. Actual edition may vary.
               </p>
@@ -155,9 +165,41 @@ export default async function ListingPage({ params }: Props) {
               {listing.title}
             </h1>
             {listing.author && (
-              <p style={{ fontSize: 15, color: '#666', marginBottom: 20 }}>
+              <p style={{ fontSize: 15, color: '#666', marginBottom: 8 }}>
                 {listing.author}
               </p>
+            )}
+
+            {hasEditionData && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#DCFCE7', color: '#166534', fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 4, marginBottom: 12 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+                Specific Edition
+              </div>
+            )}
+
+            {(listing.isbn || listing.edition_publisher || listing.edition_page_count || listing.format) && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                {listing.format && (
+                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4, textTransform: 'capitalize' }}>
+                    {listing.format}
+                  </span>
+                )}
+                {listing.edition_publisher && (
+                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                    {listing.edition_publisher}
+                  </span>
+                )}
+                {listing.edition_page_count && (
+                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                    {listing.edition_page_count} pages
+                  </span>
+                )}
+                {listing.isbn && (
+                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                    ISBN: {listing.isbn}
+                  </span>
+                )}
+              </div>
             )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
