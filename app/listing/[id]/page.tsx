@@ -158,11 +158,6 @@ export default async function ListingPage({ params }: Props) {
               </Link>
             )}
 
-            {bookSlug && (
-              <Link href={`/books/${bookSlug}`} style={{ fontSize: 13, color: '#2D4A3E', textDecoration: 'none', display: 'block', marginTop: 8 }}>
-                See all copies of this book →
-              </Link>
-            )}
           </div>
         </div>
 
@@ -174,7 +169,7 @@ export default async function ListingPage({ params }: Props) {
         )}
 
         {description && (
-          <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 13, color: '#999', fontWeight: 500, marginBottom: 8 }}>About this book</p>
             <p style={{ fontSize: 14, color: '#444', lineHeight: 1.7 }}>
               {description.length > 400 ? description.slice(0, 400) + '...' : description}
@@ -182,18 +177,28 @@ export default async function ListingPage({ params }: Props) {
           </div>
         )}
 
-        <div style={{ background: '#2D4A3E', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
-          <p style={{ color: '#FAF8F5', fontSize: 16, fontWeight: 500, marginBottom: 6 }}>
-            Buy this book on Sell Your Shelf
-          </p>
-          <p style={{ color: 'rgba(250,248,245,0.7)', fontSize: 13, marginBottom: 20 }}>
-            Download the app to purchase — secure payments, tracked shipping
-          </p>
-          
-          <a  href={appStoreUrl}
-            style={{ display: 'inline-block', background: '#FAF8F5', color: '#2D4A3E', fontSize: 14, fontWeight: 600, padding: '12px 32px', borderRadius: 8, textDecoration: 'none' }}
+        {bookSlug && (
+          <Link
+            href={`/books/${bookSlug}`}
+            style={{ display: 'block', textAlign: 'center', background: '#2D4A3E', color: '#FAF8F5', fontSize: 14, fontWeight: 600, padding: '14px 32px', borderRadius: 8, textDecoration: 'none', marginBottom: 32 }}
           >
-            Download on the App Store
+            Buy available copies →
+          </Link>
+        )}
+
+        <div style={{ background: '#F0EDE8', borderRadius: 12, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', marginBottom: 2 }}>
+              Want to sell your books?
+            </p>
+            <p style={{ fontSize: 12, color: '#666' }}>
+              List 30 books in 90 seconds with AI shelf scanning
+            </p>
+          </div>
+          <a href={appStoreUrl}
+            style={{ background: '#2D4A3E', color: '#FAF8F5', fontSize: 13, fontWeight: 500, padding: '9px 20px', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}
+          >
+            Get the app
           </a>
         </div>
 
