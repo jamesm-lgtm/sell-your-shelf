@@ -79,6 +79,7 @@ export default async function SellerShelfPage({ params }: Props) {
   await supabase.from('shelf_visits').insert({
     username: user.username,
     referrer,
+    platform: 'web',
   })
 
   const safeListings = (listings ?? []) as unknown as Array<{

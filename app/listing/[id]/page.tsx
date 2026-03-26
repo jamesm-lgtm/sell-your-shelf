@@ -74,6 +74,7 @@ export default async function ListingPage({ params }: Props) {
   await supabase.from('listing_views').insert({
     listing_id: listing.id,
     referrer,
+    platform: 'web',
   })
 
   // Use edition cover if available, fallback to work cover
