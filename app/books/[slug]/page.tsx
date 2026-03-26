@@ -229,14 +229,9 @@ export default async function BookPage({ params }: Props) {
                     border: '0.5px solid #E5E3DF',
                     borderRadius: 10,
                     padding: '16px 20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    flexWrap: 'wrap',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                     <span style={{
                       fontSize: 12,
                       fontWeight: 500,
@@ -255,8 +250,8 @@ export default async function BookPage({ params }: Props) {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <span style={{ fontSize: 18, fontWeight: 600, color: '#2D4A3E' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 20, fontWeight: 600, color: '#2D4A3E' }}>
                       £{Number(listing.asking_price_gbp).toFixed(2)}
                     </span>
                     <Link
@@ -266,7 +261,7 @@ export default async function BookPage({ params }: Props) {
                         color: '#FAF8F5',
                         fontSize: 13,
                         fontWeight: 500,
-                        padding: '9px 20px',
+                        padding: '10px 24px',
                         borderRadius: 6,
                         textDecoration: 'none',
                         whiteSpace: 'nowrap',

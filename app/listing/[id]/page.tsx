@@ -203,8 +203,8 @@ export default async function ListingPage({ params }: Props) {
               </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <span style={{ fontSize: 28, fontWeight: 600, color: '#2D4A3E' }}>
+            <div style={{ marginBottom: 20 }}>
+              <span style={{ fontSize: 28, fontWeight: 600, color: '#2D4A3E', display: 'block', marginBottom: 8 }}>
                 £{Number(listing.asking_price_gbp).toFixed(2)}
               </span>
               <span style={{ fontSize: 12, color: '#666', background: '#F0EDE8', padding: '4px 10px', borderRadius: 4 }}>
