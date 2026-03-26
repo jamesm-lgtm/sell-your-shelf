@@ -120,9 +120,10 @@ export default async function BookPage({ params }: Props) {
 
   const { data: listings } = await supabase
     .from('listings')
-    .select('id, asking_price_gbp, condition, notes, users(username, location)')
+    .select('id, asking_price_gbp, condition, notes, users!inner(username, location, deleted_at)')
     .eq('book_id', book.id)
     .eq('status', 'active')
+    .is('users.deleted_at', null)
     .order('asking_price_gbp', { ascending: true })
 
   if (!listings || listings.length === 0) return notFound()

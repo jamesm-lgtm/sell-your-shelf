@@ -30,9 +30,10 @@ export default async function NewInPage() {
     .select(`
       id, title, author, asking_price_gbp, condition,
       books(cover_url),
-      users(username)
+      users!inner(username, deleted_at)
     `)
     .eq('status', 'active')
+    .is('users.deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(200)
 

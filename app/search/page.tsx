@@ -37,9 +37,10 @@ export default async function SearchPage({ searchParams }: Props) {
       .select(`
         id, title, author, asking_price_gbp, condition,
         books(cover_url),
-        users(username)
+        users!inner(username, deleted_at)
       `)
       .eq('status', 'active')
+      .is('users.deleted_at', null)
       .ilike('title', `%${q}%`)
       .order('created_at', { ascending: false })
       .limit(100)
@@ -49,9 +50,10 @@ export default async function SearchPage({ searchParams }: Props) {
       .select(`
         id, title, author, asking_price_gbp, condition,
         books(cover_url),
-        users(username)
+        users!inner(username, deleted_at)
       `)
       .eq('status', 'active')
+      .is('users.deleted_at', null)
       .ilike('author', `%${q}%`)
       .order('created_at', { ascending: false })
       .limit(100)
