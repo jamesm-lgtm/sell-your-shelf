@@ -171,13 +171,20 @@ export default async function BookPage({ params }: Props) {
 
         {/* Book header */}
         <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 32, alignItems: 'start', marginBottom: 40 }}>
-          <div style={{ borderRadius: 10, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3' }}>
-            {book.cover_url ? (
-              <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, padding: 8, textAlign: 'center' }}>{book.title}</span>
-              </div>
+          <div>
+            <div style={{ borderRadius: 10, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3' }}>
+              {book.cover_url ? (
+                <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, padding: 8, textAlign: 'center' }}>{book.title}</span>
+                </div>
+              )}
+            </div>
+            {book.cover_url && (
+              <p style={{ fontSize: 10, color: '#999', marginTop: 6, lineHeight: 1.4 }}>
+                Cover image is for illustration. Actual edition may vary.
+              </p>
             )}
           </div>
 

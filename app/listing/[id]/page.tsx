@@ -128,13 +128,20 @@ export default async function ListingPage({ params }: Props) {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 32, alignItems: 'start', marginBottom: 32 }}>
-          <div style={{ borderRadius: 10, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3' }}>
-            {cover ? (
-              <img src={cover} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, padding: 8, textAlign: 'center' }}>{listing.title}</span>
-              </div>
+          <div>
+            <div style={{ borderRadius: 10, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3' }}>
+              {cover ? (
+                <img src={cover} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, padding: 8, textAlign: 'center' }}>{listing.title}</span>
+                </div>
+              )}
+            </div>
+            {cover && (
+              <p style={{ fontSize: 10, color: '#999', marginTop: 6, lineHeight: 1.4 }}>
+                Cover image is for illustration. Actual edition may vary.
+              </p>
             )}
           </div>
 
