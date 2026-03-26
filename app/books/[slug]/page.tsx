@@ -32,32 +32,44 @@ function generateSlug(title: string, author: string): string {
     .replace(/^-|-$/g, '')
 }
 
+async function findBookBySlug(slug: string) {
+  // Parse slug to extract likely title and author words for a targeted query
+  // Use ilike search on normalized fields to narrow results, then verify slug match
+  const words = slug.split('-').filter(Boolean)
+  if (words.length === 0) return null
+
+  // Search for books where normalized title+author contains slug words
+  // Use first few words for title search to narrow down
+  const searchTerm = words.slice(0, 3).join(' ')
+
+  const { data: candidates } = await supabase
+    .from('books')
+    .select('id, title, author, title_normalized, author_normalized, cover_url, description, isbn')
+    .or(`title_normalized.ilike.%${searchTerm}%,author_normalized.ilike.%${searchTerm}%`)
+    .limit(50)
+
+  if (!candidates || candidates.length === 0) return null
+
+  // Find exact slug match
+  return candidates.find(b => {
+    const bookSlug = generateSlug(
+      b.title_normalized || b.title,
+      b.author_normalized || b.author || ''
+    )
+    return bookSlug === slug
+  }) ?? null
+}
+
 type Props = {
   params: Promise<{ slug: string }>
 }
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params
-
-  // Fetch all books where language is null or 'en'
-  const { data: books } = await supabase
-    .from('books')
-    .select('id, title, author, title_normalized, author_normalized, cover_url, isbn')
-
-  if (!books || books.length === 0) return { title: 'Book not found — Sell Your Shelf' }
-
-  // Find book matching slug
-  const book = books.find(b => {
-    const bookSlug = generateSlug(
-      b.title_normalized || b.title,
-      b.author_normalized || b.author || ''
-    )
-    return bookSlug === slug
-  })
+  const book = await findBookBySlug(slug)
 
   if (!book) return { title: 'Book not found — Sell Your Shelf' }
 
-  // Get active listings for this book
   const { data: listings } = await supabase
     .from('listings')
     .select('asking_price_gbp')
@@ -80,26 +92,10 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function BookPage({ params }: Props) {
   const { slug } = await params
-
-  // Fetch all English/null-language books
-  const { data: books } = await supabase
-    .from('books')
-    .select('id, title, author, title_normalized, author_normalized, cover_url, description, isbn')
-
-  if (!books || books.length === 0) return notFound()
-
-  // Find book matching slug
-  const book = books.find(b => {
-    const bookSlug = generateSlug(
-      b.title_normalized || b.title,
-      b.author_normalized || b.author || ''
-    )
-    return bookSlug === slug
-  })
+  const book = await findBookBySlug(slug)
 
   if (!book) return notFound()
 
-  // Fetch active listings for this book
   const { data: listings } = await supabase
     .from('listings')
     .select('id, asking_price_gbp, condition, notes, users(username, location)')
