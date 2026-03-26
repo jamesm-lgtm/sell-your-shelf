@@ -44,6 +44,14 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
         <Link href="/" style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, textDecoration: 'none' }}>
           Sell Your Shelf
         </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <Link href="/new" style={{ color: 'rgba(250,248,245,0.8)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+            Browse
+          </Link>
+          <Link href="/support" style={{ color: 'rgba(250,248,245,0.8)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+            Support
+          </Link>
+        </div>
       </nav>
 
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '48px 24px', textAlign: 'center' }}>

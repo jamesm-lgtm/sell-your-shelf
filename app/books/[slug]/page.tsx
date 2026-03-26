@@ -143,9 +143,17 @@ export default async function BookPage({ params }: Props) {
         <Link href="/" style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, textDecoration: 'none' }}>
           Sell Your Shelf
         </Link>
-        <Link href="/new" style={{ background: '#FAF8F5', color: '#2D4A3E', fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 6, textDecoration: 'none' }}>
-          Browse books
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <Link href="/new" style={{ color: 'rgba(250,248,245,0.8)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+            Browse
+          </Link>
+          <Link href="/support" style={{ color: 'rgba(250,248,245,0.8)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+            Support
+          </Link>
+          <a href="https://apps.apple.com/gb/app/sell-your-shelf/id6739630632" style={{ background: '#FAF8F5', color: '#2D4A3E', fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 6, textDecoration: 'none' }}>
+            Get the app
+          </a>
+        </div>
       </nav>
 
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 24px' }}>
