@@ -16,6 +16,7 @@ type Listing = {
 type Props = {
   listings: Listing[]
   showSeller?: boolean
+  pageSize?: number
 }
 
 const CONDITIONS: Record<string, string> = {
@@ -32,9 +33,10 @@ const CONDITION_ORDER: Record<string, number> = {
   acceptable: 3,
 }
 
-export default function ShelfGrid({ listings, showSeller = false }: Props) {
+export default function ShelfGrid({ listings, showSeller = false, pageSize = 24 }: Props) {
   const [sort, setSort] = useState<'newest' | 'price_asc' | 'price_desc'>('newest')
   const [condition, setCondition] = useState<string>('all')
+  const [visibleCount, setVisibleCount] = useState(pageSize)
 
   const filtered = listings
     .filter(l => condition === 'all' || l.condition === condition)
@@ -44,8 +46,16 @@ export default function ShelfGrid({ listings, showSeller = false }: Props) {
       return 0
     })
 
+  const visible = filtered.slice(0, visibleCount)
+  const hasMore = visibleCount < filtered.length
+
   const activeConditions = Array.from(new Set(listings.map(l => l.condition)))
     .sort((a, b) => CONDITION_ORDER[a] - CONDITION_ORDER[b])
+
+  const handleFilterChange = (newCondition: string) => {
+    setCondition(newCondition)
+    setVisibleCount(pageSize)
+  }
 
   return (
     <div>
@@ -53,7 +63,7 @@ export default function ShelfGrid({ listings, showSeller = false }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
-            onClick={() => setCondition('all')}
+            onClick={() => handleFilterChange('all')}
             style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, border: '0.5px solid', cursor: 'pointer', background: condition === 'all' ? '#2D4A3E' : '#fff', color: condition === 'all' ? '#FAF8F5' : '#666', borderColor: condition === 'all' ? '#2D4A3E' : '#E5E3DF' }}
           >
             All
@@ -61,7 +71,7 @@ export default function ShelfGrid({ listings, showSeller = false }: Props) {
           {activeConditions.map(c => (
             <button
               key={c}
-              onClick={() => setCondition(c)}
+              onClick={() => handleFilterChange(c)}
               style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, border: '0.5px solid', cursor: 'pointer', background: condition === c ? '#2D4A3E' : '#fff', color: condition === c ? '#FAF8F5' : '#666', borderColor: condition === c ? '#2D4A3E' : '#E5E3DF' }}
             >
               {CONDITIONS[c] ?? c}
@@ -91,59 +101,81 @@ export default function ShelfGrid({ listings, showSeller = false }: Props) {
           No books match this filter.
         </p>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 16 }}>
-          {filtered.map((listing) => (
-            <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {listing.books?.cover_url ? (
-                  <img
-                    src={listing.books.cover_url}
-                    alt={listing.title}
-                    style={{ height: '100%', width: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, padding: 8, textAlign: 'center' }}>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 16 }}>
+            {visible.map((listing) => (
+              <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {listing.books?.cover_url ? (
+                    <img
+                      src={listing.books.cover_url}
+                      alt={listing.title}
+                      style={{ height: '100%', width: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, padding: 8, textAlign: 'center' }}>
+                      {listing.title}
+                    </span>
+                  )}
+                </div>
+                <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 3 }}>
                     {listing.title}
-                  </span>
-                )}
-              </div>
-              <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 3 }}>
-                  {listing.title}
-                </div>
-                {listing.author && (
-                  <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
-                    {listing.author}
                   </div>
-                )}
-                {showSeller && listing.users?.username && (
-                  <Link
-                    href={`/${listing.users.username}`}
-                    style={{ fontSize: 11, color: '#2D4A3E', textDecoration: 'none', display: 'block', marginBottom: 8 }}
-                  >
-                    @{listing.users.username}
-                  </Link>
-                )}
-                <div style={{ marginTop: 'auto' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <span style={{ fontSize: 15, fontWeight: 500, color: '#2D4A3E' }}>
-                      £{Number(listing.asking_price_gbp).toFixed(2)}
-                    </span>
-                    <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                      {CONDITIONS[listing.condition] ?? listing.condition}
-                    </span>
+                  {listing.author && (
+                    <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
+                      {listing.author}
+                    </div>
+                  )}
+                  {showSeller && listing.users?.username && (
+                    <Link
+                      href={`/${listing.users.username}`}
+                      style={{ fontSize: 11, color: '#2D4A3E', textDecoration: 'none', display: 'block', marginBottom: 8 }}
+                    >
+                      @{listing.users.username}
+                    </Link>
+                  )}
+                  <div style={{ marginTop: 'auto' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <span style={{ fontSize: 15, fontWeight: 500, color: '#2D4A3E' }}>
+                        £{Number(listing.asking_price_gbp).toFixed(2)}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                        {CONDITIONS[listing.condition] ?? listing.condition}
+                      </span>
+                    </div>
+                    <Link
+                      href={`/listing/${listing.id}`}
+                      style={{ display: 'block', textAlign: 'center', background: '#2D4A3E', color: '#FAF8F5', fontSize: 13, fontWeight: 500, padding: '9px 0', borderRadius: 6, textDecoration: 'none' }}
+                    >
+                      View listing
+                    </Link>
                   </div>
-                  <Link
-                    href={`/listing/${listing.id}`}
-                    style={{ display: 'block', textAlign: 'center', background: '#2D4A3E', color: '#FAF8F5', fontSize: 13, fontWeight: 500, padding: '9px 0', borderRadius: 6, textDecoration: 'none' }}
-                  >
-                    View listing
-                  </Link>
                 </div>
               </div>
+            ))}
+          </div>
+
+          {hasMore && (
+            <div style={{ textAlign: 'center', marginTop: 32 }}>
+              <button
+                onClick={() => setVisibleCount(prev => prev + pageSize)}
+                style={{
+                  background: '#fff',
+                  border: '1px solid #2D4A3E',
+                  color: '#2D4A3E',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  padding: '12px 40px',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                }}
+              >
+                Load more ({filtered.length - visibleCount} remaining)
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   )

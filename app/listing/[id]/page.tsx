@@ -110,12 +110,35 @@ export default async function ListingPage({ params }: Props) {
         <Link href="/" style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, textDecoration: 'none' }}>
           Sell Your Shelf
         </Link>
-        <a href={appStoreUrl} style={{ background: '#FAF8F5', color: '#2D4A3E', fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 6, textDecoration: 'none' }}>
-          Get the app
-        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <Link href="/new" style={{ color: 'rgba(250,248,245,0.8)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+            Browse
+          </Link>
+          <Link href="/support" style={{ color: 'rgba(250,248,245,0.8)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+            Support
+          </Link>
+          <a href={appStoreUrl} style={{ background: '#FAF8F5', color: '#2D4A3E', fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 6, textDecoration: 'none' }}>
+            Get the app
+          </a>
+        </div>
       </nav>
 
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 24px' }}>
+
+        {/* Breadcrumbs */}
+        <div style={{ fontSize: 12, color: '#999', marginBottom: 20, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
+          <span style={{ color: '#ccc' }}>/</span>
+          <Link href="/new" style={{ color: '#999', textDecoration: 'none' }}>Browse</Link>
+          {bookSlug && (
+            <>
+              <span style={{ color: '#ccc' }}>/</span>
+              <Link href={`/books/${bookSlug}`} style={{ color: '#999', textDecoration: 'none' }}>{listing.title}</Link>
+            </>
+          )}
+          <span style={{ color: '#ccc' }}>/</span>
+          <span style={{ color: '#666' }}>This copy</span>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 32, alignItems: 'start', marginBottom: 32 }}>
           <div style={{ borderRadius: 10, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3' }}>

@@ -166,6 +166,15 @@ export default async function BookPage({ params }: Props) {
 
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 24px' }}>
 
+        {/* Breadcrumbs */}
+        <div style={{ fontSize: 12, color: '#999', marginBottom: 20, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
+          <span style={{ color: '#ccc' }}>/</span>
+          <Link href="/new" style={{ color: '#999', textDecoration: 'none' }}>Browse</Link>
+          <span style={{ color: '#ccc' }}>/</span>
+          <span style={{ color: '#666' }}>{book.title}</span>
+        </div>
+
         {/* Book header */}
         <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 32, alignItems: 'start', marginBottom: 40 }}>
           <div style={{ borderRadius: 10, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3' }}>
