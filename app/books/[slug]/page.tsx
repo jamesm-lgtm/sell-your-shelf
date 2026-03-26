@@ -33,48 +33,45 @@ function generateSlug(title: string, author: string): string {
 }
 
 async function findBookBySlug(slug: string) {
-  // Extract individual words from slug and search for books matching any of them
   const words = slug.split('-').filter(w => w.length > 2)
   if (words.length === 0) return null
 
-  // Search using first word in title and last word in author (most discriminating)
-  const firstWord = words[0]
-  const lastWord = words[words.length - 1]
+  const bookFields = 'id, title, author, title_normalized, author_normalized, cover_url, description, isbn'
 
-  const { data: candidates } = await supabase
-    .from('books')
-    .select('id, title, author, title_normalized, author_normalized, cover_url, description, isbn')
-    .ilike('title_normalized', `%${firstWord}%`)
-    .ilike('author_normalized', `%${lastWord}%`)
-    .limit(100)
+  // Trim trailing 's' from search words to handle apostrophe cases
+  // e.g. "hunters" in slug should match "hunter's" in DB
+  const fuzzyWord = (w: string) => w.replace(/s$/, '')
 
-  if (candidates && candidates.length > 0) {
-    const match = candidates.find(b => {
-      const bookSlug = generateSlug(
-        b.title_normalized || b.title,
-        b.author_normalized || b.author || ''
-      )
-      return bookSlug === slug
-    })
-    if (match) return match
-  }
+  const firstWord = fuzzyWord(words[0])
+  const lastWord = fuzzyWord(words[words.length - 1])
 
-  // Fallback: broader search using just the first word
-  const { data: fallback } = await supabase
-    .from('books')
-    .select('id, title, author, title_normalized, author_normalized, cover_url, description, isbn')
-    .ilike('title_normalized', `%${firstWord}%`)
-    .limit(200)
-
-  if (!fallback || fallback.length === 0) return null
-
-  return fallback.find(b => {
+  const matchSlug = (b: any) => {
     const bookSlug = generateSlug(
       b.title_normalized || b.title,
       b.author_normalized || b.author || ''
     )
     return bookSlug === slug
-  }) ?? null
+  }
+
+  // Try: first word in title AND last word in author
+  const { data: candidates } = await supabase
+    .from('books')
+    .select(bookFields)
+    .ilike('title_normalized', `%${firstWord}%`)
+    .ilike('author_normalized', `%${lastWord}%`)
+    .limit(100)
+
+  const match1 = candidates?.find(matchSlug)
+  if (match1) return match1
+
+  // Fallback: just first word in title (broader)
+  const { data: fallback } = await supabase
+    .from('books')
+    .select(bookFields)
+    .ilike('title_normalized', `%${firstWord}%`)
+    .limit(200)
+
+  return fallback?.find(matchSlug) ?? null
 }
 
 type Props = {
