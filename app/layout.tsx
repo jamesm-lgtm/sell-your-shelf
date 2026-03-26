@@ -3,6 +3,10 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.sellyourshelf.com"),
+  alternates: {
+    canonical: './',
+  },
   title: "Sell Your Shelf — Turn your bookshelf into cash",
   description: "Scan your bookshelf in 90 seconds. Our AI identifies each book, prices it fairly, and connects you with readers. Keep £4-6 per book instead of pennies from trade-in services.",
   keywords: ["sell books", "secondhand books", "book marketplace", "sell used books UK"],

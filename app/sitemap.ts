@@ -153,5 +153,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Sitemap: failed to fetch sellers', e);
   }
 
-  return [...staticPages, ...blogPosts, ...bookPages, ...listingPages, ...sellerPages];
+  // Category pages
+  const categoryPages: MetadataRoute.Sitemap = [
+    'fiction', 'childrens', 'biography-memoir', 'self-help', 'history',
+    'reference-education', 'business-finance', 'travel', 'cookery-food',
+    'art-photography', 'science-nature', 'young-adult', 'comics-graphic-novels',
+    'sci-fi-fantasy', 'crime-thriller',
+  ].map(slug => ({
+    url: `https://www.sellyourshelf.com/category/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.8,
+  }));
+
+  return [...staticPages, ...blogPosts, ...categoryPages, ...bookPages, ...listingPages, ...sellerPages];
 }

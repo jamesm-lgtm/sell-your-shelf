@@ -11,7 +11,66 @@ const supabase = createClient(
   process.env.SUPABASE_SECRET_KEY!
 )
 
+const CATEGORY_LINKS = [
+  { slug: 'fiction', name: 'Fiction' },
+  { slug: 'childrens', name: "Children's" },
+  { slug: 'biography-memoir', name: 'Biography & Memoir' },
+  { slug: 'self-help', name: 'Self-Help' },
+  { slug: 'history', name: 'History' },
+  { slug: 'business-finance', name: 'Business & Finance' },
+  { slug: 'science-nature', name: 'Science & Nature' },
+  { slug: 'crime-thriller', name: 'Crime & Thriller' },
+  { slug: 'sci-fi-fantasy', name: 'Sci-Fi & Fantasy' },
+  { slug: 'travel', name: 'Travel' },
+]
+
+function generateSlug(title: string, author: string): string {
+  return `${title}-${author}`
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 export default async function Home() {
+  // Fetch popular books (books with most listings)
+  const { data: popularBooks } = await supabase
+    .from('books')
+    .select('id, title, author, title_normalized, author_normalized, cover_url, slug, category')
+    .not('cover_url', 'is', null)
+    .not('title_normalized', 'is', null)
+    .not('author_normalized', 'is', null)
+    .limit(500)
+
+  // Find books that have active listings and pick ones with covers
+  let featuredBooks: Array<{ title: string; author: string; cover_url: string; slug: string }> = []
+  if (popularBooks) {
+    const { data: activeCounts } = await supabase
+      .from('listings')
+      .select('book_id')
+      .eq('status', 'active')
+      .not('book_id', 'is', null)
+
+    if (activeCounts) {
+      const countMap = new Map<number, number>()
+      activeCounts.forEach((l: any) => {
+        countMap.set(l.book_id, (countMap.get(l.book_id) || 0) + 1)
+      })
+
+      featuredBooks = popularBooks
+        .filter(b => countMap.has(b.id) && b.cover_url)
+        .sort((a, b) => (countMap.get(b.id) || 0) - (countMap.get(a.id) || 0))
+        .slice(0, 8)
+        .map(b => ({
+          title: b.title,
+          author: b.author || '',
+          cover_url: b.cover_url!,
+          slug: b.slug || generateSlug(b.title_normalized || b.title, b.author_normalized || b.author || ''),
+        }))
+    }
+  }
+
   const { data: recentListings } = await supabase
     .from('listings')
     .select('id, title, author, asking_price_gbp, books(cover_url)')
@@ -156,6 +215,64 @@ export default async function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Browse by Category */}
+      <section className="py-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl text-gray-900 mb-3" style={{ fontFamily: 'Georgia, serif' }}>Browse by category</h2>
+            <p className="text-gray-500">Find your next read from UK sellers</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            {CATEGORY_LINKS.map(cat => (
+              <Link
+                key={cat.slug}
+                href={`/category/${cat.slug}`}
+                className="text-sm font-medium px-5 py-2.5 rounded-full border transition-colors hover:bg-gray-900 hover:text-white hover:border-gray-900"
+                style={{ borderColor: '#E5E3DF', color: '#1A1A1A' }}
+              >
+                {cat.name}
+              </Link>
+            ))}
+            <Link
+              href="/new"
+              className="text-sm font-medium px-5 py-2.5 rounded-full transition-colors"
+              style={{ background: '#2D4A3E', color: '#FAF8F5' }}
+            >
+              View all →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Popular Books */}
+      {featuredBooks.length > 0 && (
+        <section className="py-16 px-6" style={{ background: '#fff', borderTop: '1px solid #E5E3DF', borderBottom: '1px solid #E5E3DF' }}>
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-between mb-10">
+              <h2 className="text-3xl text-gray-900" style={{ fontFamily: 'Georgia, serif' }}>Popular books</h2>
+              <Link href="/new" className="text-sm font-medium hover:underline" style={{ color: '#2D4A3E' }}>
+                Browse all →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+              {featuredBooks.map((book, i) => (
+                <Link key={i} href={`/books/${book.slug}`} className="group block">
+                  <div className="rounded-lg overflow-hidden mb-2" style={{ aspectRatio: '2/3', background: '#2D4A3E' }}>
+                    <img
+                      src={book.cover_url}
+                      alt={book.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+                  <p className="text-xs font-medium text-gray-900 leading-tight line-clamp-2">{book.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">{book.author}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* How It Works */}

@@ -70,6 +70,33 @@ export default async function NewInPage() {
         </div>
       </div>
 
+      {/* Category pills */}
+      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '12px 24px', overflow: 'auto' }}>
+        <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', gap: 8, flexWrap: 'nowrap' }}>
+          {[
+            { slug: 'fiction', name: 'Fiction' },
+            { slug: 'childrens', name: "Children's" },
+            { slug: 'biography-memoir', name: 'Biography & Memoir' },
+            { slug: 'self-help', name: 'Self-Help' },
+            { slug: 'history', name: 'History' },
+            { slug: 'business-finance', name: 'Business & Finance' },
+            { slug: 'science-nature', name: 'Science & Nature' },
+            { slug: 'travel', name: 'Travel' },
+          ].map(cat => (
+            <Link
+              key={cat.slug}
+              href={`/category/${cat.slug}`}
+              style={{
+                fontSize: 12, padding: '6px 14px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap',
+                background: '#fff', color: '#666', border: '0.5px solid #E5E3DF',
+              }}
+            >
+              {cat.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
         <ShelfGrid listings={safeListings} showSeller pageSize={24} />
       </div>

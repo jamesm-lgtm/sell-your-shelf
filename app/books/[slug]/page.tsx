@@ -35,15 +35,23 @@ function generateSlug(title: string, author: string): string {
 }
 
 async function findBookBySlug(slug: string) {
+  const bookFields = 'id, title, author, title_normalized, author_normalized, cover_url, description, isbn, category'
+
+  // Primary: direct slug column lookup (requires migration)
+  const { data: directMatch } = await supabase
+    .from('books')
+    .select(bookFields)
+    .eq('slug', slug)
+    .limit(1)
+    .single()
+
+  if (directMatch) return directMatch
+
+  // Fallback: fuzzy search for pre-migration compatibility
   const words = slug.split('-').filter(w => w.length > 2)
   if (words.length === 0) return null
 
-  const bookFields = 'id, title, author, title_normalized, author_normalized, cover_url, description, isbn'
-
-  // Trim trailing 's' from search words to handle apostrophe cases
-  // e.g. "hunters" in slug should match "hunter's" in DB
   const fuzzyWord = (w: string) => w.replace(/s$/, '')
-
   const firstWord = fuzzyWord(words[0])
   const lastWord = fuzzyWord(words[words.length - 1])
 
@@ -55,7 +63,6 @@ async function findBookBySlug(slug: string) {
     return bookSlug === slug
   }
 
-  // Try: first word in title AND last word in author
   const { data: candidates } = await supabase
     .from('books')
     .select(bookFields)
@@ -66,7 +73,6 @@ async function findBookBySlug(slug: string) {
   const match1 = candidates?.find(matchSlug)
   if (match1) return match1
 
-  // Fallback: just first word in title (broader)
   const { data: fallback } = await supabase
     .from('books')
     .select(bookFields)
