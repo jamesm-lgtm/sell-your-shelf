@@ -229,8 +229,7 @@ export default async function Home() {
               <Link
                 key={cat.slug}
                 href={`/category/${cat.slug}`}
-                className="text-sm font-medium px-5 py-2.5 rounded-full border transition-colors hover:bg-gray-900 hover:text-white hover:border-gray-900"
-                style={{ borderColor: '#E5E3DF', color: '#1A1A1A' }}
+                className="text-sm font-medium px-5 py-2.5 rounded-full border transition-colors text-gray-900 border-gray-200 hover:bg-gray-900 hover:text-white hover:border-gray-900"
               >
                 {cat.name}
               </Link>
