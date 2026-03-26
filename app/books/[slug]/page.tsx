@@ -33,25 +33,42 @@ function generateSlug(title: string, author: string): string {
 }
 
 async function findBookBySlug(slug: string) {
-  // Parse slug to extract likely title and author words for a targeted query
-  // Use ilike search on normalized fields to narrow results, then verify slug match
-  const words = slug.split('-').filter(Boolean)
+  // Extract individual words from slug and search for books matching any of them
+  const words = slug.split('-').filter(w => w.length > 2)
   if (words.length === 0) return null
 
-  // Search for books where normalized title+author contains slug words
-  // Use first few words for title search to narrow down
-  const searchTerm = words.slice(0, 3).join(' ')
+  // Search using first word in title and last word in author (most discriminating)
+  const firstWord = words[0]
+  const lastWord = words[words.length - 1]
 
   const { data: candidates } = await supabase
     .from('books')
     .select('id, title, author, title_normalized, author_normalized, cover_url, description, isbn')
-    .or(`title_normalized.ilike.%${searchTerm}%,author_normalized.ilike.%${searchTerm}%`)
-    .limit(50)
+    .ilike('title_normalized', `%${firstWord}%`)
+    .ilike('author_normalized', `%${lastWord}%`)
+    .limit(100)
 
-  if (!candidates || candidates.length === 0) return null
+  if (candidates && candidates.length > 0) {
+    const match = candidates.find(b => {
+      const bookSlug = generateSlug(
+        b.title_normalized || b.title,
+        b.author_normalized || b.author || ''
+      )
+      return bookSlug === slug
+    })
+    if (match) return match
+  }
 
-  // Find exact slug match
-  return candidates.find(b => {
+  // Fallback: broader search using just the first word
+  const { data: fallback } = await supabase
+    .from('books')
+    .select('id, title, author, title_normalized, author_normalized, cover_url, description, isbn')
+    .ilike('title_normalized', `%${firstWord}%`)
+    .limit(200)
+
+  if (!fallback || fallback.length === 0) return null
+
+  return fallback.find(b => {
     const bookSlug = generateSlug(
       b.title_normalized || b.title,
       b.author_normalized || b.author || ''
