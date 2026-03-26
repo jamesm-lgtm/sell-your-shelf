@@ -20,22 +20,25 @@ export default async function CheckoutPage({ params }: Props) {
   const { data: listing, error } = await supabase
     .from('listings')
     .select(`
-      id, title, author, asking_price_gbp, condition, status,
+      id, title, author, asking_price_gbp, condition, status, user_id,
       books(cover_url),
-      users(username),
-      user_wallets:user_id(onboarding_step)
+      users(username)
     `)
     .eq('id', listingId)
     .single()
 
-  // Redirect if listing is not purchasable
-  if (
-    error ||
-    !listing ||
-    listing.status !== 'active' ||
-    !(listing.user_wallets as any)?.onboarding_step ||
-    (listing.user_wallets as any)?.onboarding_step !== 'complete'
-  ) {
+  if (error || !listing || listing.status !== 'active') {
+    redirect(`/listing/${listingId}`)
+  }
+
+  // Check seller wallet separately
+  const { data: wallet } = await supabase
+    .from('user_wallets')
+    .select('onboarding_step')
+    .eq('user_id', listing.user_id)
+    .single()
+
+  if (!wallet || wallet.onboarding_step !== 'complete') {
     redirect(`/listing/${listingId}`)
   }
 

@@ -85,8 +85,7 @@ export default async function BookPage({ params }: Props) {
   // Fetch all English/null-language books
   const { data: books } = await supabase
     .from('books')
-    .select('id, title, author, title_normalized, author_normalized, cover_url, description, isbn, language')
-    .or('language.is.null,language.eq.en')
+    .select('id, title, author, title_normalized, author_normalized, cover_url, description, isbn')
 
   if (!books || books.length === 0) return notFound()
 
