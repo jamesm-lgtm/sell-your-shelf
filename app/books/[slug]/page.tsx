@@ -42,8 +42,7 @@ export async function generateMetadata({ params }: Props) {
   // Fetch all books where language is null or 'en'
   const { data: books } = await supabase
     .from('books')
-    .select('id, title, author, title_normalized, author_normalized, cover_url, isbn, language')
-    .or('language.is.null,language.eq.en')
+    .select('id, title, author, title_normalized, author_normalized, cover_url, isbn')
 
   if (!books || books.length === 0) return { title: 'Book not found — Sell Your Shelf' }
 
