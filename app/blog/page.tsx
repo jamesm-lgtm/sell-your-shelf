@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Header from '../components/Header';
+import SiteNav from '../components/SiteNav';
 import Footer from '../components/Footer';
 import { getAllPosts } from '../lib/blog';
 
@@ -48,7 +48,7 @@ export default function BlogIndex() {
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
-      <Header />
+      <SiteNav current="blog" />
 
       <div className="max-w-2xl mx-auto px-6 pt-12 pb-24">
         <div className="mb-10">

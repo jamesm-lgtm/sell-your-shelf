@@ -1,6 +1,11 @@
+import SiteNav from '@/app/components/SiteNav'
+import Footer from '@/app/components/Footer'
+
 export default function Terms() {
   return (
-    <main className="min-h-screen bg-white py-16">
+    <div className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+      <SiteNav />
+      <main className="py-16">
       <div className="max-w-2xl mx-auto px-6">
         <h1 className="text-3xl font-bold mb-8">Terms of Service</h1>
         <p className="text-gray-600 mb-8">Last updated: January 2026</p>
@@ -212,11 +217,9 @@ export default function Terms() {
           </section>
         </div>
 
-        <a href="/" className="inline-block mt-8 text-emerald-600 hover:underline">← Back to home</a>
       </div>
-      <p className="text-sm text-gray-500 mt-8 text-center">
-        Sell Your Shelf Limited is a company registered in England and Wales (16895246).
-      </p>
-    </main>
+      </main>
+      <Footer />
+    </div>
   );
 }

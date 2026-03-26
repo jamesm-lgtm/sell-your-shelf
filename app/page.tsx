@@ -1,6 +1,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
+import SiteNav from '@/app/components/SiteNav'
+import Footer from '@/app/components/Footer'
 
 export const revalidate = 0
 
@@ -44,30 +46,7 @@ export default async function Home() {
         }
       `}</style>
 
-      {/* Navigation */}
-      <nav className="max-w-6xl mx-auto px-6 py-5 flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-2.5">
-          <Image
-            src="/logo.png"
-            alt="Sell Your Shelf"
-            width={32}
-            height={32}
-            className="h-8 w-auto"
-          />
-          <span className="text-lg font-semibold text-gray-900">Sell Your Shelf</span>
-        </Link>
-        <div className="flex items-center gap-8">
-          <Link href="/#how-it-works" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-            How it works
-          </Link>
-          <Link href="/blog" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-            Blog
-          </Link>
-          <Link href="/support" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-            Support
-          </Link>
-        </div>
-      </nav>
+      <SiteNav />
 
       {/* Hero Section */}
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-24">
@@ -275,45 +254,7 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-16 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-10">
-            <div>
-              <Link href="/" className="flex items-center gap-2.5 mb-4">
-                <Image
-                  src="/logo.png"
-                  alt="Sell Your Shelf"
-                  width={28}
-                  height={28}
-                  className="h-7 w-auto brightness-0 invert"
-                />
-                <span className="text-white font-semibold">Sell Your Shelf</span>
-              </Link>
-              <p className="text-sm leading-relaxed">
-                Sell Your Shelf Limited<br />
-                Company No. 16895246<br />
-                Registered in England and Wales
-              </p>
-            </div>
-
-            <div className="flex gap-16 text-sm">
-              <div className="space-y-2">
-                <Link href="/privacy" className="block hover:text-white transition-colors">Privacy Policy</Link>
-                <Link href="/terms" className="block hover:text-white transition-colors">Terms of Service</Link>
-              </div>
-              <div className="space-y-2">
-                <Link href="/support" className="block hover:text-white transition-colors">Support</Link>
-                <a href="mailto:hello@sellyourshelf.com" className="block hover:text-white transition-colors">Contact</a>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-16 pt-8 border-t border-white/10 text-sm">
-            © 2026 Sell Your Shelf Limited. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
     </main>
   )

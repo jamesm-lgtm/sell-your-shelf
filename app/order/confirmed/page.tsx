@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
+import Footer from '@/app/components/Footer'
 
 export const revalidate = 0
 
@@ -102,6 +103,8 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
         </Link>
 
       </div>
+
+      <Footer />
     </div>
   )
 }

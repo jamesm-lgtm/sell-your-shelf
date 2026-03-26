@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
+import Footer from '@/app/components/Footer'
 import ShelfGrid from '@/app/components/ShelfGrid'
 
 export const revalidate = 0
@@ -124,6 +125,8 @@ export default async function SearchPage({ searchParams }: Props) {
           <ShelfGrid listings={safeListings} showSeller pageSize={24} />
         )}
       </div>
+
+      <Footer />
 
     </div>
   )

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import MarkdownRenderer from '../../components/MarkdownRenderer';
-import Header from '../../components/Header';
+import SiteNav from '../../components/SiteNav';
 import Footer from '../../components/Footer';
 import BlogCTA from '../../components/BlogCTA';
 import { getAllPosts, getPostBySlug } from '../../lib/blog';
@@ -76,7 +76,7 @@ export default async function BlogPostPage({ params }: Props) {
   if (!post) {
     return (
       <main className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
-        <Header />
+        <SiteNav current="blog" />
         <div className="max-w-2xl mx-auto px-6 py-24 text-center">
           <h1 className="text-3xl text-gray-900 mb-4" style={{ fontFamily: 'Georgia, serif' }}>
             Post not found
@@ -127,7 +127,7 @@ export default async function BlogPostPage({ params }: Props) {
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
-      <Header />
+      <SiteNav current="blog" />
 
       {/* Article schema */}
       <script

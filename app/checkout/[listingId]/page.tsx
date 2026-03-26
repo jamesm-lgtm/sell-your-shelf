@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import CheckoutForm from '@/app/components/CheckoutForm'
 import SiteNav from '@/app/components/SiteNav'
+import Footer from '@/app/components/Footer'
 
 export const revalidate = 0
 
@@ -65,6 +66,8 @@ export default async function CheckoutPage({ params }: Props) {
 
         <CheckoutForm listing={listingData} />
       </div>
+
+      <Footer />
 
     </div>
   )

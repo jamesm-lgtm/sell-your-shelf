@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
+import Footer from '@/app/components/Footer'
 
 export const revalidate = 0
 
@@ -284,11 +285,7 @@ export default async function BookPage({ params }: Props) {
 
       </div>
 
-      <footer style={{ borderTop: '0.5px solid #E5E3DF', padding: '24px', textAlign: 'center', marginTop: 40 }}>
-        <Link href="/" style={{ fontSize: 13, color: '#999', textDecoration: 'none' }}>
-          ← Back to Sell Your Shelf
-        </Link>
-      </footer>
+      <Footer />
 
     </div>
   )

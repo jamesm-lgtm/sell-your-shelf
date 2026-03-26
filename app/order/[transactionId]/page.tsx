@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
+import Footer from '@/app/components/Footer'
 
 export const revalidate = 0
 
@@ -140,6 +141,8 @@ export default async function OrderStatusPage({ params }: Props) {
         </div>
 
       </div>
+
+      <Footer />
     </div>
   )
 }
