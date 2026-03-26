@@ -258,7 +258,7 @@ export default function CheckoutForm({ listing }: Props) {
             <PaymentStep
               clientSecret={clientSecret}
               transactionId={transactionId!}
-              price={price}
+              total={total}
             />
           </Elements>
         )}
@@ -286,7 +286,7 @@ export default function CheckoutForm({ listing }: Props) {
               {loading ? (
                 <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
               ) : (
-                `Pay \u00A3${price.toFixed(2)}`
+                `Pay \u00A3${total.toFixed(2)}`
               )}
             </button>
           </div>
@@ -299,11 +299,11 @@ export default function CheckoutForm({ listing }: Props) {
 function PaymentStep({
   clientSecret,
   transactionId,
-  price,
+  total,
 }: {
   clientSecret: string
   transactionId: number
-  price: number
+  total: number
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -363,7 +363,7 @@ function PaymentStep({
             {paying ? (
               <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
             ) : (
-              `Pay \u00A3${price.toFixed(2)}`
+              `Pay \u00A3${total.toFixed(2)}`
             )}
           </button>
           <p style={{ fontSize: 10, color: '#999', textAlign: 'center', marginTop: 6 }}>
