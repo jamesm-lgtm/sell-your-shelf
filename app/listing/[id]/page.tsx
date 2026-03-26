@@ -53,8 +53,8 @@ export default async function ListingPage({ params }: Props) {
   const { data: listing, error } = await supabase
     .from('listings')
     .select(`
-      id, title, author, asking_price_gbp, condition, notes,
-      books(cover_url, description, category),
+      id, title, author, asking_price_gbp, condition, notes, book_id,
+      books(cover_url, description, category, title_normalized, author_normalized),
       users(username)
     `)
     .eq('id', id)
@@ -74,7 +74,18 @@ export default async function ListingPage({ params }: Props) {
   const cover = (listing.books as any)?.cover_url
   const description = (listing.books as any)?.description
   const category = (listing.books as any)?.category
+  const titleNormalized = (listing.books as any)?.title_normalized
+  const authorNormalized = (listing.books as any)?.author_normalized
   const username = (listing.users as any)?.username
+
+  const bookSlug = listing.book_id && titleNormalized
+    ? `${titleNormalized}-${authorNormalized || ''}`
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+    : null
   const appStoreUrl = `https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=listing&utm_medium=web&utm_campaign=${id}`
 
   return (
@@ -144,6 +155,12 @@ export default async function ListingPage({ params }: Props) {
             {username && (
               <Link href={`/${username}`} style={{ fontSize: 13, color: '#2D4A3E', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 Sold by @{username} →
+              </Link>
+            )}
+
+            {bookSlug && (
+              <Link href={`/books/${bookSlug}`} style={{ fontSize: 13, color: '#2D4A3E', textDecoration: 'none', display: 'block', marginTop: 8 }}>
+                See all copies of this book →
               </Link>
             )}
           </div>
