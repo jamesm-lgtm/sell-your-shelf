@@ -83,6 +83,8 @@ export default function CheckoutForm({ listing }: Props) {
   const formValid =
     email.length > 0 &&
     password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[0-9]/.test(password) &&
     fullName.length > 0 &&
     line1.length > 0 &&
     city.length > 0 &&
@@ -184,7 +186,7 @@ export default function CheckoutForm({ listing }: Props) {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="Min 8 characters"
+              placeholder="Min 8 chars, 1 uppercase, 1 number"
               style={{ ...inputStyle, paddingRight: 60 }}
             />
             <button

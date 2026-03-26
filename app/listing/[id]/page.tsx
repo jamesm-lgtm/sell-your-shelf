@@ -104,21 +104,6 @@ export default async function ListingPage({ params }: Props) {
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
-      <script dangerouslySetInnerHTML={{ __html: `
-        (function() {
-          var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          if (!isMobile) return;
-          var appUrl = 'sellyourshelf://listing/${listing.id}';
-          var start = Date.now();
-          window.location.href = appUrl;
-          setTimeout(function() {
-            if (Date.now() - start < 2500) {
-              window.location.href = '${appStoreUrl}';
-            }
-          }, 2000);
-        })();
-      `}} />
-
       <SiteNav />
 
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 24px' }}>
