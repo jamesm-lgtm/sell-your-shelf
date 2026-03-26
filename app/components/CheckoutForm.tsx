@@ -48,29 +48,13 @@ function TrustStrip() {
         <span style={{ fontSize: 11, color: '#666' }}>Secure checkout</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/></svg>
         <span style={{ fontSize: 11, color: '#666' }}>Tracked delivery</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ fontSize: 11, color: '#666' }}>Powered by</span>
-        <svg width="36" height="15" viewBox="0 0 60 25" fill="#635BFF"><path d="M5 11.2C5 9.9 6 9.3 7.6 9.3c2 0 4.5.6 6.5 1.7V5.6C12 4.8 10 4.4 7.6 4.4 3 4.4 0 6.8 0 10.8c0 6.3 8.7 5.3 8.7 8 0 1.5-1.3 2-3.1 2-2.7 0-6.1-1.1-8.6-2.6v5.5c2.8 1.2 5.6 1.7 8.6 1.7 5.3 0 8.9-2.6 8.9-6.7C14.5 12.4 5 13.7 5 11.2zm14.8-7.5l-4.6 1-.1 16.8c0 3.1 2.3 5.4 5.4 5.4 1.7 0 3-.3 3.7-.7v-4.3c-.6.3-3.9 1.2-3.9-1.8V12h3.9V7.4h-3.9l-.5-3.7zM29 8.6l-.3-1.2h-4.3v18h4.9V13c1.2-1.5 3.1-1.2 3.7-1V7.4c-.7-.2-3.1-.7-4 1.2zm5.4-1.2h4.9v18h-4.9V7.4zm0-1.5l4.9-1V.4l-4.9 1v4.5zM48 4.4c-1.8 0-3 .8-3.6 1.4l-.3-1.1h-4.3V30l4.9-1v-5.5c.7.5 1.7 1.2 3.4 1.2 3.4 0 6.5-2.8 6.5-8.8-.1-5.6-3.2-8.3-6.6-8.3v-4.2zm-1.1 16.1c-1.1 0-1.8-.4-2.3-1l-.1-7.8c.5-.6 1.2-1 2.4-1 1.8 0 3.1 2 3.1 4.9 0 2.8-1.2 4.9-3.1 4.9zM60.6 16c0-5.8-2.8-10.3-8.1-10.3-5.3 0-8.6 4.5-8.6 10.3 0 6.8 3.8 10.2 9.3 10.2 2.7 0 4.7-.6 6.2-1.5v-4c-1.5.8-3.3 1.3-5.5 1.3-2.2 0-4-.8-4.3-3.4h10.8c0-.3.2-1.5.2-2.6zm-10.9-2.1c0-2.5 1.5-3.6 2.9-3.6s2.8 1.1 2.8 3.6h-5.7z"/></svg>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <span style={{ fontSize: 11, color: '#666' }}>Buyer protection</span>
       </div>
-    </div>
-  )
-}
-
-function CardLogos() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12 }}>
-      {/* Visa */}
-      <div style={{ background: '#fff', border: '1px solid #E5E3DF', borderRadius: 4, padding: '4px 8px', fontSize: 10, fontWeight: 700, color: '#1A1F71' }}>VISA</div>
-      {/* Mastercard */}
-      <div style={{ background: '#fff', border: '1px solid #E5E3DF', borderRadius: 4, padding: '4px 8px', display: 'flex', gap: 2 }}>
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#EB001B', opacity: 0.9 }} />
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#F79E1B', opacity: 0.9, marginLeft: -4 }} />
-      </div>
-      {/* Amex */}
-      <div style={{ background: '#fff', border: '1px solid #E5E3DF', borderRadius: 4, padding: '4px 8px', fontSize: 10, fontWeight: 700, color: '#006FCF' }}>AMEX</div>
     </div>
   )
 }
@@ -92,7 +76,7 @@ export default function CheckoutForm({ listing }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   const price = listing.asking_price_gbp
-  const shipping = 2.69
+  const shipping = 2.50
   const total = price + shipping
   const condColor = CONDITION_COLORS[listing.condition] ?? CONDITION_COLORS.acceptable
 
@@ -262,11 +246,9 @@ export default function CheckoutForm({ listing }: Props) {
               </div>
             )}
 
-            <p style={{ fontSize: 12, color: '#999', marginBottom: 16 }}>
-              Your card details are collected securely by Stripe. We never see or store your card number.
+            <p style={{ fontSize: 12, color: '#999', marginBottom: 8 }}>
+              Enter your details above, then tap Pay to securely enter your card details via Stripe.
             </p>
-
-            <CardLogos />
           </>
         ) : (
           <Elements
