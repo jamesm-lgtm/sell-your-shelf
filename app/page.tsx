@@ -185,7 +185,7 @@ export default async function Home() {
               {
                 step: '03',
                 title: 'Ship & get paid',
-                description: 'When a book sells, print your £2.69 shipping label and drop it at any ParcelShop. Payment lands in your account once delivered.',
+                description: 'When a book sells, generate your £2.50 shipping label and drop it at any Yodel drop-off point — no printer needed. Payment lands in your account once delivered.',
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
               }
             ].map((item, i) => (
