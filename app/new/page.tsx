@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import ShelfGrid from '@/app/components/ShelfGrid'
+import SiteNav from '@/app/components/SiteNav'
 
 export const revalidate = 0
 
@@ -49,22 +50,7 @@ export default async function NewInPage() {
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
-      <nav style={{ background: '#2D4A3E', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Link href="/" style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, textDecoration: 'none' }}>
-          Sell Your Shelf
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <Link href="/new" style={{ color: '#FAF8F5', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
-            Browse
-          </Link>
-          <Link href="/support" style={{ color: 'rgba(250,248,245,0.8)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
-            Support
-          </Link>
-          <a href={APP_STORE_URL} style={{ background: '#FAF8F5', color: '#2D4A3E', fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 6, textDecoration: 'none' }}>
-            Get the app
-          </a>
-        </div>
-      </nav>
+      <SiteNav current="browse" />
 
       <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '32px 24px 24px' }}>
         <div style={{ maxWidth: 840, margin: '0 auto' }}>

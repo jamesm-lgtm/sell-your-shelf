@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import SiteNav from '@/app/components/SiteNav'
 
 export const revalidate = 0
 
@@ -47,19 +48,7 @@ export default async function OrderStatusPage({ params }: Props) {
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
-      <nav style={{ background: '#2D4A3E', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Link href="/" style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, textDecoration: 'none' }}>
-          Sell Your Shelf
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <Link href="/new" style={{ color: 'rgba(250,248,245,0.8)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
-            Browse
-          </Link>
-          <Link href="/support" style={{ color: 'rgba(250,248,245,0.8)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
-            Support
-          </Link>
-        </div>
-      </nav>
+      <SiteNav />
 
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '40px 24px' }}>
 
