@@ -57,13 +57,12 @@ export async function generateMetadata({ params }: Props) {
 
   if (!book) return { title: 'Book not found — Sell Your Shelf' }
 
-  // Get active listings for this book with price >= 10
+  // Get active listings for this book
   const { data: listings } = await supabase
     .from('listings')
     .select('asking_price_gbp')
     .eq('book_id', book.id)
     .eq('status', 'active')
-    .gte('asking_price_gbp', 10)
 
   if (!listings || listings.length === 0) return { title: 'Book not found — Sell Your Shelf' }
 
@@ -100,13 +99,12 @@ export default async function BookPage({ params }: Props) {
 
   if (!book) return notFound()
 
-  // Fetch active listings for this book, only where price >= 10
+  // Fetch active listings for this book
   const { data: listings } = await supabase
     .from('listings')
     .select('id, asking_price_gbp, condition, notes, users(username, location)')
     .eq('book_id', book.id)
     .eq('status', 'active')
-    .gte('asking_price_gbp', 10)
     .order('asking_price_gbp', { ascending: true })
 
   if (!listings || listings.length === 0) return notFound()
