@@ -9,6 +9,15 @@ const supabase = createClient(
 
 export const revalidate = 3600; // regenerate sitemap every hour
 
+function generateSlug(title: string, author: string): string {
+  return `${title}-${author}`
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
@@ -22,31 +31,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: 'https://www.sellyourshelf.com/new',
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 0.8,
+      priority: 0.9,
     },
     {
       url: 'https://www.sellyourshelf.com/blog',
       lastModified: new Date(),
       changeFrequency: 'weekly',
-      priority: 0.8,
+      priority: 0.7,
     },
     {
       url: 'https://www.sellyourshelf.com/support',
       lastModified: new Date(),
       changeFrequency: 'monthly',
-      priority: 0.5,
+      priority: 0.4,
     },
     {
       url: 'https://www.sellyourshelf.com/privacy',
       lastModified: new Date(),
       changeFrequency: 'yearly',
-      priority: 0.3,
+      priority: 0.2,
     },
     {
       url: 'https://www.sellyourshelf.com/terms',
       lastModified: new Date(),
       changeFrequency: 'yearly',
-      priority: 0.3,
+      priority: 0.2,
     },
   ];
 
@@ -55,10 +64,55 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `https://www.sellyourshelf.com/blog/${post.slug}`,
     lastModified: new Date(post.date),
     changeFrequency: 'monthly' as const,
-    priority: 0.7,
+    priority: 0.6,
   }));
 
-  // Active listings from Supabase
+  // Book aggregation pages — highest SEO value
+  let bookPages: MetadataRoute.Sitemap = [];
+  try {
+    // Get all book_ids that have active listings
+    const { data: activeListings } = await supabase
+      .from('listings')
+      .select('book_id')
+      .eq('status', 'active')
+      .not('book_id', 'is', null);
+
+    if (activeListings) {
+      const bookIds = [...new Set(activeListings.map(l => l.book_id))];
+
+      // Fetch book data in batches (Supabase max 1000 per query)
+      const batchSize = 500;
+      const allBooks: any[] = [];
+      for (let i = 0; i < bookIds.length; i += batchSize) {
+        const batch = bookIds.slice(i, i + batchSize);
+        const { data: books } = await supabase
+          .from('books')
+          .select('id, title_normalized, author_normalized')
+          .in('id', batch);
+        if (books) allBooks.push(...books);
+      }
+
+      bookPages = allBooks
+        .map((book) => {
+          const slug = generateSlug(
+            book.title_normalized || '',
+            book.author_normalized || ''
+          );
+          if (!slug) return null;
+          return {
+            url: `https://www.sellyourshelf.com/books/${slug}`,
+            lastModified: new Date(),
+            changeFrequency: 'daily' as const,
+            priority: 0.8,
+          };
+        })
+        .filter(Boolean) as MetadataRoute.Sitemap;
+    }
+  } catch (e) {
+    console.error('Sitemap: failed to fetch books', e);
+  }
+
+  // Active listings
   let listingPages: MetadataRoute.Sitemap = [];
   try {
     const { data: listings } = await supabase
@@ -79,7 +133,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Sitemap: failed to fetch listings', e);
   }
 
-  // Seller profiles from Supabase
+  // Seller profiles
   let sellerPages: MetadataRoute.Sitemap = [];
   try {
     const { data: sellers } = await supabase
@@ -99,5 +153,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Sitemap: failed to fetch sellers', e);
   }
 
-  return [...staticPages, ...blogPosts, ...listingPages, ...sellerPages];
+  return [...staticPages, ...blogPosts, ...bookPages, ...listingPages, ...sellerPages];
 }
