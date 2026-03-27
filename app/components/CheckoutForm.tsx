@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { getOrCreateSessionId } from '@/app/lib/session'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -74,6 +75,11 @@ export default function CheckoutForm({ listing }: Props) {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setSessionId(getOrCreateSessionId())
+  }, [])
 
   const price = listing.asking_price_gbp
   const shipping = 2.50
@@ -105,6 +111,7 @@ export default function CheckoutForm({ listing }: Props) {
             email,
             password,
             shippingAddress: { fullName, line1, line2: line2 || undefined, city, postcode },
+            sessionId: sessionId || undefined,
           }),
         }
       )

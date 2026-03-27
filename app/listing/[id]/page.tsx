@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { headers } from 'next/headers'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import ListingViewTracker from '@/app/components/ListingViewTracker'
 
 export const revalidate = 0
 
@@ -67,15 +67,6 @@ export default async function ListingPage({ params }: Props) {
     .single()
 
   if (!rawListing || rawListing.status !== 'active') return notFound()
-
-  const headersList = await headers()
-  const referrer = headersList.get('referer') ?? null
-
-  await supabase.from('listing_views').insert({
-    listing_id: listing.id,
-    referrer,
-    platform: 'web',
-  })
 
   // Use edition cover if available, fallback to work cover
   const cover = listing.edition_cover || listing.work_cover
@@ -248,6 +239,8 @@ export default async function ListingPage({ params }: Props) {
         </div>
 
       </div>
+
+      <ListingViewTracker listingId={Number(id)} />
 
       <Footer />
 

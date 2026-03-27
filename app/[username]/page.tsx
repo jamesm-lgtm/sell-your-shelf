@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { headers } from 'next/headers'
 import Link from 'next/link'
 import ShelfGrid from '@/app/components/ShelfGrid'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import ShelfVisitTracker from '@/app/components/ShelfVisitTracker'
 
 export const revalidate = 0
 
@@ -73,15 +73,6 @@ export default async function SellerShelfPage({ params }: Props) {
     .eq('status', 'active')
     .order('created_at', { ascending: false })
 
-  const headersList = await headers()
-  const referrer = headersList.get('referer') ?? null
-
-  await supabase.from('shelf_visits').insert({
-    username: user.username,
-    referrer,
-    platform: 'web',
-  })
-
   const safeListings = (listings ?? []) as unknown as Array<{
     id: number
     title: string
@@ -118,6 +109,8 @@ export default async function SellerShelfPage({ params }: Props) {
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
         <ShelfGrid listings={safeListings} />
       </div>
+
+      <ShelfVisitTracker username={user.username} />
 
       <Footer />
 
