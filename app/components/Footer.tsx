@@ -26,12 +26,15 @@ export default function Footer() {
 
           <div className="flex gap-16 text-sm">
             <div className="space-y-2">
-              <Link href="/privacy" className="block hover:text-white transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="block hover:text-white transition-colors">Terms of Service</Link>
+              <Link href="/about" className="block hover:text-white transition-colors">About</Link>
+              <Link href="/new" className="block hover:text-white transition-colors">Browse Books</Link>
+              <Link href="/support" className="block hover:text-white transition-colors">Support</Link>
+              <Link href="/contact" className="block hover:text-white transition-colors">Contact</Link>
             </div>
             <div className="space-y-2">
-              <Link href="/support" className="block hover:text-white transition-colors">Support</Link>
-              <a href="mailto:hello@sellyourshelf.com" className="block hover:text-white transition-colors">Contact</a>
+              <Link href="/terms" className="block hover:text-white transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="block hover:text-white transition-colors">Privacy Policy</Link>
+              <Link href="/returns" className="block hover:text-white transition-colors">Returns Policy</Link>
             </div>
           </div>
         </div>
