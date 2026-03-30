@@ -6,6 +6,8 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { getOrCreateSessionId } from '@/app/lib/session'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 const CONDITIONS: Record<string, string> = {
   like_new: 'Like New',
@@ -21,6 +23,12 @@ const CONDITION_COLORS: Record<string, { bg: string; text: string }> = {
   acceptable: { bg: '#F3F4F6', text: '#374151' },
 }
 
+const PASSWORD_RULES = [
+  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { label: 'One uppercase letter',  test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'One number',            test: (p: string) => /[0-9]/.test(p) },
+]
+
 type ListingData = {
   id: number
   title: string
@@ -35,10 +43,43 @@ type Props = {
   listing: ListingData
 }
 
-const inputStyle = {
+const inputBase: React.CSSProperties = {
   width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 8,
-  border: '0.5px solid #E5E3DF', background: '#fff', color: '#1A1A1A',
+  background: '#fff', color: '#1A1A1A',
   outline: 'none', boxSizing: 'border-box' as const,
+  transition: 'border-color 0.15s',
+}
+
+function getInputStyle(touched: boolean, valid: boolean): React.CSSProperties {
+  if (!touched) return { ...inputBase, border: '0.5px solid #E5E3DF' }
+  if (valid) return { ...inputBase, border: '1.5px solid #16A34A' }
+  return { ...inputBase, border: '1.5px solid #DC2626' }
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
+
+function Spinner({ size = 16 }: { size?: number }) {
+  return (
+    <span style={{
+      display: 'inline-block', width: size, height: size,
+      border: '2px solid #E5E3DF', borderTopColor: '#2D4A3E',
+      borderRadius: '50%', animation: 'spin 0.6s linear infinite',
+    }} />
+  )
 }
 
 function TrustStrip() {
@@ -65,9 +106,12 @@ export default function CheckoutForm({ listing }: Props) {
   const [transactionId, setTransactionId] = useState<number | null>(null)
 
   const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [fullName, setFullName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [line1, setLine1] = useState('')
   const [line2, setLine2] = useState('')
   const [city, setCity] = useState('')
@@ -77,40 +121,108 @@ export default function CheckoutForm({ listing }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
 
+  // Username availability
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
+  const [usernameChecking, setUsernameChecking] = useState(false)
+
+  // Terms of Service
+  const [tosAccepted, setTosAccepted] = useState(false)
+
+  // Track which fields have been touched (blurred)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+
+  const markTouched = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }))
+  }
+
   useEffect(() => {
     setSessionId(getOrCreateSessionId())
   }, [])
+
+  // Debounced username availability check
+  useEffect(() => {
+    if (username.length < 3) {
+      setUsernameAvailable(null)
+      return
+    }
+
+    setUsernameChecking(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/users?select=id&username=eq.${encodeURIComponent(username)}&limit=1`,
+          {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          }
+        )
+        const data = await res.json()
+        setUsernameAvailable(Array.isArray(data) && data.length === 0)
+      } catch {
+        setUsernameAvailable(null)
+      } finally {
+        setUsernameChecking(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [username])
 
   const price = listing.asking_price_gbp
   const shipping = 2.50
   const total = price + shipping
   const condColor = CONDITION_COLORS[listing.condition] ?? CONDITION_COLORS.acceptable
 
+  // Validation
+  const emailValid = /.+@.+\..+/.test(email)
+  const usernameValid = username.length >= 3 && usernameAvailable === true
+  const passwordStrength = PASSWORD_RULES.map(rule => ({ ...rule, passed: rule.test(password) }))
+  const passwordValid = passwordStrength.every(r => r.passed)
+  const confirmValid = confirmPassword.length > 0 && password === confirmPassword
+  const firstNameValid = firstName.trim().length > 0
+  const lastNameValid = lastName.trim().length > 0
+  const line1Valid = line1.trim().length > 0
+  const cityValid = city.trim().length > 0
+  const postcodeValid = postcode.trim().length > 0
+
   const formValid =
-    email.length > 0 &&
-    password.length >= 8 &&
-    /[A-Z]/.test(password) &&
-    /[0-9]/.test(password) &&
-    fullName.length > 0 &&
-    line1.length > 0 &&
-    city.length > 0 &&
-    postcode.length > 0
+    emailValid &&
+    usernameValid &&
+    passwordValid &&
+    confirmValid &&
+    tosAccepted &&
+    firstNameValid &&
+    lastNameValid &&
+    line1Valid &&
+    cityValid &&
+    postcodeValid
 
   const handleCreatePaymentIntent = async () => {
+    // Touch all fields to show validation
+    setTouched({
+      email: true, username: true, password: true, confirmPassword: true,
+      firstName: true, lastName: true, line1: true, city: true, postcode: true,
+    })
+
+    if (!formValid) return
+
     setLoading(true)
     setError(null)
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/web-create-payment-intent`,
+        `${SUPABASE_URL}/functions/v1/web-create-payment-intent`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             listingId: listing.id,
             email,
+            username,
             password,
-            shippingAddress: { fullName, line1, line2: line2 || undefined, city, postcode },
+            shippingAddress: { firstName, lastName, fullName: `${firstName.trim()} ${lastName.trim()}`, line1, line2: line2 || undefined, city, postcode },
             sessionId: sessionId || undefined,
           }),
         }
@@ -132,7 +244,7 @@ export default function CheckoutForm({ listing }: Props) {
     <div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* 1. Order summary — show what they're buying first */}
+      {/* 1. Order summary */}
       <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '16px 20px', marginBottom: 24 }}>
         <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
           <div style={{ width: 60, borderRadius: 6, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3', flexShrink: 0 }}>
@@ -181,20 +293,71 @@ export default function CheckoutForm({ listing }: Props) {
       <div style={{ marginTop: 24, marginBottom: 28 }}>
         <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1A1A1A', marginBottom: 14 }}>Account</h2>
 
+        {/* Email */}
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onBlur={() => markTouched('email')}
+            placeholder="you@example.com"
+            style={getInputStyle(touched.email && email.length > 0, emailValid)}
+          />
+          {touched.email && email.length > 0 && !emailValid && (
+            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Please enter a valid email address</p>
+          )}
         </div>
 
-        <div style={{ marginBottom: 8 }}>
+        {/* Username */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Username</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+              onBlur={() => markTouched('username')}
+              placeholder="yourname"
+              maxLength={30}
+              style={{
+                ...getInputStyle(
+                  touched.username && username.length > 0,
+                  usernameValid
+                ),
+                paddingRight: 40,
+              }}
+            />
+            <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+              {usernameChecking && <Spinner size={16} />}
+              {!usernameChecking && usernameAvailable === true && <CheckIcon />}
+              {!usernameChecking && usernameAvailable === false && <XIcon />}
+            </span>
+          </div>
+          {touched.username && username.length > 0 && username.length < 3 && (
+            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Username must be at least 3 characters</p>
+          )}
+          {usernameAvailable === false && (
+            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>That username is already taken</p>
+          )}
+          {usernameAvailable === true && (
+            <p style={{ fontSize: 11, color: '#16A34A', marginTop: 4 }}>Username available</p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div style={{ marginBottom: 4 }}>
           <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Password</label>
           <div style={{ position: 'relative' }}>
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="Min 8 chars, 1 uppercase, 1 number"
-              style={{ ...inputStyle, paddingRight: 60 }}
+              onBlur={() => markTouched('password')}
+              style={{
+                ...getInputStyle(touched.password && password.length > 0, passwordValid),
+                paddingRight: 60,
+              }}
             />
             <button
               type="button"
@@ -204,6 +367,63 @@ export default function CheckoutForm({ listing }: Props) {
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
+        </div>
+
+        {/* Password strength checklist */}
+        {password.length > 0 && (
+          <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {passwordStrength.map((rule, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                {rule.passed ? <CheckIcon /> : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                )}
+                <span style={{ fontSize: 11, color: rule.passed ? '#16A34A' : '#999' }}>{rule.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Confirm password */}
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Confirm password</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            onBlur={() => markTouched('confirmPassword')}
+            style={getInputStyle(touched.confirmPassword && confirmPassword.length > 0, confirmValid)}
+          />
+          {touched.confirmPassword && confirmPassword.length > 0 && !confirmValid && (
+            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Passwords do not match</p>
+          )}
+        </div>
+
+        {/* Terms of Service */}
+        <div
+          onClick={() => setTosAccepted(!tosAccepted)}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
+        >
+          <div style={{
+            width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
+            border: tosAccepted ? '2px solid #2D4A3E' : '2px solid #E5E3DF',
+            background: tosAccepted ? '#2D4A3E' : '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.15s',
+          }}>
+            {tosAccepted && (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+          </div>
+          <span style={{ fontSize: 12, color: '#666', lineHeight: 1.5 }}>
+            I agree to the{' '}
+            <a href="https://sellyourshelf.com/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#2D4A3E', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Terms of Service</a>
+            {' '}and{' '}
+            <a href="https://sellyourshelf.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#2D4A3E', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Privacy Policy</a>
+          </span>
         </div>
 
         <p style={{ fontSize: 11, color: '#999', lineHeight: 1.5 }}>
@@ -216,29 +436,65 @@ export default function CheckoutForm({ listing }: Props) {
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1A1A1A', marginBottom: 14 }}>Delivery address</h2>
 
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Full name</label>
-          <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} style={inputStyle} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>First name</label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={e => setFirstName(e.target.value)}
+              onBlur={() => markTouched('firstName')}
+              style={getInputStyle(touched.firstName && firstName.length > 0, firstNameValid)}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Last name</label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={e => setLastName(e.target.value)}
+              onBlur={() => markTouched('lastName')}
+              style={getInputStyle(touched.lastName && lastName.length > 0, lastNameValid)}
+            />
+          </div>
         </div>
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Address line 1</label>
-          <input type="text" value={line1} onChange={e => setLine1(e.target.value)} style={inputStyle} />
+          <input
+            type="text"
+            value={line1}
+            onChange={e => setLine1(e.target.value)}
+            onBlur={() => markTouched('line1')}
+            style={getInputStyle(touched.line1 && line1.length > 0, line1Valid)}
+          />
         </div>
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Address line 2 <span style={{ color: '#bbb' }}>(optional)</span></label>
-          <input type="text" value={line2} onChange={e => setLine2(e.target.value)} style={inputStyle} />
+          <input type="text" value={line2} onChange={e => setLine2(e.target.value)} style={{ ...inputBase, border: '0.5px solid #E5E3DF' }} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>City</label>
-            <input type="text" value={city} onChange={e => setCity(e.target.value)} style={inputStyle} />
+            <input
+              type="text"
+              value={city}
+              onChange={e => setCity(e.target.value)}
+              onBlur={() => markTouched('city')}
+              style={getInputStyle(touched.city && city.length > 0, cityValid)}
+            />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Postcode</label>
-            <input type="text" value={postcode} onChange={e => setPostcode(e.target.value)} style={inputStyle} />
+            <input
+              type="text"
+              value={postcode}
+              onChange={e => setPostcode(e.target.value)}
+              onBlur={() => markTouched('postcode')}
+              style={getInputStyle(touched.postcode && postcode.length > 0, postcodeValid)}
+            />
           </div>
         </div>
       </div>
@@ -284,10 +540,10 @@ export default function CheckoutForm({ listing }: Props) {
           <div style={{ maxWidth: 520, margin: '0 auto' }}>
             <button
               onClick={handleCreatePaymentIntent}
-              disabled={!formValid || loading}
+              disabled={loading}
               style={{
                 width: '100%', padding: '14px', fontSize: 15, fontWeight: 600, borderRadius: 8,
-                border: 'none', cursor: formValid && !loading ? 'pointer' : 'default',
+                border: 'none', cursor: !loading ? 'pointer' : 'default',
                 background: formValid && !loading ? '#2D4A3E' : '#ccc', color: '#FAF8F5',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
