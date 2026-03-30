@@ -121,6 +121,10 @@ export default function CheckoutForm({ listing }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
 
+  // Email recognition: null = not checked, true = existing, false = new
+  const [isExistingUser, setIsExistingUser] = useState<boolean | null>(null)
+  const [emailChecking, setEmailChecking] = useState(false)
+
   // Username availability
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [usernameChecking, setUsernameChecking] = useState(false)
@@ -138,6 +142,38 @@ export default function CheckoutForm({ listing }: Props) {
   useEffect(() => {
     setSessionId(getOrCreateSessionId())
   }, [])
+
+  // Debounced email existence check
+  useEffect(() => {
+    const emailValid = /.+@.+\..+/.test(email)
+    if (!emailValid) {
+      setIsExistingUser(null)
+      return
+    }
+
+    setEmailChecking(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/users?select=id&email=eq.${encodeURIComponent(email)}&limit=1`,
+          {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          }
+        )
+        const data = await res.json()
+        setIsExistingUser(Array.isArray(data) && data.length > 0)
+      } catch {
+        setIsExistingUser(null)
+      } finally {
+        setEmailChecking(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [email])
 
   // Debounced username availability check
   useEffect(() => {
@@ -170,6 +206,7 @@ export default function CheckoutForm({ listing }: Props) {
     return () => clearTimeout(timer)
   }, [username])
 
+  const isNewUser = isExistingUser === false
   const price = listing.asking_price_gbp
   const shipping = 2.50
   const total = price + shipping
@@ -187,12 +224,15 @@ export default function CheckoutForm({ listing }: Props) {
   const cityValid = city.trim().length > 0
   const postcodeValid = postcode.trim().length > 0
 
+  // Form validity depends on whether it's a new or existing user
+  const accountValid = isExistingUser === null
+    ? false // email not checked yet
+    : isExistingUser
+      ? emailValid && password.length > 0 // existing: just email + password
+      : emailValid && usernameValid && passwordValid && confirmValid && tosAccepted // new: full signup
+
   const formValid =
-    emailValid &&
-    usernameValid &&
-    passwordValid &&
-    confirmValid &&
-    tosAccepted &&
+    accountValid &&
     firstNameValid &&
     lastNameValid &&
     line1Valid &&
@@ -201,10 +241,15 @@ export default function CheckoutForm({ listing }: Props) {
 
   const handleCreatePaymentIntent = async () => {
     // Touch all fields to show validation
-    setTouched({
-      email: true, username: true, password: true, confirmPassword: true,
+    const allTouched: Record<string, boolean> = {
+      email: true, password: true,
       firstName: true, lastName: true, line1: true, city: true, postcode: true,
-    })
+    }
+    if (isNewUser) {
+      allTouched.username = true
+      allTouched.confirmPassword = true
+    }
+    setTouched(allTouched)
 
     if (!formValid) return
 
@@ -220,8 +265,9 @@ export default function CheckoutForm({ listing }: Props) {
           body: JSON.stringify({
             listingId: listing.id,
             email,
-            username,
+            username: isNewUser ? username : undefined,
             password,
+            isExistingUser: isExistingUser || false,
             shippingAddress: { firstName, lastName, fullName: `${firstName.trim()} ${lastName.trim()}`, line1, line2: line2 || undefined, city, postcode },
             sessionId: sessionId || undefined,
           }),
@@ -296,140 +342,163 @@ export default function CheckoutForm({ listing }: Props) {
         {/* Email */}
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            onBlur={() => markTouched('email')}
-            placeholder="you@example.com"
-            style={getInputStyle(touched.email && email.length > 0, emailValid)}
-          />
-          {touched.email && email.length > 0 && !emailValid && (
-            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Please enter a valid email address</p>
-          )}
-        </div>
-
-        {/* Username */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Username</label>
           <div style={{ position: 'relative' }}>
             <input
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-              onBlur={() => markTouched('username')}
-              placeholder="yourname"
-              maxLength={30}
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onBlur={() => markTouched('email')}
+              placeholder="you@example.com"
               style={{
-                ...getInputStyle(
-                  touched.username && username.length > 0,
-                  usernameValid
-                ),
+                ...getInputStyle(touched.email && email.length > 0, emailValid),
                 paddingRight: 40,
               }}
             />
             <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
-              {usernameChecking && <Spinner size={16} />}
-              {!usernameChecking && usernameAvailable === true && <CheckIcon />}
-              {!usernameChecking && usernameAvailable === false && <XIcon />}
+              {emailChecking && <Spinner size={16} />}
+              {!emailChecking && isExistingUser === true && emailValid && <CheckIcon />}
             </span>
           </div>
-          {touched.username && username.length > 0 && username.length < 3 && (
-            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Username must be at least 3 characters</p>
+          {touched.email && email.length > 0 && !emailValid && (
+            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Please enter a valid email address</p>
           )}
-          {usernameAvailable === false && (
-            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>That username is already taken</p>
+          {isExistingUser === true && (
+            <p style={{ fontSize: 11, color: '#16A34A', marginTop: 4 }}>Welcome back! Enter your password to continue.</p>
           )}
-          {usernameAvailable === true && (
-            <p style={{ fontSize: 11, color: '#16A34A', marginTop: 4 }}>Username available</p>
+          {isExistingUser === false && emailValid && (
+            <p style={{ fontSize: 11, color: '#2D4A3E', marginTop: 4 }}>New account — choose a username and password below.</p>
           )}
         </div>
 
-        {/* Password */}
-        <div style={{ marginBottom: 4 }}>
-          <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Password</label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onBlur={() => markTouched('password')}
-              style={{
-                ...getInputStyle(touched.password && password.length > 0, passwordValid),
-                paddingRight: 60,
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#2D4A3E', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              {showPassword ? 'Hide' : 'Show'}
-            </button>
-          </div>
-        </div>
-
-        {/* Password strength checklist */}
-        {password.length > 0 && (
-          <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {passwordStrength.map((rule, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                {rule.passed ? <CheckIcon /> : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                  </svg>
-                )}
-                <span style={{ fontSize: 11, color: rule.passed ? '#16A34A' : '#999' }}>{rule.label}</span>
-              </div>
-            ))}
+        {/* Username — only for new users */}
+        {isNewUser && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Username</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                onBlur={() => markTouched('username')}
+                placeholder="yourname"
+                maxLength={30}
+                style={{
+                  ...getInputStyle(
+                    touched.username && username.length > 0,
+                    usernameValid
+                  ),
+                  paddingRight: 40,
+                }}
+              />
+              <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                {usernameChecking && <Spinner size={16} />}
+                {!usernameChecking && usernameAvailable === true && <CheckIcon />}
+                {!usernameChecking && usernameAvailable === false && <XIcon />}
+              </span>
+            </div>
+            {touched.username && username.length > 0 && username.length < 3 && (
+              <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Username must be at least 3 characters</p>
+            )}
+            {usernameAvailable === false && (
+              <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>That username is already taken</p>
+            )}
+            {usernameAvailable === true && (
+              <p style={{ fontSize: 11, color: '#16A34A', marginTop: 4 }}>Username available</p>
+            )}
           </div>
         )}
 
-        {/* Confirm password */}
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Confirm password</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-            onBlur={() => markTouched('confirmPassword')}
-            style={getInputStyle(touched.confirmPassword && confirmPassword.length > 0, confirmValid)}
-          />
-          {touched.confirmPassword && confirmPassword.length > 0 && !confirmValid && (
-            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Passwords do not match</p>
-          )}
-        </div>
+        {/* Password — always shown once email is recognised */}
+        {isExistingUser !== null && (
+          <>
+            <div style={{ marginBottom: isNewUser ? 4 : 8 }}>
+              <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onBlur={() => markTouched('password')}
+                  style={{
+                    ...getInputStyle(
+                      touched.password && password.length > 0,
+                      isNewUser ? passwordValid : password.length > 0
+                    ),
+                    paddingRight: 60,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#2D4A3E', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
 
-        {/* Terms of Service */}
-        <div
-          onClick={() => setTosAccepted(!tosAccepted)}
-          style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
-        >
-          <div style={{
-            width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
-            border: tosAccepted ? '2px solid #2D4A3E' : '2px solid #E5E3DF',
-            background: tosAccepted ? '#2D4A3E' : '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.15s',
-          }}>
-            {tosAccepted && (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+            {/* Password strength checklist — only for new users */}
+            {isNewUser && password.length > 0 && (
+              <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {passwordStrength.map((rule, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {rule.passed ? <CheckIcon /> : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                      </svg>
+                    )}
+                    <span style={{ fontSize: 11, color: rule.passed ? '#16A34A' : '#999' }}>{rule.label}</span>
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
-          <span style={{ fontSize: 12, color: '#666', lineHeight: 1.5 }}>
-            I agree to the{' '}
-            <a href="https://sellyourshelf.com/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#2D4A3E', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Terms of Service</a>
-            {' '}and{' '}
-            <a href="https://sellyourshelf.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#2D4A3E', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Privacy Policy</a>
-          </span>
-        </div>
 
-        <p style={{ fontSize: 11, color: '#999', lineHeight: 1.5 }}>
-          We&apos;ll create your Sell Your Shelf account so you can track your order.
-          Already have an account? Use the same email and password.
-        </p>
+            {/* Confirm password — only for new users */}
+            {isNewUser && (
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Confirm password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  onBlur={() => markTouched('confirmPassword')}
+                  style={getInputStyle(touched.confirmPassword && confirmPassword.length > 0, confirmValid)}
+                />
+                {touched.confirmPassword && confirmPassword.length > 0 && !confirmValid && (
+                  <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Passwords do not match</p>
+                )}
+              </div>
+            )}
+
+            {/* Terms of Service — only for new users */}
+            {isNewUser && (
+              <div
+                onClick={() => setTosAccepted(!tosAccepted)}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
+              >
+                <div style={{
+                  width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                  border: tosAccepted ? '2px solid #2D4A3E' : '2px solid #E5E3DF',
+                  background: tosAccepted ? '#2D4A3E' : '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s',
+                }}>
+                  {tosAccepted && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </div>
+                <span style={{ fontSize: 12, color: '#666', lineHeight: 1.5 }}>
+                  I agree to the{' '}
+                  <a href="https://sellyourshelf.com/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#2D4A3E', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="https://sellyourshelf.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#2D4A3E', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Privacy Policy</a>
+                </span>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* 3. Delivery address */}
