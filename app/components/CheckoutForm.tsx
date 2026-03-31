@@ -103,7 +103,7 @@ function TrustStrip() {
 
 export default function CheckoutForm({ listing }: Props) {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
-  const [transactionId, setTransactionId] = useState<number | null>(null)
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
 
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
@@ -278,7 +278,7 @@ export default function CheckoutForm({ listing }: Props) {
       if (!res.ok) throw new Error(data.error || 'Something went wrong')
 
       setClientSecret(data.clientSecret)
-      setTransactionId(data.transactionId)
+      setPaymentIntentId(data.paymentIntentId)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -591,7 +591,7 @@ export default function CheckoutForm({ listing }: Props) {
           >
             <PaymentStep
               clientSecret={clientSecret}
-              transactionId={transactionId!}
+              paymentIntentId={paymentIntentId!}
               total={total}
             />
           </Elements>
@@ -632,11 +632,11 @@ export default function CheckoutForm({ listing }: Props) {
 
 function PaymentStep({
   clientSecret,
-  transactionId,
+  paymentIntentId,
   total,
 }: {
   clientSecret: string
-  transactionId: number
+  paymentIntentId: string
   total: number
 }) {
   const stripe = useStripe()
@@ -654,7 +654,7 @@ function PaymentStep({
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `https://sellyourshelf.com/order/confirmed?transaction_id=${transactionId}`,
+        return_url: `https://sellyourshelf.com/order/confirmed?payment_intent=${paymentIntentId}`,
       },
     })
 
