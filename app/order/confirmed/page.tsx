@@ -16,19 +16,44 @@ type Props = {
 
 export default async function OrderConfirmedPage({ searchParams }: Props) {
   const params = await searchParams
-  const transactionId = params.transaction_id as string | undefined
+  const paymentIntentParam = params.payment_intent as string | undefined
+  const transactionIdParam = params.transaction_id as string | undefined
 
   let transaction: any = null
 
-  if (transactionId) {
+  // Look up by payment_intent (new flow) or transaction_id (legacy)
+  if (paymentIntentParam) {
+    // Webhook may not have fired yet — retry a few times
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data } = await supabase
+        .from('transactions')
+        .select(`
+          id, status, sale_price_gbp, shipping_cost_gbp,
+          listings(title, author, books(cover_url)),
+          users:seller_id(username)
+        `)
+        .eq('stripe_payment_intent_id', paymentIntentParam)
+        .single()
+
+      if (data) {
+        transaction = data
+        break
+      }
+
+      // Wait 2 seconds before retrying (webhook may still be processing)
+      if (attempt < 4) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+    }
+  } else if (transactionIdParam) {
     const { data } = await supabase
       .from('transactions')
       .select(`
-        id, status, sale_price_gbp,
+        id, status, sale_price_gbp, shipping_cost_gbp,
         listings(title, author, books(cover_url)),
         users:seller_id(username)
       `)
-      .eq('id', transactionId)
+      .eq('id', transactionIdParam)
       .single()
 
     transaction = data
@@ -37,6 +62,9 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
   const book = transaction?.listings as any
   const seller = transaction?.users as any
   const cover = book?.books?.cover_url
+  const totalPaid = transaction
+    ? (Number(transaction.sale_price_gbp) + Number(transaction.shipping_cost_gbp)).toFixed(2)
+    : null
   const appStoreUrl = 'https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=web_checkout&utm_medium=confirmation&utm_campaign=order_confirmed'
 
   return (
@@ -47,11 +75,14 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '48px 24px', textAlign: 'center' }}>
 
         <div style={{ fontSize: 48, marginBottom: 16 }}>&#x2705;</div>
-        <h1 style={{ fontSize: 24, fontWeight: 600, color: '#1A1A1A', marginBottom: 32 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 600, color: '#1A1A1A', marginBottom: 8 }}>
           Order confirmed!
         </h1>
+        <p style={{ fontSize: 14, color: '#666', marginBottom: 32 }}>
+          Thank you for your purchase{totalPaid ? ` of \u00A3${totalPaid}` : ''}.
+        </p>
 
-        {transaction && (
+        {transaction ? (
           <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '24px', marginBottom: 32, textAlign: 'left' }}>
             <div style={{ display: 'flex', gap: 16, alignItems: 'start' }}>
               {cover && (
@@ -80,6 +111,12 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
               Your order is on its way to the seller. You&apos;ll get an email when it ships.
             </p>
           </div>
+        ) : (
+          <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '24px', marginBottom: 32 }}>
+            <p style={{ fontSize: 14, color: '#666', lineHeight: 1.6 }}>
+              Your payment has been received. We&apos;re setting up your order now &mdash; you&apos;ll receive a confirmation email shortly.
+            </p>
+          </div>
         )}
 
         {/* App Store CTA */}
@@ -88,7 +125,7 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
             Download the app to track your order
           </p>
           <p style={{ color: 'rgba(250,248,245,0.7)', fontSize: 13, marginBottom: 20 }}>
-            Get shipping updates and manage your account
+            Get shipping updates, message your seller, and manage your account
           </p>
           <a
             href={appStoreUrl}
