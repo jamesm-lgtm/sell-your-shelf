@@ -25,6 +25,48 @@ function generateSlug(title: string, author: string): string {
     .replace(/^-|-$/g, '')
 }
 
+const RECENT_SEARCHES_KEY = 'sys_recent_searches'
+const MAX_RECENT = 5
+
+function getRecentSearches(): string[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCHES_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveRecentSearch(query: string) {
+  if (typeof window === 'undefined') return
+  const q = query.trim()
+  if (!q) return
+  try {
+    const existing = getRecentSearches().filter(s => s.toLowerCase() !== q.toLowerCase())
+    const updated = [q, ...existing].slice(0, MAX_RECENT)
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated))
+  } catch {}
+}
+
+function removeRecentSearch(query: string): string[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const updated = getRecentSearches().filter(s => s !== query)
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated))
+    return updated
+  } catch {
+    return []
+  }
+}
+
+function clearRecentSearches() {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.removeItem(RECENT_SEARCHES_KEY)
+  } catch {}
+}
+
 type Props = {
   current?: 'browse' | 'support' | 'blog' | null
 }
@@ -36,9 +78,16 @@ export default function SiteNav({ current = null }: Props) {
   const [suggestions, setSuggestions] = useState<SearchResult[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [showRecent, setShowRecent] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const searchContainerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+
+  // Load recent searches on mount
+  useEffect(() => {
+    setRecentSearches(getRecentSearches())
+  }, [])
 
   // Fetch autocomplete suggestions
   const fetchSuggestions = useCallback(async (query: string) => {
@@ -48,6 +97,7 @@ export default function SiteNav({ current = null }: Props) {
       return
     }
 
+    setShowRecent(false)
     setLoadingSuggestions(true)
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
@@ -67,6 +117,18 @@ export default function SiteNav({ current = null }: Props) {
   const handleSearchInput = (value: string) => {
     setSearchQuery(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    if (value.trim().length === 0) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      // Show recent searches when input is cleared
+      const recent = getRecentSearches()
+      setRecentSearches(recent)
+      setShowRecent(recent.length > 0)
+      return
+    }
+
+    setShowRecent(false)
     debounceRef.current = setTimeout(() => {
       fetchSuggestions(value.trim())
     }, 300)
@@ -77,6 +139,7 @@ export default function SiteNav({ current = null }: Props) {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setShowSuggestions(false)
+        setShowRecent(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -94,7 +157,10 @@ export default function SiteNav({ current = null }: Props) {
     e.preventDefault()
     const q = searchQuery.trim()
     if (q.length > 0) {
+      saveRecentSearch(q)
+      setRecentSearches(getRecentSearches())
       setShowSuggestions(false)
+      setShowRecent(false)
       router.push(`/search?q=${encodeURIComponent(q)}`)
       setSearchOpen(false)
       setMenuOpen(false)
@@ -102,11 +168,45 @@ export default function SiteNav({ current = null }: Props) {
   }
 
   const handleSuggestionClick = (result: SearchResult) => {
+    saveRecentSearch(searchQuery.trim())
+    setRecentSearches(getRecentSearches())
     setShowSuggestions(false)
+    setShowRecent(false)
     setSearchOpen(false)
     setMenuOpen(false)
     const slug = result.slug || generateSlug(result.title, result.author || '')
     router.push(`/books/${slug}`)
+  }
+
+  const handleRecentClick = (query: string) => {
+    setSearchQuery(query)
+    setShowRecent(false)
+    router.push(`/search?q=${encodeURIComponent(query)}`)
+    setSearchOpen(false)
+    setMenuOpen(false)
+  }
+
+  const handleRemoveRecent = (query: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const updated = removeRecentSearch(query)
+    setRecentSearches(updated)
+    if (updated.length === 0) setShowRecent(false)
+  }
+
+  const handleClearAllRecent = () => {
+    clearRecentSearches()
+    setRecentSearches([])
+    setShowRecent(false)
+  }
+
+  const handleSearchFocus = () => {
+    if (searchQuery.trim().length === 0) {
+      const recent = getRecentSearches()
+      setRecentSearches(recent)
+      setShowRecent(recent.length > 0)
+    } else if (suggestions.length > 0) {
+      setShowSuggestions(true)
+    }
   }
 
   const linkStyle = (active: boolean) => ({
@@ -133,92 +233,89 @@ export default function SiteNav({ current = null }: Props) {
         maxHeight: 400,
         overflowY: 'auto',
       }}>
-        {suggestions.map((result) => {
-          const slug = result.slug || generateSlug(result.title, result.author || '')
-          return (
-            <button
-              key={result.book_id}
-              onClick={() => handleSuggestionClick(result)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                width: '100%',
-                padding: '10px 16px',
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                textAlign: 'left',
-                borderBottom: '0.5px solid #F0EDE8',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#FAF8F5' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-            >
-              {/* Cover thumbnail */}
+        {suggestions.map((result) => (
+          <button
+            key={result.book_id}
+            onClick={() => handleSuggestionClick(result)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              width: '100%',
+              padding: '10px 16px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              textAlign: 'left',
+              borderBottom: '0.5px solid #F0EDE8',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#FAF8F5' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            {/* Cover thumbnail */}
+            <div style={{
+              width: 36,
+              height: 52,
+              borderRadius: 4,
+              overflow: 'hidden',
+              background: '#2D4A3E',
+              flexShrink: 0,
+            }}>
+              {result.cover_url ? (
+                <img
+                  src={result.cover_url}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              ) : (
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 7, padding: 2, textAlign: 'center', lineHeight: 1.2 }}>
+                    {result.title.slice(0, 20)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Book info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                width: 36,
-                height: 52,
-                borderRadius: 4,
+                fontSize: 14,
+                fontWeight: 500,
+                color: '#1A1A1A',
+                whiteSpace: 'nowrap',
                 overflow: 'hidden',
-                background: '#2D4A3E',
-                flexShrink: 0,
+                textOverflow: 'ellipsis',
               }}>
-                {result.cover_url ? (
-                  <img
-                    src={result.cover_url}
-                    alt=""
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-                ) : (
-                  <div style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 7, padding: 2, textAlign: 'center', lineHeight: 1.2 }}>
-                      {result.title.slice(0, 20)}
-                    </span>
-                  </div>
-                )}
+                {result.title}
               </div>
+              <div style={{
+                fontSize: 12,
+                color: '#666',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                {result.author}{result.category ? ` · ${result.category}` : ''}
+              </div>
+            </div>
 
-              {/* Book info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: '#1A1A1A',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}>
-                  {result.title}
-                </div>
-                <div style={{
-                  fontSize: 12,
-                  color: '#666',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}>
-                  {result.author}
-                </div>
+            {/* Price + copies */}
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#2D4A3E' }}>
+                from £{Number(result.lowest_price).toFixed(2)}
               </div>
-
-              {/* Price + copies */}
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#2D4A3E' }}>
-                  from £{Number(result.lowest_price).toFixed(2)}
-                </div>
-                <div style={{ fontSize: 11, color: '#999' }}>
-                  {result.copy_count} {result.copy_count === 1 ? 'copy' : 'copies'}
-                </div>
+              <div style={{ fontSize: 11, color: '#999' }}>
+                {result.copy_count} {result.copy_count === 1 ? 'copy' : 'copies'}
               </div>
-            </button>
-          )
-        })}
+            </div>
+          </button>
+        ))}
 
         {/* "See all results" footer */}
         <button
@@ -244,6 +341,71 @@ export default function SiteNav({ current = null }: Props) {
     )
   }
 
+  const RecentSearchesDropdown = () => {
+    if (!showRecent || recentSearches.length === 0) return null
+
+    return (
+      <div style={{
+        position: 'absolute',
+        top: '100%',
+        left: 0,
+        right: 0,
+        background: '#fff',
+        borderRadius: '0 0 10px 10px',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+        zIndex: 200,
+        overflow: 'hidden',
+      }}>
+        <div style={{ padding: '10px 16px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Recent searches
+          </span>
+          <button
+            onClick={handleClearAllRecent}
+            style={{ fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#2D4A3E' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#999' }}
+          >
+            Clear all
+          </button>
+        </div>
+        {recentSearches.map((query) => (
+          <button
+            key={query}
+            onClick={() => handleRecentClick(query)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              width: '100%',
+              padding: '9px 16px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              textAlign: 'left',
+              borderBottom: '0.5px solid #F0EDE8',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#FAF8F5' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span style={{ flex: 1, fontSize: 14, color: '#1A1A1A' }}>{query}</span>
+            <span
+              onClick={(e) => handleRemoveRecent(query, e)}
+              style={{ fontSize: 16, color: '#ccc', cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
+              onMouseEnter={(e) => { (e.target as HTMLElement).style.color = '#666' }}
+              onMouseLeave={(e) => { (e.target as HTMLElement).style.color = '#ccc' }}
+            >
+              ×
+            </span>
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <>
       <nav style={{ background: '#2D4A3E', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 100 }}>
@@ -254,7 +416,7 @@ export default function SiteNav({ current = null }: Props) {
         {/* Desktop nav */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }} className="site-nav-desktop">
           <button
-            onClick={() => { setSearchOpen(!searchOpen); setMenuOpen(false); if (searchOpen) setShowSuggestions(false) }}
+            onClick={() => { setSearchOpen(!searchOpen); setMenuOpen(false); if (searchOpen) { setShowSuggestions(false); setShowRecent(false) } }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
             aria-label="Search"
           >
@@ -273,7 +435,7 @@ export default function SiteNav({ current = null }: Props) {
         {/* Mobile nav */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }} className="site-nav-mobile">
           <button
-            onClick={() => { setSearchOpen(!searchOpen); setMenuOpen(false); if (searchOpen) setShowSuggestions(false) }}
+            onClick={() => { setSearchOpen(!searchOpen); setMenuOpen(false); if (searchOpen) { setShowSuggestions(false); setShowRecent(false) } }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
             aria-label="Search"
           >
@@ -282,7 +444,7 @@ export default function SiteNav({ current = null }: Props) {
             </svg>
           </button>
           <button
-            onClick={() => { setMenuOpen(!menuOpen); setSearchOpen(false); setShowSuggestions(false) }}
+            onClick={() => { setMenuOpen(!menuOpen); setSearchOpen(false); setShowSuggestions(false); setShowRecent(false) }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
             aria-label="Menu"
           >
@@ -311,6 +473,7 @@ export default function SiteNav({ current = null }: Props) {
                 type="text"
                 value={searchQuery}
                 onChange={e => handleSearchInput(e.target.value)}
+                onFocus={handleSearchFocus}
                 placeholder="Search by title or author..."
                 autoFocus
                 style={{
@@ -331,6 +494,7 @@ export default function SiteNav({ current = null }: Props) {
             </form>
 
             <SuggestionsDropdown />
+            <RecentSearchesDropdown />
           </div>
         </div>
       )}
