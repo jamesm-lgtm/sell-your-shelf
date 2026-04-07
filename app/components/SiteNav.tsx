@@ -424,7 +424,7 @@ export default function SiteNav({ current = null }: Props) {
               <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
             </svg>
           </button>
-          <Link href="/new" style={linkStyle(current === 'browse')}>Browse</Link>
+          <Link href="/new" style={linkStyle(current === 'browse')}>Shop books</Link>
           <Link href="/blog" style={linkStyle(current === 'blog')}>Blog</Link>
           <Link href="/support" style={linkStyle(current === 'support')}>Support</Link>
           <a href="https://apps.apple.com/gb/app/sell-your-shelf/id6739630632" style={{ background: '#FAF8F5', color: '#2D4A3E', fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 6, textDecoration: 'none' }}>
@@ -503,7 +503,7 @@ export default function SiteNav({ current = null }: Props) {
       {menuOpen && (
         <div style={{ background: '#2D4A3E', padding: '8px 24px 20px', borderBottom: '1px solid rgba(250,248,245,0.1)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Link href="/new" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'browse' ? 600 : 400 }}>
-            Browse Books
+            Shop books
           </Link>
           <Link href="/blog" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'blog' ? 600 : 400 }}>
             Blog

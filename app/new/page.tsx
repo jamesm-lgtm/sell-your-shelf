@@ -37,7 +37,6 @@ export default async function NewInPage() {
     .eq('status', 'active')
     .is('users.deleted_at', null)
     .order('created_at', { ascending: false })
-    .limit(200)
 
   const curatedRows = await getCuratedRows()
 
