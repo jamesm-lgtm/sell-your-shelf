@@ -22,3 +22,6 @@ INSERT INTO editorial_tags (label, slug, display_order) VALUES
   ('Under £5',     'under-5',      5),
   ('Seasonal',     'seasonal',     6)
 ON CONFLICT (slug) DO NOTHING;
+
+-- Add description column (run if table already exists)
+ALTER TABLE editorial_tags ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';

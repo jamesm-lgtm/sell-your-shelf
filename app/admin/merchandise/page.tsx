@@ -8,6 +8,16 @@ type Tag = {
   slug: string
   active: boolean
   display_order: number
+  description: string
+}
+
+type TagListing = {
+  id: number
+  title: string
+  author: string | null
+  asking_price_gbp: number
+  condition: string
+  books: { cover_url: string | null } | null
 }
 
 type Listing = {
@@ -33,6 +43,16 @@ export default function MerchandisePage() {
   const [authError, setAuthError] = useState('')
 
   const [tags, setTags] = useState<Tag[]>([])
+  const [expandedTagId, setExpandedTagId] = useState<number | null>(null)
+  const [tagListings, setTagListings] = useState<Record<number, TagListing[]>>({})
+  const [tagCounts, setTagCounts] = useState<Record<number, number>>({})
+  const [editingTagId, setEditingTagId] = useState<number | null>(null)
+  const [editLabel, setEditLabel] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [addingTag, setAddingTag] = useState(false)
+  const [newTagLabel, setNewTagLabel] = useState('')
+  const [newTagDescription, setNewTagDescription] = useState('')
+
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Listing[]>([])
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
@@ -40,7 +60,6 @@ export default function MerchandisePage() {
   const [saving, setSaving] = useState(false)
   const [searching, setSearching] = useState(false)
 
-  // Check localStorage for existing session
   useEffect(() => {
     const token = localStorage.getItem('admin_token')
     if (token) setAuthed(true)
@@ -64,12 +83,79 @@ export default function MerchandisePage() {
 
   const fetchTags = useCallback(async () => {
     const res = await fetch('/api/admin/tags')
-    if (res.ok) setTags(await res.json())
+    if (res.ok) {
+      const data = await res.json()
+      setTags(data)
+      // Fetch counts for all tags
+      for (const tag of data) {
+        fetchTagListings(tag.id, true)
+      }
+    }
   }, [])
+
+  const fetchTagListings = async (tagId: number, countOnly = false) => {
+    const res = await fetch(`/api/admin/tags/${tagId}/listings`)
+    if (res.ok) {
+      const listings: TagListing[] = await res.json()
+      setTagListings(prev => ({ ...prev, [tagId]: listings }))
+      setTagCounts(prev => ({ ...prev, [tagId]: listings.length }))
+    }
+  }
 
   useEffect(() => {
     if (authed) fetchTags()
   }, [authed, fetchTags])
+
+  const handleExpandTag = (tagId: number) => {
+    if (expandedTagId === tagId) {
+      setExpandedTagId(null)
+      return
+    }
+    setExpandedTagId(tagId)
+    fetchTagListings(tagId)
+  }
+
+  const handleStartRename = (tag: Tag, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingTagId(tag.id)
+    setEditLabel(tag.label)
+    setEditDescription(tag.description || '')
+  }
+
+  const handleSaveRename = async (tag: Tag) => {
+    if (!editLabel.trim()) return
+    await fetch('/api/admin/tags', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: tag.id, label: editLabel.trim() }),
+    })
+    setEditingTagId(null)
+    fetchTags()
+  }
+
+  const handleSaveDescription = async (tag: Tag) => {
+    await fetch('/api/admin/tags', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: tag.id, description: editDescription }),
+    })
+    fetchTags()
+  }
+
+  const handleAddTag = async () => {
+    if (!newTagLabel.trim()) return
+    const res = await fetch('/api/admin/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: newTagLabel.trim(), description: newTagDescription.trim() }),
+    })
+    if (res.ok) {
+      setNewTagLabel('')
+      setNewTagDescription('')
+      setAddingTag(false)
+      fetchTags()
+    }
+  }
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -98,7 +184,6 @@ export default function MerchandisePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ listing_id: selectedListing.id, tag_ids: selectedTagIds }),
     })
-    // Update local state
     setSearchResults(prev =>
       prev.map(l =>
         l.id === selectedListing.id
@@ -110,9 +195,13 @@ export default function MerchandisePage() {
       prev ? { ...prev, listing_editorial_tags: selectedTagIds.map(tag_id => ({ tag_id })) } : null
     )
     setSaving(false)
+    // Refresh counts
+    for (const tagId of selectedTagIds) fetchTagListings(tagId, true)
+    fetchTags()
   }
 
-  const handleToggleActive = async (tag: Tag) => {
+  const handleToggleActive = async (tag: Tag, e: React.MouseEvent) => {
+    e.stopPropagation()
     await fetch('/api/admin/tags', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -176,40 +265,175 @@ export default function MerchandisePage() {
         {/* Left column — Tag management (40%) */}
         <div style={{ width: '40%', flexShrink: 0 }}>
           <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 20 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A', marginBottom: 16, margin: '0 0 16px' }}>Tags</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A', margin: '0 0 16px' }}>Tags</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {tags.map(tag => (
-                <div
-                  key={tag.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
-                    background: tag.active ? '#fff' : '#F5F5F5', border: '0.5px solid #E5E3DF', borderRadius: 8,
-                    opacity: tag.active ? 1 : 0.6,
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A' }}>{tag.label}</div>
-                    <div style={{ fontSize: 11, color: '#999' }}>{tag.slug}</div>
-                  </div>
-                  <input
-                    type="number"
-                    value={tag.display_order}
-                    onChange={e => handleUpdateOrder(tag, parseInt(e.target.value) || 0)}
-                    style={{ width: 48, padding: '4px 6px', fontSize: 13, border: '0.5px solid #E5E3DF', borderRadius: 4, textAlign: 'center' }}
-                    title="Display order"
-                  />
-                  <button
-                    onClick={() => handleToggleActive(tag)}
+              {tags.map(tag => {
+                const isExpanded = expandedTagId === tag.id
+                const isEditing = editingTagId === tag.id
+                const count = tagCounts[tag.id] ?? 0
+                const listings = tagListings[tag.id] ?? []
+
+                return (
+                  <div
+                    key={tag.id}
                     style={{
-                      padding: '4px 12px', fontSize: 12, fontWeight: 500, borderRadius: 4, border: 'none', cursor: 'pointer',
-                      background: tag.active ? '#2D4A3E' : '#E5E3DF',
-                      color: tag.active ? '#FAF8F5' : '#666',
+                      background: tag.active ? '#fff' : '#F5F5F5',
+                      border: `0.5px solid ${isExpanded ? '#2D4A3E' : '#E5E3DF'}`,
+                      borderRadius: 8,
+                      opacity: tag.active ? 1 : 0.6,
+                      overflow: 'hidden',
                     }}
                   >
-                    {tag.active ? 'Active' : 'Inactive'}
-                  </button>
+                    {/* Tag header row */}
+                    <div
+                      onClick={() => handleExpandTag(tag.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontSize: 11, color: '#999', userSelect: 'none' }}>
+                        {isExpanded ? '▾' : '▸'}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editLabel}
+                            onChange={e => setEditLabel(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleSaveRename(tag); if (e.key === 'Escape') setEditingTagId(null) }}
+                            onBlur={() => handleSaveRename(tag)}
+                            onClick={e => e.stopPropagation()}
+                            autoFocus
+                            style={{ fontSize: 14, fontWeight: 500, border: '1px solid #2D4A3E', borderRadius: 4, padding: '2px 6px', width: '100%', boxSizing: 'border-box' }}
+                          />
+                        ) : (
+                          <div
+                            onDoubleClick={e => handleStartRename(tag, e)}
+                            style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A' }}
+                            title="Double-click to rename"
+                          >
+                            {tag.label}
+                            <span style={{ fontSize: 11, color: '#999', fontWeight: 400, marginLeft: 6 }}>
+                              {count} {count === 1 ? 'book' : 'books'}
+                            </span>
+                          </div>
+                        )}
+                        <div style={{ fontSize: 11, color: '#999' }}>{tag.slug}</div>
+                      </div>
+                      <input
+                        type="number"
+                        value={tag.display_order}
+                        onChange={e => handleUpdateOrder(tag, parseInt(e.target.value) || 0)}
+                        onClick={e => e.stopPropagation()}
+                        style={{ width: 44, padding: '3px 4px', fontSize: 12, border: '0.5px solid #E5E3DF', borderRadius: 4, textAlign: 'center' }}
+                        title="Display order"
+                      />
+                      <button
+                        onClick={e => handleToggleActive(tag, e)}
+                        style={{
+                          padding: '3px 10px', fontSize: 11, fontWeight: 500, borderRadius: 4, border: 'none', cursor: 'pointer',
+                          background: tag.active ? '#2D4A3E' : '#E5E3DF',
+                          color: tag.active ? '#FAF8F5' : '#666',
+                        }}
+                      >
+                        {tag.active ? 'Active' : 'Inactive'}
+                      </button>
+                    </div>
+
+                    {/* Expanded: description + tagged books */}
+                    {isExpanded && (
+                      <div style={{ padding: '0 12px 12px', borderTop: '0.5px solid #E5E3DF' }}>
+                        {/* Description */}
+                        <div style={{ padding: '10px 0 8px' }}>
+                          <label style={{ fontSize: 11, fontWeight: 500, color: '#999', display: 'block', marginBottom: 4 }}>Description</label>
+                          <textarea
+                            value={editingTagId === tag.id ? editDescription : (tag.description || '')}
+                            onFocus={() => { setEditingTagId(tag.id); setEditLabel(tag.label); setEditDescription(tag.description || '') }}
+                            onChange={e => setEditDescription(e.target.value)}
+                            onBlur={() => { handleSaveDescription(tag); setEditingTagId(null) }}
+                            placeholder="Add a description for this tag…"
+                            rows={2}
+                            style={{ width: '100%', fontSize: 13, border: '0.5px solid #E5E3DF', borderRadius: 4, padding: '6px 8px', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'system-ui, sans-serif' }}
+                          />
+                        </div>
+
+                        {/* Tagged books */}
+                        {listings.length === 0 ? (
+                          <p style={{ fontSize: 12, color: '#999', margin: '4px 0 0' }}>No books tagged yet.</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                            {listings.map(listing => (
+                              <div key={listing.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                                <div style={{ width: 28, height: 40, borderRadius: 3, overflow: 'hidden', background: '#2D4A3E', flexShrink: 0 }}>
+                                  {listing.books?.cover_url && (
+                                    <img src={listing.books.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  )}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 500, color: '#1A1A1A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {listing.title}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: '#999' }}>
+                                    {listing.author ?? 'Unknown'} · £{Number(listing.asking_price_gbp).toFixed(2)}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Add new tag */}
+              {addingTag ? (
+                <div style={{ border: '1px dashed #2D4A3E', borderRadius: 8, padding: 12 }}>
+                  <input
+                    type="text"
+                    value={newTagLabel}
+                    onChange={e => setNewTagLabel(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAddTag(); if (e.key === 'Escape') setAddingTag(false) }}
+                    placeholder="Tag label (e.g. Summer Reads)"
+                    autoFocus
+                    style={{ width: '100%', fontSize: 14, border: '0.5px solid #E5E3DF', borderRadius: 4, padding: '8px 10px', marginBottom: 8, boxSizing: 'border-box' }}
+                  />
+                  <textarea
+                    value={newTagDescription}
+                    onChange={e => setNewTagDescription(e.target.value)}
+                    placeholder="Optional description…"
+                    rows={2}
+                    style={{ width: '100%', fontSize: 13, border: '0.5px solid #E5E3DF', borderRadius: 4, padding: '6px 8px', marginBottom: 8, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'system-ui, sans-serif' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={handleAddTag}
+                      style={{ padding: '6px 16px', fontSize: 13, fontWeight: 500, background: '#2D4A3E', color: '#FAF8F5', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                    >
+                      Add tag
+                    </button>
+                    <button
+                      onClick={() => { setAddingTag(false); setNewTagLabel(''); setNewTagDescription('') }}
+                      style={{ padding: '6px 16px', fontSize: 13, color: '#666', background: 'none', border: '0.5px solid #E5E3DF', borderRadius: 6, cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-              ))}
+              ) : (
+                <button
+                  onClick={() => setAddingTag(true)}
+                  style={{
+                    padding: '10px 12px', fontSize: 13, fontWeight: 500, color: '#2D4A3E',
+                    background: 'none', border: '1px dashed #E5E3DF', borderRadius: 8, cursor: 'pointer',
+                    textAlign: 'center',
+                  }}
+                >
+                  + Add tag
+                </button>
+              )}
             </div>
           </div>
         </div>

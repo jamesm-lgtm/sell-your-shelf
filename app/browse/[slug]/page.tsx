@@ -21,16 +21,18 @@ export async function generateMetadata({ params }: Props) {
 
   const { data: tag } = await supabase
     .from('editorial_tags')
-    .select('label')
+    .select('label, description')
     .eq('slug', slug)
     .eq('active', true)
     .single()
 
   if (!tag) return { title: 'Not found — Sell Your Shelf' }
 
+  const metaDesc = tag.description || `Browse ${tag.label.toLowerCase()} books on Sell Your Shelf. Curated picks with secure payments and tracked shipping.`
+
   return {
     title: `${tag.label} — Sell Your Shelf`,
-    description: `Browse ${tag.label.toLowerCase()} books on Sell Your Shelf. Curated picks with secure payments and tracked shipping.`,
+    description: metaDesc,
     openGraph: {
       title: `${tag.label} — Sell Your Shelf`,
       description: `Curated ${tag.label.toLowerCase()} books from UK sellers`,
@@ -44,7 +46,7 @@ export default async function BrowseTagPage({ params }: Props) {
 
   const { data: tag } = await supabase
     .from('editorial_tags')
-    .select('id, label, slug')
+    .select('id, label, slug, description')
     .eq('slug', slug)
     .eq('active', true)
     .single()
@@ -104,6 +106,11 @@ export default async function BrowseTagPage({ params }: Props) {
           <div style={{ fontSize: 24, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>
             {tag.label}
           </div>
+          {tag.description && (
+            <div style={{ fontSize: 14, color: '#666', marginBottom: 4, lineHeight: 1.4 }}>
+              {tag.description}
+            </div>
+          )}
           <div style={{ fontSize: 14, color: '#666' }}>
             {safeListings.length} {safeListings.length === 1 ? 'book' : 'books'} available
           </div>

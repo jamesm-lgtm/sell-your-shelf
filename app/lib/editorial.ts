@@ -15,6 +15,7 @@ export type CuratedListing = {
 export type TagRow = {
   label: string
   slug: string
+  description: string
   listings: CuratedListing[]
 }
 
@@ -22,7 +23,7 @@ export async function getCuratedRows(): Promise<TagRow[]> {
   // Get all active tags
   const { data: tags } = await supabase
     .from('editorial_tags')
-    .select('id, label, slug, display_order')
+    .select('id, label, slug, display_order, description')
     .eq('active', true)
     .order('display_order', { ascending: true })
 
@@ -64,6 +65,7 @@ export async function getCuratedRows(): Promise<TagRow[]> {
     .map(tag => ({
       label: tag.label,
       slug: tag.slug,
+      description: tag.description || '',
       listings: rowMap.get(tag.id) ?? [],
     }))
     .filter(row => row.listings.length >= 3)

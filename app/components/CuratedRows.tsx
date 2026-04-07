@@ -17,6 +17,7 @@ type CuratedListing = {
 type TagRow = {
   label: string
   slug: string
+  description: string
   listings: CuratedListing[]
 }
 
@@ -42,6 +43,11 @@ export default function CuratedRows({ rows }: { rows: TagRow[] }) {
                 See all →
               </Link>
             </div>
+            {row.description && (
+              <p style={{ fontSize: 14, color: '#666', margin: '0 0 12px', lineHeight: 1.4 }}>
+                {row.description}
+              </p>
+            )}
             <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
               {row.listings.slice(0, 8).map(listing => (
                 <Link
