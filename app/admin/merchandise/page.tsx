@@ -49,6 +49,7 @@ export default function MerchandisePage() {
   const [renamingTagId, setRenamingTagId] = useState<number | null>(null)
   const [editLabel, setEditLabel] = useState('')
   const [descriptions, setDescriptions] = useState<Record<number, string>>({})
+  const [savedDescTagId, setSavedDescTagId] = useState<number | null>(null)
   const [addingTag, setAddingTag] = useState(false)
   const [newTagLabel, setNewTagLabel] = useState('')
   const [newTagDescription, setNewTagDescription] = useState('')
@@ -149,6 +150,8 @@ export default function MerchandisePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: tag.id, description: desc }),
     })
+    setSavedDescTagId(tag.id)
+    setTimeout(() => setSavedDescTagId(null), 2000)
   }
 
   const handleAddTag = async () => {
@@ -359,11 +362,21 @@ export default function MerchandisePage() {
                           <textarea
                             value={descriptions[tag.id] ?? tag.description ?? ''}
                             onChange={e => setDescriptions(prev => ({ ...prev, [tag.id]: e.target.value }))}
-                            onBlur={() => handleSaveDescription(tag)}
                             placeholder="Add a description for this tag…"
                             rows={2}
                             style={{ width: '100%', fontSize: 13, border: '0.5px solid #E5E3DF', borderRadius: 4, padding: '6px 8px', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'system-ui, sans-serif' }}
                           />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                            <button
+                              onClick={() => handleSaveDescription(tag)}
+                              style={{ padding: '5px 14px', fontSize: 12, fontWeight: 500, background: '#2D4A3E', color: '#FAF8F5', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                            >
+                              Save description
+                            </button>
+                            {savedDescTagId === tag.id && (
+                              <span style={{ fontSize: 12, color: '#2D4A3E', fontWeight: 500 }}>Saved!</span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Tagged books */}

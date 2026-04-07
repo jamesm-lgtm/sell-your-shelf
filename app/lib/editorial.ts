@@ -20,12 +20,21 @@ export type TagRow = {
 }
 
 export async function getCuratedRows(): Promise<TagRow[]> {
-  // Get all active tags
-  const { data: tags } = await supabase
+  // Get all active tags — try with description, fall back without if column doesn't exist yet
+  let { data: tags, error } = await supabase
     .from('editorial_tags')
     .select('id, label, slug, display_order, description')
     .eq('active', true)
     .order('display_order', { ascending: true })
+
+  if (error || !tags) {
+    const fallback = await supabase
+      .from('editorial_tags')
+      .select('id, label, slug, display_order')
+      .eq('active', true)
+      .order('display_order', { ascending: true })
+    tags = (fallback.data ?? []).map((t: any) => ({ ...t, description: '' }))
+  }
 
   if (!tags || tags.length === 0) return []
 

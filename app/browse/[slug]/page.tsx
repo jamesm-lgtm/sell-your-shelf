@@ -21,18 +21,16 @@ export async function generateMetadata({ params }: Props) {
 
   const { data: tag } = await supabase
     .from('editorial_tags')
-    .select('label, description')
+    .select('label')
     .eq('slug', slug)
     .eq('active', true)
     .single()
 
   if (!tag) return { title: 'Not found — Sell Your Shelf' }
 
-  const metaDesc = tag.description || `Browse ${tag.label.toLowerCase()} books on Sell Your Shelf. Curated picks with secure payments and tracked shipping.`
-
   return {
     title: `${tag.label} — Sell Your Shelf`,
-    description: metaDesc,
+    description: `Browse ${tag.label.toLowerCase()} books on Sell Your Shelf. Curated picks with secure payments and tracked shipping.`,
     openGraph: {
       title: `${tag.label} — Sell Your Shelf`,
       description: `Curated ${tag.label.toLowerCase()} books from UK sellers`,
@@ -44,12 +42,23 @@ export async function generateMetadata({ params }: Props) {
 export default async function BrowseTagPage({ params }: Props) {
   const { slug } = await params
 
-  const { data: tag } = await supabase
+  let { data: tag, error: tagError } = await supabase
     .from('editorial_tags')
     .select('id, label, slug, description')
     .eq('slug', slug)
     .eq('active', true)
     .single()
+
+  // Fall back if description column doesn't exist yet
+  if (tagError) {
+    const fallback = await supabase
+      .from('editorial_tags')
+      .select('id, label, slug')
+      .eq('slug', slug)
+      .eq('active', true)
+      .single()
+    tag = fallback.data ? { ...fallback.data, description: '' } : null
+  }
 
   if (!tag) return notFound()
 
