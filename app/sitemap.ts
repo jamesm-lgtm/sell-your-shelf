@@ -173,10 +173,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Category pages
   const categoryPages: MetadataRoute.Sitemap = [
-    'fiction', 'childrens', 'biography-memoir', 'self-help', 'history',
-    'reference-education', 'business-finance', 'travel', 'cookery-food',
-    'art-photography', 'science-nature', 'young-adult', 'comics-graphic-novels',
-    'sci-fi-fantasy', 'crime-thriller',
+    'fiction', 'childrens', 'biography-memoir', 'crime-thriller', 'self-help',
+    'history', 'reference-education', 'business-finance', 'literary-fiction',
+    'travel', 'cookery-food', 'art-photography', 'science-nature', 'young-adult',
+    'classic-fiction', 'historical-fiction', 'romance', 'sci-fi-fantasy',
+    'comics-graphic-novels',
   ].map(slug => ({
     url: `https://www.sellyourshelf.com/category/${slug}`,
     lastModified: new Date(),
