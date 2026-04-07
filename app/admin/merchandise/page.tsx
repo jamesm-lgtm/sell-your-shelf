@@ -16,7 +16,7 @@ type Listing = {
   author: string | null
   asking_price_gbp: number
   condition: string
-  books: { cover_url: string | null; isbn13: string | null } | null
+  books: { cover_url: string | null; isbn: string | null } | null
   listing_editorial_tags: { tag_id: number }[]
 }
 
