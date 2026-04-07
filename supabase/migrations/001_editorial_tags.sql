@@ -15,12 +15,12 @@ CREATE TABLE IF NOT EXISTS listing_editorial_tags (
 );
 
 INSERT INTO editorial_tags (label, slug, display_order) VALUES
-  ('Staff Pick',   'staff-pick',   1),
-  ('Rare Find',    'rare-find',    2),
-  ('Perfect Gift', 'perfect-gift', 3),
-  ('Hidden Gem',   'hidden-gem',   4),
-  ('Under £5',     'under-5',      5),
-  ('Seasonal',     'seasonal',     6)
+  ('Staff Picks',   'staff-picks',   1),
+  ('Rare Finds',    'rare-finds',    2),
+  ('Perfect Gifts', 'perfect-gifts', 3),
+  ('Hidden Gems',   'hidden-gems',   4),
+  ('Under £5',      'under-5',       5),
+  ('Seasonal',      'seasonal',      6)
 ON CONFLICT (slug) DO NOTHING;
 
 -- Add description column (run if table already exists)

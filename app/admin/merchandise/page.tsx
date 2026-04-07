@@ -46,9 +46,9 @@ export default function MerchandisePage() {
   const [expandedTagId, setExpandedTagId] = useState<number | null>(null)
   const [tagListings, setTagListings] = useState<Record<number, TagListing[]>>({})
   const [tagCounts, setTagCounts] = useState<Record<number, number>>({})
-  const [editingTagId, setEditingTagId] = useState<number | null>(null)
+  const [renamingTagId, setRenamingTagId] = useState<number | null>(null)
   const [editLabel, setEditLabel] = useState('')
-  const [editDescription, setEditDescription] = useState('')
+  const [descriptions, setDescriptions] = useState<Record<number, string>>({})
   const [addingTag, setAddingTag] = useState(false)
   const [newTagLabel, setNewTagLabel] = useState('')
   const [newTagDescription, setNewTagDescription] = useState('')
@@ -86,10 +86,20 @@ export default function MerchandisePage() {
     if (res.ok) {
       const data = await res.json()
       setTags(data)
-      // Fetch counts for all tags
+      // Initialise description state from fetched data
+      const descMap: Record<number, string> = {}
       for (const tag of data) {
+        descMap[tag.id] = tag.description || ''
         fetchTagListings(tag.id, true)
       }
+      setDescriptions(prev => {
+        // Only set if not already being edited
+        const merged = { ...descMap }
+        for (const [k, v] of Object.entries(prev)) {
+          if (v !== undefined) merged[Number(k)] = v
+        }
+        return merged
+      })
     }
   }, [])
 
@@ -117,9 +127,8 @@ export default function MerchandisePage() {
 
   const handleStartRename = (tag: Tag, e: React.MouseEvent) => {
     e.stopPropagation()
-    setEditingTagId(tag.id)
+    setRenamingTagId(tag.id)
     setEditLabel(tag.label)
-    setEditDescription(tag.description || '')
   }
 
   const handleSaveRename = async (tag: Tag) => {
@@ -129,17 +138,17 @@ export default function MerchandisePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: tag.id, label: editLabel.trim() }),
     })
-    setEditingTagId(null)
+    setRenamingTagId(null)
     fetchTags()
   }
 
   const handleSaveDescription = async (tag: Tag) => {
+    const desc = descriptions[tag.id] ?? ''
     await fetch('/api/admin/tags', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: tag.id, description: editDescription }),
+      body: JSON.stringify({ id: tag.id, description: desc }),
     })
-    fetchTags()
   }
 
   const handleAddTag = async () => {
@@ -269,7 +278,7 @@ export default function MerchandisePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {tags.map(tag => {
                 const isExpanded = expandedTagId === tag.id
-                const isEditing = editingTagId === tag.id
+                const isRenaming = renamingTagId === tag.id
                 const count = tagCounts[tag.id] ?? 0
                 const listings = tagListings[tag.id] ?? []
 
@@ -296,12 +305,12 @@ export default function MerchandisePage() {
                         {isExpanded ? '▾' : '▸'}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        {isEditing ? (
+                        {isRenaming ? (
                           <input
                             type="text"
                             value={editLabel}
                             onChange={e => setEditLabel(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') handleSaveRename(tag); if (e.key === 'Escape') setEditingTagId(null) }}
+                            onKeyDown={e => { if (e.key === 'Enter') handleSaveRename(tag); if (e.key === 'Escape') setRenamingTagId(null) }}
                             onBlur={() => handleSaveRename(tag)}
                             onClick={e => e.stopPropagation()}
                             autoFocus
@@ -348,10 +357,9 @@ export default function MerchandisePage() {
                         <div style={{ padding: '10px 0 8px' }}>
                           <label style={{ fontSize: 11, fontWeight: 500, color: '#999', display: 'block', marginBottom: 4 }}>Description</label>
                           <textarea
-                            value={editingTagId === tag.id ? editDescription : (tag.description || '')}
-                            onFocus={() => { setEditingTagId(tag.id); setEditLabel(tag.label); setEditDescription(tag.description || '') }}
-                            onChange={e => setEditDescription(e.target.value)}
-                            onBlur={() => { handleSaveDescription(tag); setEditingTagId(null) }}
+                            value={descriptions[tag.id] ?? tag.description ?? ''}
+                            onChange={e => setDescriptions(prev => ({ ...prev, [tag.id]: e.target.value }))}
+                            onBlur={() => handleSaveDescription(tag)}
                             placeholder="Add a description for this tag…"
                             rows={2}
                             style={{ width: '100%', fontSize: 13, border: '0.5px solid #E5E3DF', borderRadius: 4, padding: '6px 8px', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'system-ui, sans-serif' }}
