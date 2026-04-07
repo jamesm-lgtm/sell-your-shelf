@@ -3,6 +3,8 @@ import Link from 'next/link'
 import ShelfGrid from '@/app/components/ShelfGrid'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import CuratedRows from '@/app/components/CuratedRows'
+import { getCuratedRows } from '@/app/lib/editorial'
 
 export const revalidate = 0
 
@@ -36,6 +38,8 @@ export default async function NewInPage() {
     .is('users.deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(200)
+
+  const curatedRows = await getCuratedRows()
 
   const safeListings = (listings ?? []) as unknown as Array<{
     id: number
@@ -97,6 +101,8 @@ export default async function NewInPage() {
           ))}
         </div>
       </div>
+
+      <CuratedRows rows={curatedRows} />
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
         <ShelfGrid listings={safeListings} showSeller pageSize={24} />

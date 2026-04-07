@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import CuratedRows from '@/app/components/CuratedRows'
+import { getCuratedRows } from '@/app/lib/editorial'
 
 export const revalidate = 0
 
@@ -82,6 +84,8 @@ export default async function Home() {
   const withCovers = (recentListings as any[])?.filter(
     (l: any) => l.books?.cover_url
   ) ?? []
+
+  const curatedRows = await getCuratedRows()
 
   const ticker = [...withCovers, ...withCovers, ...withCovers]
 
@@ -216,6 +220,9 @@ export default async function Home() {
           </div>
         </div>
       )}
+
+      {/* Curated Editorial Rows */}
+      <CuratedRows rows={curatedRows} />
 
       {/* Browse by Category */}
       <section className="py-16 px-6">
