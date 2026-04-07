@@ -8,7 +8,9 @@ type Tag = {
   slug: string
   active: boolean
   display_order: number
+  app_display_order: number
   description: string
+  show_on: 'web' | 'app' | 'both'
 }
 
 type TagListing = {
@@ -30,6 +32,8 @@ type Listing = {
   listing_editorial_tags: { tag_id: number }[]
 }
 
+type Platform = 'web' | 'app'
+
 const CONDITIONS: Record<string, string> = {
   like_new: 'Like New',
   very_good: 'Very Good',
@@ -37,11 +41,18 @@ const CONDITIONS: Record<string, string> = {
   acceptable: 'Acceptable',
 }
 
+const SHOW_ON_OPTIONS: { value: Tag['show_on']; label: string }[] = [
+  { value: 'both', label: 'Both' },
+  { value: 'web', label: 'Web' },
+  { value: 'app', label: 'App' },
+]
+
 export default function MerchandisePage() {
   const [authed, setAuthed] = useState(false)
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
 
+  const [platform, setPlatform] = useState<Platform>('web')
   const [tags, setTags] = useState<Tag[]>([])
   const [expandedTagId, setExpandedTagId] = useState<number | null>(null)
   const [tagListings, setTagListings] = useState<Record<number, TagListing[]>>({})
@@ -53,6 +64,8 @@ export default function MerchandisePage() {
   const [addingTag, setAddingTag] = useState(false)
   const [newTagLabel, setNewTagLabel] = useState('')
   const [newTagDescription, setNewTagDescription] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Listing[]>([])
@@ -87,14 +100,12 @@ export default function MerchandisePage() {
     if (res.ok) {
       const data = await res.json()
       setTags(data)
-      // Initialise description state from fetched data
       const descMap: Record<number, string> = {}
       for (const tag of data) {
         descMap[tag.id] = tag.description || ''
-        fetchTagListings(tag.id, true)
+        fetchTagListings(tag.id)
       }
       setDescriptions(prev => {
-        // Only set if not already being edited
         const merged = { ...descMap }
         for (const [k, v] of Object.entries(prev)) {
           if (v !== undefined) merged[Number(k)] = v
@@ -104,7 +115,7 @@ export default function MerchandisePage() {
     }
   }, [])
 
-  const fetchTagListings = async (tagId: number, countOnly = false) => {
+  const fetchTagListings = async (tagId: number) => {
     const res = await fetch(`/api/admin/tags/${tagId}/listings`)
     if (res.ok) {
       const listings: TagListing[] = await res.json()
@@ -117,11 +128,20 @@ export default function MerchandisePage() {
     if (authed) fetchTags()
   }, [authed, fetchTags])
 
+  // Filter and sort tags for current platform
+  const filteredTags = tags
+    .filter(t => {
+      if (platform === 'web') return t.show_on === 'web' || t.show_on === 'both'
+      return t.show_on === 'app' || t.show_on === 'both'
+    })
+    .sort((a, b) => {
+      const aOrder = platform === 'app' ? (a.app_display_order ?? a.display_order) : a.display_order
+      const bOrder = platform === 'app' ? (b.app_display_order ?? b.display_order) : b.display_order
+      return aOrder - bOrder
+    })
+
   const handleExpandTag = (tagId: number) => {
-    if (expandedTagId === tagId) {
-      setExpandedTagId(null)
-      return
-    }
+    if (expandedTagId === tagId) { setExpandedTagId(null); return }
     setExpandedTagId(tagId)
     fetchTagListings(tagId)
   }
@@ -152,6 +172,53 @@ export default function MerchandisePage() {
     })
     setSavedDescTagId(tag.id)
     setTimeout(() => setSavedDescTagId(null), 2000)
+  }
+
+  const handleUpdateShowOn = async (tag: Tag, showOn: Tag['show_on']) => {
+    await fetch('/api/admin/tags', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: tag.id, show_on: showOn }),
+    })
+    fetchTags()
+  }
+
+  const handleUpdateOrder = async (tag: Tag, newOrder: number) => {
+    const field = platform === 'app' ? 'app_display_order' : 'display_order'
+    await fetch('/api/admin/tags', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: tag.id, [field]: newOrder }),
+    })
+    fetchTags()
+  }
+
+  const handleToggleActive = async (tag: Tag, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await fetch('/api/admin/tags', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: tag.id, active: !tag.active }),
+    })
+    fetchTags()
+  }
+
+  const handleSync = async () => {
+    setSyncing(true)
+    setSyncMessage('')
+    const direction = platform === 'web' ? 'web-to-app' : 'app-to-web'
+    const res = await fetch('/api/admin/tags/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ direction }),
+    })
+    if (res.ok) {
+      const { synced } = await res.json()
+      setSyncMessage(`Synced ${synced} tags`)
+      setTimeout(() => setSyncMessage(''), 3000)
+      fetchTags()
+    }
+    setSyncing(false)
   }
 
   const handleAddTag = async () => {
@@ -207,27 +274,7 @@ export default function MerchandisePage() {
       prev ? { ...prev, listing_editorial_tags: selectedTagIds.map(tag_id => ({ tag_id })) } : null
     )
     setSaving(false)
-    // Refresh counts
-    for (const tagId of selectedTagIds) fetchTagListings(tagId, true)
-    fetchTags()
-  }
-
-  const handleToggleActive = async (tag: Tag, e: React.MouseEvent) => {
-    e.stopPropagation()
-    await fetch('/api/admin/tags', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: tag.id, active: !tag.active }),
-    })
-    fetchTags()
-  }
-
-  const handleUpdateOrder = async (tag: Tag, newOrder: number) => {
-    await fetch('/api/admin/tags', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: tag.id, display_order: newOrder }),
-    })
+    for (const tagId of selectedTagIds) fetchTagListings(tagId)
     fetchTags()
   }
 
@@ -277,13 +324,50 @@ export default function MerchandisePage() {
         {/* Left column — Tag management (40%) */}
         <div style={{ width: '40%', flexShrink: 0 }}>
           <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 20 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A', margin: '0 0 16px' }}>Tags</h2>
+
+            {/* Platform tabs */}
+            <div style={{ display: 'flex', gap: 0, marginBottom: 16, border: '0.5px solid #E5E3DF', borderRadius: 8, overflow: 'hidden' }}>
+              {(['web', 'app'] as Platform[]).map(p => (
+                <button
+                  key={p}
+                  onClick={() => { setPlatform(p); setExpandedTagId(null) }}
+                  style={{
+                    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer',
+                    background: platform === p ? '#2D4A3E' : '#fff',
+                    color: platform === p ? '#FAF8F5' : '#666',
+                  }}
+                >
+                  {p === 'web' ? 'Web Collections' : 'App Collections'}
+                </button>
+              ))}
+            </div>
+
+            {/* Sync button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                style={{
+                  padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6, cursor: 'pointer',
+                  background: '#fff', color: '#2D4A3E', border: '1px solid #2D4A3E',
+                }}
+              >
+                {syncing ? 'Syncing…' : platform === 'web' ? 'Copy all to App' : 'Sync from Web'}
+              </button>
+              {syncMessage && (
+                <span style={{ fontSize: 12, color: '#2D4A3E', fontWeight: 500 }}>{syncMessage}</span>
+              )}
+            </div>
+
+            {/* Tag list */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {tags.map(tag => {
+              {filteredTags.map(tag => {
                 const isExpanded = expandedTagId === tag.id
                 const isRenaming = renamingTagId === tag.id
                 const count = tagCounts[tag.id] ?? 0
                 const listings = tagListings[tag.id] ?? []
+                const orderValue = platform === 'app' ? (tag.app_display_order ?? tag.display_order) : tag.display_order
+                const coversCount = listings.filter(l => l.books?.cover_url).length
 
                 return (
                   <div
@@ -299,10 +383,7 @@ export default function MerchandisePage() {
                     {/* Tag header row */}
                     <div
                       onClick={() => handleExpandTag(tag.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                        cursor: 'pointer',
-                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer' }}
                     >
                       <div style={{ fontSize: 11, color: '#999', userSelect: 'none' }}>
                         {isExpanded ? '▾' : '▸'}
@@ -335,11 +416,11 @@ export default function MerchandisePage() {
                       </div>
                       <input
                         type="number"
-                        value={tag.display_order}
+                        value={orderValue}
                         onChange={e => handleUpdateOrder(tag, parseInt(e.target.value) || 0)}
                         onClick={e => e.stopPropagation()}
                         style={{ width: 44, padding: '3px 4px', fontSize: 12, border: '0.5px solid #E5E3DF', borderRadius: 4, textAlign: 'center' }}
-                        title="Display order"
+                        title={platform === 'app' ? 'App display order' : 'Web display order'}
                       />
                       <button
                         onClick={e => handleToggleActive(tag, e)}
@@ -353,11 +434,31 @@ export default function MerchandisePage() {
                       </button>
                     </div>
 
-                    {/* Expanded: description + tagged books */}
+                    {/* Expanded panel */}
                     {isExpanded && (
                       <div style={{ padding: '0 12px 12px', borderTop: '0.5px solid #E5E3DF' }}>
-                        {/* Description */}
+                        {/* Show on toggle */}
                         <div style={{ padding: '10px 0 8px' }}>
+                          <label style={{ fontSize: 11, fontWeight: 500, color: '#999', display: 'block', marginBottom: 4 }}>Show on</label>
+                          <div style={{ display: 'flex', gap: 0, border: '0.5px solid #E5E3DF', borderRadius: 6, overflow: 'hidden' }}>
+                            {SHOW_ON_OPTIONS.map(opt => (
+                              <button
+                                key={opt.value}
+                                onClick={() => handleUpdateShowOn(tag, opt.value)}
+                                style={{
+                                  flex: 1, padding: '5px 0', fontSize: 12, fontWeight: 500, border: 'none', cursor: 'pointer',
+                                  background: tag.show_on === opt.value ? '#2D4A3E' : '#fff',
+                                  color: tag.show_on === opt.value ? '#FAF8F5' : '#666',
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <div style={{ padding: '4px 0 8px' }}>
                           <label style={{ fontSize: 11, fontWeight: 500, color: '#999', display: 'block', marginBottom: 4 }}>Description</label>
                           <textarea
                             value={descriptions[tag.id] ?? tag.description ?? ''}
@@ -378,6 +479,18 @@ export default function MerchandisePage() {
                             )}
                           </div>
                         </div>
+
+                        {/* Stats (useful for app tab) */}
+                        {platform === 'app' && count > 0 && (
+                          <div style={{ padding: '4px 0 8px', fontSize: 12, color: '#666' }}>
+                            {coversCount}/{count} books have cover images
+                            {count < 3 && (
+                              <span style={{ color: '#C43E3E', marginLeft: 8 }}>
+                                (needs 3+ to show in app)
+                              </span>
+                            )}
+                          </div>
+                        )}
 
                         {/* Tagged books */}
                         {listings.length === 0 ? (
@@ -408,6 +521,33 @@ export default function MerchandisePage() {
                   </div>
                 )
               })}
+
+              {/* Tags not on this platform */}
+              {tags.filter(t => {
+                if (platform === 'web') return t.show_on === 'app'
+                return t.show_on === 'web'
+              }).length > 0 && (
+                <div style={{ padding: '8px 0', borderTop: '0.5px solid #E5E3DF', marginTop: 4 }}>
+                  <p style={{ fontSize: 11, color: '#999', margin: '0 0 6px' }}>
+                    Not on {platform === 'web' ? 'web' : 'app'}:
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {tags.filter(t => {
+                      if (platform === 'web') return t.show_on === 'app'
+                      return t.show_on === 'web'
+                    }).map(t => (
+                      <span
+                        key={t.id}
+                        style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#F0EDE8', color: '#999', cursor: 'pointer' }}
+                        onClick={() => handleUpdateShowOn(t, 'both')}
+                        title={`Click to add to ${platform}`}
+                      >
+                        {t.label} +
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Add new tag */}
               {addingTag ? (
@@ -461,7 +601,6 @@ export default function MerchandisePage() {
 
         {/* Right column — Search & tagging (60%) */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Search */}
           <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 20, marginBottom: 20 }}>
             <h2 style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A', margin: '0 0 12px' }}>Search Listings</h2>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -483,7 +622,6 @@ export default function MerchandisePage() {
             </div>
           </div>
 
-          {/* Results */}
           {searchResults.length > 0 && (
             <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 20, marginBottom: 20 }}>
               <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', margin: '0 0 12px' }}>
@@ -535,7 +673,6 @@ export default function MerchandisePage() {
             </div>
           )}
 
-          {/* Tag assignment panel */}
           {selectedListing && (
             <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 20 }}>
               <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', margin: '0 0 4px' }}>
@@ -557,6 +694,9 @@ export default function MerchandisePage() {
                       style={{ width: 16, height: 16, accentColor: '#2D4A3E' }}
                     />
                     {tag.label}
+                    <span style={{ fontSize: 10, color: '#999', marginLeft: 4 }}>
+                      ({tag.show_on})
+                    </span>
                   </label>
                 ))}
               </div>

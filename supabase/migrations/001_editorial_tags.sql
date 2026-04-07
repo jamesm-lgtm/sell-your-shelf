@@ -25,3 +25,10 @@ ON CONFLICT (slug) DO NOTHING;
 
 -- Add description column (run if table already exists)
 ALTER TABLE editorial_tags ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
+
+-- Add platform visibility and app display order
+ALTER TABLE editorial_tags ADD COLUMN IF NOT EXISTS show_on TEXT DEFAULT 'both';
+ALTER TABLE editorial_tags ADD COLUMN IF NOT EXISTS app_display_order INT DEFAULT 0;
+
+-- Initialise app_display_order from display_order for existing rows
+UPDATE editorial_tags SET app_display_order = display_order WHERE app_display_order = 0;

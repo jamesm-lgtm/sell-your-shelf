@@ -27,16 +27,18 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { id, active, display_order, label, slug, description } = await req.json()
+  const { id, active, display_order, app_display_order, label, slug, description, show_on } = await req.json()
 
   const updates: Record<string, unknown> = {}
   if (typeof active === 'boolean') updates.active = active
   if (typeof display_order === 'number') updates.display_order = display_order
+  if (typeof app_display_order === 'number') updates.app_display_order = app_display_order
   if (typeof label === 'string') {
     updates.label = label
     updates.slug = slug || slugify(label)
   }
   if (typeof description === 'string') updates.description = description
+  if (typeof show_on === 'string' && ['web', 'app', 'both'].includes(show_on)) updates.show_on = show_on
 
   const { error } = await supabase
     .from('editorial_tags')
@@ -72,6 +74,8 @@ export async function POST(req: NextRequest) {
       slug,
       description: description?.trim() || '',
       display_order: nextOrder,
+      app_display_order: nextOrder,
+      show_on: 'both',
       active: true,
     })
     .select()
