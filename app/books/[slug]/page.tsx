@@ -35,7 +35,7 @@ function generateSlug(title: string, author: string): string {
 }
 
 async function findBookBySlug(slug: string) {
-  const bookFields = 'id, title, author, title_normalized, author_normalized, cover_url, description, isbn, category'
+  const bookFields = 'id, title, author, title_normalized, author_normalized, cover_url, cover_url_hosted, description, isbn, category'
 
   // Primary: direct slug column lookup (requires migration)
   const { data: directMatch } = await supabase
@@ -107,7 +107,7 @@ export async function generateMetadata({ params }: Props) {
     title: `Buy ${book.title} by ${book.author} | Sell Your Shelf`,
     description: `${listingCount} used cop${listingCount === 1 ? 'y' : 'ies'} of ${book.title} from £${lowestPrice}. Free shipping.`,
     openGraph: {
-      images: [book.cover_url || '/og-default.png'],
+      images: [book.cover_url_hosted || book.cover_url || '/og-default.png'],
     },
   }
 }
@@ -173,15 +173,15 @@ export default async function BookPage({ params }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 32, alignItems: 'start', marginBottom: 40 }}>
           <div>
             <div style={{ borderRadius: 10, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3' }}>
-              {book.cover_url ? (
-                <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              {(book.cover_url_hosted || book.cover_url) ? (
+                <img src={book.cover_url_hosted || book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, padding: 8, textAlign: 'center' }}>{book.title}</span>
                 </div>
               )}
             </div>
-            {book.cover_url && (
+            {(book.cover_url_hosted || book.cover_url) && (
               <p style={{ fontSize: 10, color: '#999', marginTop: 6, lineHeight: 1.4 }}>
                 Cover image is for illustration. Actual edition may vary.
               </p>

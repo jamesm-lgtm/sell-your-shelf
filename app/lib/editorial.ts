@@ -9,7 +9,7 @@ export type CuratedListing = {
   id: number
   asking_price_gbp: number
   condition: string
-  books: { title: string; author: string | null; cover_url: string | null } | null
+  books: { title: string; author: string | null; cover_url: string | null; cover_url_hosted?: string | null } | null
 }
 
 export type TagRow = {
@@ -47,7 +47,7 @@ export async function getCuratedRows(): Promise<TagRow[]> {
       tag_id,
       listings!inner(
         id, asking_price_gbp, condition, status,
-        books(title, author, cover_url)
+        books(title, author, cover_url, cover_url_hosted)
       )
     `)
     .in('tag_id', tags.map(t => t.id))

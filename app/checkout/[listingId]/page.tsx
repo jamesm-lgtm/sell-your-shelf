@@ -23,7 +23,7 @@ export default async function CheckoutPage({ params }: Props) {
     .from('listings')
     .select(`
       id, title, author, asking_price_gbp, condition, status, user_id,
-      books(cover_url),
+      books(cover_url, cover_url_hosted),
       users(username)
     `)
     .eq('id', listingId)
@@ -51,6 +51,7 @@ export default async function CheckoutPage({ params }: Props) {
     asking_price_gbp: Number(listing.asking_price_gbp),
     condition: listing.condition,
     cover_url: (listing.books as any)?.cover_url ?? null,
+    cover_url_hosted: (listing.books as any)?.cover_url_hosted ?? null,
     username: (listing.users as any)?.username ?? null,
   }
 

@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
     .select(`
       id, title, author, asking_price_gbp, condition, status,
       book_id,
-      books(isbn, title, author, cover_url, category),
+      books(isbn, title, author, cover_url, cover_url_hosted, category),
       users!inner(username, deleted_at, is_verified)
     `)
     .eq('status', 'active')
@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
           copy_count: 1,
           display_mode: 'individual' as const,
           listing_id: l.id,
-          cover_url: l.books?.cover_url || null,
+          cover_url: l.books?.cover_url_hosted || l.books?.cover_url || null,
           is_verified: l.users?.is_verified ?? false,
           has_estimated_price: false,
           last_listed: '',

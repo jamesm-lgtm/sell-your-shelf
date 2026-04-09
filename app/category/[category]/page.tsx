@@ -89,7 +89,7 @@ export default async function CategoryPage({ params }: Props) {
     .from('listings')
     .select(`
       id, title, author, asking_price_gbp, condition,
-      books(cover_url),
+      books(cover_url, cover_url_hosted),
       users!inner(username, deleted_at)
     `)
     .eq('status', 'active')
@@ -104,7 +104,7 @@ export default async function CategoryPage({ params }: Props) {
     author: string | null
     asking_price_gbp: number
     condition: string
-    books: { cover_url: string | null } | null
+    books: { cover_url: string | null; cover_url_hosted?: string | null } | null
     users: { username: string } | null
   }>
 

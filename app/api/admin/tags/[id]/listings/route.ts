@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: Props) {
     .from('listings')
     .select(`
       id, title, author, asking_price_gbp, condition,
-      books(cover_url)
+      books(cover_url, cover_url_hosted)
     `)
     .eq('status', 'active')
     .in('id', listingIds)

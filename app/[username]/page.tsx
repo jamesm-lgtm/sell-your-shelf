@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props) {
 
   const { data: listings } = await supabase
     .from('listings')
-    .select('asking_price_gbp, books(cover_url)')
+    .select('asking_price_gbp, books(cover_url, cover_url_hosted)')
     .eq('user_id', user.id)
     .eq('status', 'active')
     .order('asking_price_gbp', { ascending: true })
@@ -39,7 +39,8 @@ export async function generateMetadata({ params }: Props) {
   const fromPrice = listings?.[0]?.asking_price_gbp
     ? `£${Number(listings[0].asking_price_gbp).toFixed(2)}`
     : null
-  const ogImage = (listings as any)?.find((l: any) => l.books?.cover_url)?.books?.cover_url
+  const ogImage = (listings as any)?.find((l: any) => l.books?.cover_url_hosted || l.books?.cover_url)?.books?.cover_url_hosted
+    ?? (listings as any)?.find((l: any) => l.books?.cover_url)?.books?.cover_url
     ?? 'https://sellyourshelf.com/og-default.png'
 
   return {
@@ -68,7 +69,7 @@ export default async function SellerShelfPage({ params }: Props) {
 
   const { data: listings } = await supabase
     .from('listings')
-    .select('id, title, author, asking_price_gbp, condition, books(cover_url)')
+    .select('id, title, author, asking_price_gbp, condition, books(cover_url, cover_url_hosted)')
     .eq('user_id', user.id)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
@@ -79,7 +80,7 @@ export default async function SellerShelfPage({ params }: Props) {
     author: string | null
     asking_price_gbp: number
     condition: string
-    books: { cover_url: string | null } | null
+    books: { cover_url: string | null; cover_url_hosted?: string | null } | null
   }>
 
   const APP_STORE_URL = `https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=shelf&utm_medium=share&utm_campaign=${user.username}`

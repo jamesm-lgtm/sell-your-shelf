@@ -32,12 +32,23 @@ const CONDITION_LABELS: Record<string, string> = {
   acceptable: 'Acceptable',
 }
 
+// Common English words for language detection
+const ENGLISH_WORDS = new Set(['the', 'and', 'is', 'was', 'for', 'that', 'with', 'this', 'are', 'have', 'from', 'not', 'but', 'been', 'they', 'which', 'their', 'will', 'one', 'all', 'would', 'can', 'has', 'her', 'his', 'she', 'had', 'you', 'were', 'who'])
+
+function isLikelyEnglish(text: string): boolean {
+  if (!text || text.length < 20) return true // Too short to judge, include it
+  const words = text.toLowerCase().split(/\s+/)
+  const englishWordCount = words.filter(w => ENGLISH_WORDS.has(w)).length
+  return englishWordCount >= 3
+}
+
 export async function GET() {
   try {
     // Fetch active listings with book data via the marketplace_listings view
+    // Include hosted cover columns for Google Merchant Centre compliance
     const { data: listings, error } = await supabase
       .from('marketplace_listings')
-      .select('id, title, author, asking_price_gbp, condition, isbn, description, edition_description, work_description, edition_cover, work_cover, edition_publisher, format, category')
+      .select('id, title, author, asking_price_gbp, condition, isbn, description, edition_description, work_description, edition_cover, work_cover, edition_cover_hosted, work_cover_hosted, edition_publisher, format, category')
       .gte('asking_price_gbp', 3)
       .limit(1000)
 
@@ -46,13 +57,16 @@ export async function GET() {
       return new NextResponse('Feed generation failed', { status: 500 })
     }
 
-    // Filter to listings that have status=active (view should only return active, but be safe)
-    const items = (listings || []).filter(l => l.title && l.asking_price_gbp)
-
-    const now = new Date().toISOString()
+    // Filter to listings that have valid data and are likely English
+    const items = (listings || []).filter(l => {
+      if (!l.title || !l.asking_price_gbp) return false
+      const desc = l.edition_description || l.work_description || l.description || ''
+      return isLikelyEnglish(desc)
+    })
 
     const xmlItems = items.map(listing => {
-      const cover = listing.edition_cover || listing.work_cover
+      // Prefer hosted URLs, fall back to originals
+      const cover = listing.edition_cover_hosted || listing.edition_cover || listing.work_cover_hosted || listing.work_cover
       const desc = listing.edition_description || listing.work_description || listing.description || ''
       const conditionLabel = CONDITION_LABELS[listing.condition] || listing.condition
       const price = Number(listing.asking_price_gbp).toFixed(2)

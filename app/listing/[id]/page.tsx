@@ -28,13 +28,13 @@ export async function generateMetadata({ params }: Props) {
 
   const { data } = await supabase
     .from('marketplace_listings')
-    .select('title, author, asking_price_gbp, edition_cover, work_cover')
+    .select('title, author, asking_price_gbp, edition_cover, work_cover, edition_cover_hosted, work_cover_hosted')
     .eq('id', id)
     .single()
 
   if (!data) return { title: 'Listing not found — Sell Your Shelf' }
 
-  const cover = data.edition_cover || data.work_cover
+  const cover = data.edition_cover_hosted || data.edition_cover || data.work_cover_hosted || data.work_cover
 
   return {
     title: `${data.title} — Sell Your Shelf`,
@@ -68,8 +68,8 @@ export default async function ListingPage({ params }: Props) {
 
   if (!rawListing || rawListing.status !== 'active') return notFound()
 
-  // Use edition cover if available, fallback to work cover
-  const cover = listing.edition_cover || listing.work_cover
+  // Use edition cover if available, fallback to work cover — prefer hosted URLs
+  const cover = listing.edition_cover_hosted || listing.edition_cover || listing.work_cover_hosted || listing.work_cover
   const description = listing.edition_description || listing.work_description || listing.description
   const category = listing.category
   const username = listing.seller_name

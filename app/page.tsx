@@ -48,7 +48,7 @@ export default async function Home() {
   // Fetch popular books (books with most listings)
   const { data: popularBooks } = await supabase
     .from('books')
-    .select('id, title, author, title_normalized, author_normalized, cover_url, slug, category')
+    .select('id, title, author, title_normalized, author_normalized, cover_url, cover_url_hosted, slug, category')
     .not('cover_url', 'is', null)
     .not('title_normalized', 'is', null)
     .not('author_normalized', 'is', null)
@@ -70,13 +70,13 @@ export default async function Home() {
       })
 
       featuredBooks = popularBooks
-        .filter(b => countMap.has(b.id) && b.cover_url)
+        .filter(b => countMap.has(b.id) && (b.cover_url_hosted || b.cover_url))
         .sort((a, b) => (countMap.get(b.id) || 0) - (countMap.get(a.id) || 0))
         .slice(0, 8)
         .map(b => ({
           title: b.title,
           author: b.author || '',
-          cover_url: b.cover_url!,
+          cover_url: b.cover_url_hosted || b.cover_url!,
           slug: b.slug || generateSlug(b.title_normalized || b.title, b.author_normalized || b.author || ''),
         }))
     }
@@ -84,14 +84,14 @@ export default async function Home() {
 
   const { data: recentListings } = await supabase
     .from('listings')
-    .select('id, title, author, asking_price_gbp, books(cover_url)')
+    .select('id, title, author, asking_price_gbp, books(cover_url, cover_url_hosted)')
     .eq('status', 'active')
     .not('book_id', 'is', null)
     .order('created_at', { ascending: false })
     .limit(40)
 
   const withCovers = (recentListings as any[])?.filter(
-    (l: any) => l.books?.cover_url
+    (l: any) => l.books?.cover_url_hosted || l.books?.cover_url
   ) ?? []
 
   const curatedRows = await getCuratedRows()
@@ -214,7 +214,7 @@ export default async function Home() {
                   <div style={{ width: 80, borderRadius: 8, overflow: 'hidden', background: '#2D4A3E' }}>
                     <div style={{ aspectRatio: '2/3' }}>
                       <img
-                        src={listing.books.cover_url}
+                        src={listing.books.cover_url_hosted || listing.books.cover_url}
                         alt={listing.title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       />

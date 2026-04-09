@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     .from('listings')
     .select(`
       id, title, author, asking_price_gbp, condition,
-      books(cover_url, isbn)
+      books(cover_url, cover_url_hosted, isbn)
     `)
     .eq('status', 'active')
     .or(`title.ilike.%${q}%,author.ilike.%${q}%`)

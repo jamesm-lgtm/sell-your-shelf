@@ -11,7 +11,7 @@ type CuratedListing = {
   id: number
   asking_price_gbp: number
   condition: string
-  books: { title: string; author: string | null; cover_url: string | null } | null
+  books: { title: string; author: string | null; cover_url: string | null; cover_url_hosted?: string | null } | null
 }
 
 type TagRow = {
@@ -57,9 +57,9 @@ export default function CuratedRows({ rows }: { rows: TagRow[] }) {
                 >
                   <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden' }}>
                     <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      {listing.books?.cover_url ? (
+                      {(listing.books?.cover_url_hosted || listing.books?.cover_url) ? (
                         <img
-                          src={listing.books.cover_url}
+                          src={listing.books.cover_url_hosted || listing.books.cover_url!}
                           alt={listing.books?.title ?? ''}
                           style={{ height: '100%', width: '100%', objectFit: 'cover' }}
                         />
