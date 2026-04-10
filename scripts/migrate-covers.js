@@ -71,11 +71,14 @@ async function supabaseUpdate(table, id, updates) {
   return res.ok
 }
 
+const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 async function callUploadCover(sourceUrl, storageKey) {
   const res = await fetch(EDGE_FN_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'x-api-key': COVER_API_KEY,
     },
     body: JSON.stringify({ sourceUrl, storageKey }),
