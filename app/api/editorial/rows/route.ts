@@ -68,19 +68,23 @@ export async function GET(req: NextRequest) {
   const listingIds = [...new Set(tagEntries.map(e => e.listing_id))]
 
   // Fetch listing details — shaped to match the app's BrowseListing type
-  const { data: listings } = await supabase
+  const { data: listings, error: listingsError } = await supabase
     .from('listings')
     .select(`
       id, title, author, asking_price_gbp, condition, status,
       book_id,
       books(isbn, title, author, cover_url, cover_url_hosted, category),
-      users!inner(username, deleted_at, is_verified)
+      users!inner(username, deleted_at)
     `)
     .eq('status', 'active')
     .is('users.deleted_at', null)
     .in('id', listingIds)
     .limit(500)
 
+  if (listingsError) {
+    console.error('editorial rows: listings query failed', listingsError)
+    return NextResponse.json([])
+  }
   if (!listings) return NextResponse.json([])
 
   // Build a lookup map: listing_id -> listing data
@@ -121,7 +125,7 @@ export async function GET(req: NextRequest) {
           display_mode: 'individual' as const,
           listing_id: l.id,
           cover_url: l.books?.cover_url_hosted || l.books?.cover_url || null,
-          is_verified: l.users?.is_verified ?? false,
+          is_verified: false,
           has_estimated_price: false,
           last_listed: '',
           seller_username: l.users?.username || null,
