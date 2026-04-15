@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import EmailConsentSync from '@/app/components/EmailConsentSync'
 
 export const revalidate = 0
 
@@ -28,7 +29,7 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
       const { data } = await supabase
         .from('transactions')
         .select(`
-          id, status, sale_price_gbp, shipping_cost_gbp,
+          id, status, sale_price_gbp, shipping_cost_gbp, buyer_id,
           listings(title, author, books(cover_url)),
           users:seller_id(username)
         `)
@@ -138,6 +139,9 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
         <Link href="/new" style={{ fontSize: 14, color: '#2D4A3E', textDecoration: 'none', fontWeight: 500 }}>
           Continue browsing →
         </Link>
+
+        {/* Sync email consent to Loops (client component, fire-and-forget) */}
+        {transaction?.buyer_id && <EmailConsentSync buyerId={transaction.buyer_id} />}
 
       </div>
 

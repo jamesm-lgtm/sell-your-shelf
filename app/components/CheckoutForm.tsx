@@ -133,6 +133,9 @@ export default function CheckoutForm({ listing }: Props) {
   // Terms of Service
   const [tosAccepted, setTosAccepted] = useState(false)
 
+  // Email marketing consent
+  const [emailOptIn, setEmailOptIn] = useState(false)
+
   // Track which fields have been touched (blurred)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
 
@@ -280,6 +283,11 @@ export default function CheckoutForm({ listing }: Props) {
 
       setClientSecret(data.clientSecret)
       setPaymentIntentId(data.paymentIntentId)
+
+      // Store consent for the confirmation page to read
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sys_email_opt_in', emailOptIn ? 'true' : 'false')
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -498,6 +506,29 @@ export default function CheckoutForm({ listing }: Props) {
                 </span>
               </div>
             )}
+
+            {/* Email marketing consent — all users */}
+            <div
+              onClick={() => setEmailOptIn(!emailOptIn)}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: isNewUser ? 4 : 12, marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
+            >
+              <div style={{
+                width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                border: emailOptIn ? '2px solid #2D4A3E' : '2px solid #E5E3DF',
+                background: emailOptIn ? '#2D4A3E' : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}>
+                {emailOptIn && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </div>
+              <span style={{ fontSize: 12, color: '#666', lineHeight: 1.5 }}>
+                Send me tips and updates about books by email
+              </span>
+            </div>
           </>
         )}
       </div>
