@@ -88,14 +88,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Book aggregation pages — highest SEO value
   let bookPages: MetadataRoute.Sitemap = [];
   try {
-    // Get all book_ids that have active listings
-    const { data: activeListings } = await supabase
-      .from('listings')
-      .select('book_id')
-      .eq('status', 'active')
-      .not('book_id', 'is', null);
+    // Get all book_ids that have active listings — paginate past 1000-row limit
+    const activeListings: any[] = [];
+    {
+      let from = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data } = await supabase
+          .from('listings')
+          .select('book_id')
+          .eq('status', 'active')
+          .not('book_id', 'is', null)
+          .range(from, from + PAGE - 1);
+        activeListings.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+        from += PAGE;
+      }
+    }
 
-    if (activeListings) {
+    if (activeListings.length > 0) {
       const bookIds = [...new Set(activeListings.map(l => l.book_id))];
 
       // Fetch book data in batches (Supabase max 1000 per query)
@@ -130,17 +141,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Sitemap: failed to fetch books', e);
   }
 
-  // Active listings
+  // Active listings — paginate past 1000-row limit
   let listingPages: MetadataRoute.Sitemap = [];
   try {
-    const { data: listings } = await supabase
-      .from('listings')
-      .select('id, created_at')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
+    const allListings: any[] = [];
+    {
+      let from = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data } = await supabase
+          .from('listings')
+          .select('id, created_at')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE - 1);
+        allListings.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+        from += PAGE;
+      }
+    }
 
-    if (listings) {
-      listingPages = listings.map((listing) => ({
+    if (allListings.length > 0) {
+      listingPages = allListings.map((listing) => ({
         url: `https://www.sellyourshelf.com/listing/${listing.id}`,
         lastModified: new Date(listing.created_at),
         changeFrequency: 'weekly' as const,
@@ -151,16 +173,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Sitemap: failed to fetch listings', e);
   }
 
-  // Seller profiles
+  // Seller profiles — paginate past 1000-row limit
   let sellerPages: MetadataRoute.Sitemap = [];
   try {
-    const { data: sellers } = await supabase
-      .from('users')
-      .select('username, created_at')
-      .not('username', 'is', null);
+    const allSellers: any[] = [];
+    {
+      let from = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data } = await supabase
+          .from('users')
+          .select('username, created_at')
+          .not('username', 'is', null)
+          .range(from, from + PAGE - 1);
+        allSellers.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+        from += PAGE;
+      }
+    }
 
-    if (sellers) {
-      sellerPages = sellers.map((seller) => ({
+    if (allSellers.length > 0) {
+      sellerPages = allSellers.map((seller) => ({
         url: `https://www.sellyourshelf.com/${seller.username}`,
         lastModified: new Date(seller.created_at),
         changeFrequency: 'weekly' as const,

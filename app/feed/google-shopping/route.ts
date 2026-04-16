@@ -46,15 +46,25 @@ export async function GET() {
   try {
     // Fetch active listings with book data via the marketplace_listings view
     // Include hosted cover columns for Google Merchant Centre compliance
-    const { data: listings, error } = await supabase
-      .from('marketplace_listings')
-      .select('id, title, author, asking_price_gbp, condition, isbn, description, edition_description, work_description, edition_cover, work_cover, edition_cover_hosted, work_cover_hosted, edition_publisher, format, category')
-      .gte('asking_price_gbp', 3)
-      .limit(1000)
-
-    if (error) {
-      console.error('Feed error:', error)
-      return new NextResponse('Feed generation failed', { status: 500 })
+    // Paginate to avoid Supabase 1000-row default limit
+    const listings: any[] = [];
+    {
+      let from = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data, error: fetchErr } = await supabase
+          .from('marketplace_listings')
+          .select('id, title, author, asking_price_gbp, condition, isbn, description, edition_description, work_description, edition_cover, work_cover, edition_cover_hosted, work_cover_hosted, edition_publisher, format, category')
+          .gte('asking_price_gbp', 3)
+          .range(from, from + PAGE - 1);
+        if (fetchErr) {
+          console.error('Feed error:', fetchErr);
+          return new NextResponse('Feed generation failed', { status: 500 });
+        }
+        listings.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+        from += PAGE;
+      }
     }
 
     // Filter to listings that have valid data and are likely English
