@@ -1,0 +1,86 @@
+[
+  {
+    "table": "books",
+    "success": false,
+    "id": 666,
+    "error": "download_failed"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 250,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 246,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 247,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 249,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 290,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 312,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 278,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 266,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 268,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 271,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 272,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 280,
+    "error": "invalid_image"
+  },
+  {
+    "table": "book_metadata",
+    "success": false,
+    "id": 254,
+    "error": "invalid_image"
+  }
+]
