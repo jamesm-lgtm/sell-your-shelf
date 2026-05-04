@@ -33,14 +33,24 @@ export default async function CheckoutPage({ params }: Props) {
     redirect(`/listing/${listingId}`)
   }
 
-  // Check seller wallet separately
+  // Check seller wallet separately. Mirror web-create-payment-intent's gate
+  // exactly — checking only onboarding_step lets buyers reach this page during
+  // the window where the seller has finished their KYC steps but Stripe hasn't
+  // yet enabled charges (status flips from 'pending'/'restricted' → 'enabled'
+  // on the account.updated webhook). Without the status check, the buyer fills
+  // out the form, taps Pay, and only then gets "This seller cannot receive
+  // payments yet" from the edge function.
   const { data: wallet } = await supabase
     .from('user_wallets')
-    .select('onboarding_step')
+    .select('onboarding_step, stripe_account_status')
     .eq('user_id', listing.user_id)
     .single()
 
-  if (!wallet || wallet.onboarding_step !== 'complete') {
+  if (
+    !wallet ||
+    wallet.onboarding_step !== 'complete' ||
+    wallet.stripe_account_status !== 'enabled'
+  ) {
     redirect(`/listing/${listingId}`)
   }
 
