@@ -10,7 +10,11 @@ export default function ShelfVisitTracker({ username }: { username: string }) {
     fetch('/api/shelf-visit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, sessionId }),
+      body: JSON.stringify({
+        username,
+        sessionId,
+        referrer: document.referrer || null,
+      }),
     }).catch(() => {}) // Silent fail — never block the page
   }, [username])
 

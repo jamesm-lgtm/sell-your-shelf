@@ -10,7 +10,11 @@ export default function ListingViewTracker({ listingId }: { listingId: number })
     fetch('/api/listing-view', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ listingId, sessionId }),
+      body: JSON.stringify({
+        listingId,
+        sessionId,
+        referrer: document.referrer || null,
+      }),
     }).catch(() => {}) // Silent fail — never block the page
   }, [listingId])
 
