@@ -4,6 +4,7 @@ import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import ShelfGrid from '@/app/components/ShelfGrid'
+import EventTracker from '@/app/components/EventTracker'
 
 export const revalidate = 0
 
@@ -129,6 +130,8 @@ export default async function BrowseTagPage({ params }: Props) {
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
         <ShelfGrid listings={safeListings} showSeller pageSize={24} />
       </div>
+
+      <EventTracker eventName="category_view" properties={{ category_slug: slug, source: 'browse' }} />
 
       <Footer />
 

@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import EventTracker from '@/app/components/EventTracker'
 
 export const revalidate = 0
 
@@ -265,6 +266,13 @@ export default async function SearchPage({ searchParams }: Props) {
           <BookGrid books={books} />
         )}
       </div>
+
+      {q.length > 0 && (
+        <EventTracker
+          eventName="search_performed"
+          properties={{ query: q, results_count: books.length }}
+        />
+      )}
 
       <Footer />
 

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { getOrCreateSessionId } from '@/app/lib/session'
+import { track } from '@/app/lib/analytics'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -142,7 +143,23 @@ export default function CheckoutForm({ listing }: Props) {
 
   useEffect(() => {
     setSessionId(getOrCreateSessionId())
+    track('checkout_started', { listing_id: listing.id }, {
+      source: 'checkout',
+      listingId: listing.id,
+    })
+    // Fire once per checkout form mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const signupStartedFired = useRef(false)
+  const signupCompletedFired = useRef(false)
+
+  useEffect(() => {
+    if (isExistingUser === false && !signupStartedFired.current) {
+      signupStartedFired.current = true
+      track('signup_started', {}, { source: 'checkout', listingId: listing.id })
+    }
+  }, [isExistingUser, listing.id])
 
   // Debounced email existence check
   useEffect(() => {
@@ -280,6 +297,11 @@ export default function CheckoutForm({ listing }: Props) {
 
       setClientSecret(data.clientSecret)
       setPaymentIntentId(data.paymentIntentId)
+
+      if (isNewUser && !signupCompletedFired.current) {
+        signupCompletedFired.current = true
+        track('signup_completed', {}, { source: 'checkout', listingId: listing.id })
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {

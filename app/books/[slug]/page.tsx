@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import BuyNowLink from '@/app/components/BuyNowLink'
 
 export const revalidate = 0
 
@@ -120,7 +121,7 @@ export default async function BookPage({ params }: Props) {
 
   const { data: listings } = await supabase
     .from('listings')
-    .select('id, asking_price_gbp, condition, notes, users!inner(username, location, deleted_at)')
+    .select('id, user_id, asking_price_gbp, condition, notes, users!inner(username, location, deleted_at)')
     .eq('book_id', book.id)
     .eq('status', 'active')
     .is('users.deleted_at', null)
@@ -254,8 +255,9 @@ export default async function BookPage({ params }: Props) {
                     <span style={{ fontSize: 20, fontWeight: 600, color: '#2D4A3E' }}>
                       £{Number(listing.asking_price_gbp).toFixed(2)}
                     </span>
-                    <Link
-                      href={`/checkout/${listing.id}`}
+                    <BuyNowLink
+                      listingId={listing.id}
+                      sellerId={(listing as { user_id?: string | null }).user_id ?? null}
                       style={{
                         background: '#2D4A3E',
                         color: '#FAF8F5',
@@ -268,7 +270,7 @@ export default async function BookPage({ params }: Props) {
                       }}
                     >
                       Buy Now →
-                    </Link>
+                    </BuyNowLink>
                   </div>
                 </div>
               )
