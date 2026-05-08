@@ -1,17 +1,27 @@
-// Client-side only — generates and persists a session ID in localStorage
-// Persists across page navigations within a browser session
+// Client-side only — generates and persists a session ID in sessionStorage.
+// Sessions reset when the browser tab closes or after 30 minutes of inactivity.
 
 const SESSION_KEY = 'sys_session_id'
+const SESSION_LAST_ACTIVITY_KEY = 'sys_session_last_activity'
 const LANDING_REFERRER_KEY = 'sys_landing_referrer'
+
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000
 
 export function getOrCreateSessionId(): string {
   if (typeof window === 'undefined') return ''
 
-  let sessionId = localStorage.getItem(SESSION_KEY)
-  if (!sessionId) {
+  const now = Date.now()
+  const lastActivityRaw = sessionStorage.getItem(SESSION_LAST_ACTIVITY_KEY)
+  const lastActivity = lastActivityRaw ? Number(lastActivityRaw) : 0
+  const idleExpired = lastActivity > 0 && now - lastActivity > IDLE_TIMEOUT_MS
+
+  let sessionId = sessionStorage.getItem(SESSION_KEY)
+  if (!sessionId || idleExpired) {
     sessionId = crypto.randomUUID()
-    localStorage.setItem(SESSION_KEY, sessionId)
+    sessionStorage.setItem(SESSION_KEY, sessionId)
   }
+
+  sessionStorage.setItem(SESSION_LAST_ACTIVITY_KEY, String(now))
   return sessionId
 }
 

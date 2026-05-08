@@ -3,6 +3,13 @@
 // Lightweight analytics client for the web app. Calls track() are batched and
 // flushed to the track-event Edge Function via sendBeacon. The function
 // inserts into the `events` table.
+//
+// Developer filter: appending ?debug=1 to any URL on the site sets a flag in
+// sessionStorage that suppresses every track() call for the rest of that tab
+// session. Useful for QA / dogfooding without polluting the events table. The
+// flag clears automatically when the tab closes (sessionStorage scope). To
+// clear it earlier, run `sessionStorage.removeItem('sys_debug_no_track')` in
+// the browser console.
 
 import { getOrCreateSessionId } from '@/app/lib/session'
 
@@ -10,6 +17,8 @@ const ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/track-eve
 const FLUSH_DEBOUNCE_MS = 2000
 const FLUSH_THRESHOLD = 10
 const MAX_BATCH = 50
+
+const DEBUG_FLAG_KEY = 'sys_debug_no_track'
 
 type EventProperties = Record<string, unknown>
 
@@ -41,6 +50,7 @@ export function track(
   opts: TrackOptions = {},
 ): void {
   if (typeof window === 'undefined') return
+  if (isDebugSuppressed()) return
 
   queue.push({
     event_name: eventName,
@@ -100,4 +110,16 @@ function attachPageHideListener() {
   if (pageHideAttached || typeof window === 'undefined') return
   pageHideAttached = true
   window.addEventListener('pagehide', flush)
+}
+
+function isDebugSuppressed(): boolean {
+  if (typeof window === 'undefined') return false
+
+  // ?debug=1 on the URL sets the flag; afterwards the URL no longer matters.
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('debug') === '1') {
+    sessionStorage.setItem(DEBUG_FLAG_KEY, '1')
+  }
+
+  return sessionStorage.getItem(DEBUG_FLAG_KEY) === '1'
 }
