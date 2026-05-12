@@ -5,6 +5,7 @@ import ShelfGrid from '@/app/components/ShelfGrid'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import ShelfVisitTracker from '@/app/components/ShelfVisitTracker'
+import ThresholdGapAssistant from '@/app/components/ThresholdGapAssistant'
 
 export const revalidate = 0
 
@@ -69,7 +70,7 @@ export default async function SellerShelfPage({ params }: Props) {
 
   const { data: listings } = await supabase
     .from('listings')
-    .select('id, title, author, asking_price_gbp, condition, books(cover_url, cover_url_hosted)')
+    .select('id, title, author, asking_price_gbp, condition, format, books(cover_url, cover_url_hosted, category)')
     .eq('user_id', user.id)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
@@ -80,7 +81,8 @@ export default async function SellerShelfPage({ params }: Props) {
     author: string | null
     asking_price_gbp: number
     condition: string
-    books: { cover_url: string | null; cover_url_hosted?: string | null } | null
+    format: 'paperback' | 'hardback' | null
+    books: { cover_url: string | null; cover_url_hosted?: string | null; category?: string | null } | null
   }>
 
   const APP_STORE_URL = `https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=shelf&utm_medium=share&utm_campaign=${user.username}`
@@ -108,7 +110,14 @@ export default async function SellerShelfPage({ params }: Props) {
       </div>
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
-        <ShelfGrid listings={safeListings} />
+        <ShelfGrid
+          listings={safeListings}
+          seller={{ sellerId: user.id, sellerUsername: user.username }}
+        />
+        <ThresholdGapAssistant
+          listings={safeListings}
+          seller={{ sellerId: user.id, sellerUsername: user.username }}
+        />
       </div>
 
       <ShelfVisitTracker username={user.username} />

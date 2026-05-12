@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useBasket } from './BasketProvider'
+import type { BasketItem } from '@/app/lib/basket'
 
 type Listing = {
   id: number
@@ -9,7 +11,8 @@ type Listing = {
   author: string | null
   asking_price_gbp: number
   condition: string
-  books: { cover_url: string | null; cover_url_hosted?: string | null } | null
+  format?: 'paperback' | 'hardback' | null
+  books: { cover_url: string | null; cover_url_hosted?: string | null; category?: string | null } | null
   users?: { username: string } | null
 }
 
@@ -17,6 +20,7 @@ type Props = {
   listings: Listing[]
   showSeller?: boolean
   pageSize?: number
+  seller?: { sellerId: string; sellerUsername: string }
 }
 
 const CONDITIONS: Record<string, string> = {
@@ -33,10 +37,27 @@ const CONDITION_ORDER: Record<string, number> = {
   acceptable: 3,
 }
 
-export default function ShelfGrid({ listings, showSeller = false, pageSize = 24 }: Props) {
+const FOREST = '#2D4A3E'
+const CREAM = '#FAF8F5'
+
+function listingToBasketItem(l: Listing): BasketItem {
+  return {
+    listingId: l.id,
+    title: l.title,
+    author: l.author,
+    priceGbp: Number(l.asking_price_gbp),
+    format: l.format ?? null,
+    coverUrl: l.books?.cover_url_hosted || l.books?.cover_url || null,
+    category: l.books?.category ?? null,
+  }
+}
+
+export default function ShelfGrid({ listings, showSeller = false, pageSize = 24, seller }: Props) {
   const [sort, setSort] = useState<'newest' | 'price_asc' | 'price_desc'>('newest')
   const [condition, setCondition] = useState<string>('all')
   const [visibleCount, setVisibleCount] = useState(pageSize)
+
+  const { hasItem, addItem, removeItem } = useBasket()
 
   const filtered = listings
     .filter(l => condition === 'all' || l.condition === condition)
@@ -56,6 +77,10 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24 
     setCondition(newCondition)
     setVisibleCount(pageSize)
   }
+
+  // Only enable add-to-basket when grid is bound to a single seller (shelf page).
+  // Multi-seller views (category, browse, new) fall through to "View listing".
+  const sellerRef = seller ?? null
 
   return (
     <div>
@@ -103,57 +128,97 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24 
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 16 }}>
-            {visible.map((listing) => (
-              <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  {(listing.books?.cover_url_hosted || listing.books?.cover_url) ? (
-                    <img
-                      src={listing.books.cover_url_hosted || listing.books.cover_url!}
-                      alt={listing.title}
-                      style={{ height: '100%', width: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, padding: 8, textAlign: 'center' }}>
+            {visible.map((listing) => {
+              const inBasket = hasItem(listing.id)
+              return (
+                <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    {(listing.books?.cover_url_hosted || listing.books?.cover_url) ? (
+                      <img
+                        src={listing.books.cover_url_hosted || listing.books.cover_url!}
+                        alt={listing.title}
+                        style={{ height: '100%', width: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, padding: 8, textAlign: 'center' }}>
+                        {listing.title}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 3 }}>
                       {listing.title}
-                    </span>
-                  )}
-                </div>
-                <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 3 }}>
-                    {listing.title}
-                  </div>
-                  {listing.author && (
-                    <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
-                      {listing.author}
                     </div>
-                  )}
-                  {showSeller && listing.users?.username && (
-                    <Link
-                      href={`/${listing.users.username}`}
-                      style={{ fontSize: 11, color: '#2D4A3E', textDecoration: 'none', display: 'block', marginBottom: 8 }}
-                    >
-                      @{listing.users.username}
-                    </Link>
-                  )}
-                  <div style={{ marginTop: 'auto' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <span style={{ fontSize: 15, fontWeight: 500, color: '#2D4A3E' }}>
-                        £{Number(listing.asking_price_gbp).toFixed(2)}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                        {CONDITIONS[listing.condition] ?? listing.condition}
-                      </span>
+                    {listing.author && (
+                      <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
+                        {listing.author}
+                      </div>
+                    )}
+                    {showSeller && listing.users?.username && (
+                      <Link
+                        href={`/${listing.users.username}`}
+                        style={{ fontSize: 11, color: '#2D4A3E', textDecoration: 'none', display: 'block', marginBottom: 8 }}
+                      >
+                        @{listing.users.username}
+                      </Link>
+                    )}
+                    <div style={{ marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#2D4A3E' }}>
+                          £{Number(listing.asking_price_gbp).toFixed(2)}
+                        </span>
+                        <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                          {CONDITIONS[listing.condition] ?? listing.condition}
+                        </span>
+                      </div>
+
+                      {sellerRef ? (
+                        inBasket ? (
+                          <button
+                            onClick={() => removeItem(listing.id)}
+                            style={addedButtonStyle}
+                          >
+                            <span aria-hidden style={{ marginRight: 6 }}>✓</span>
+                            Added — Remove?
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => addItem(sellerRef, listingToBasketItem(listing))}
+                            style={primaryButtonStyle}
+                          >
+                            Add to basket
+                          </button>
+                        )
+                      ) : (
+                        // No seller context — fall back to original CTA
+                        <Link
+                          href={`/listing/${listing.id}`}
+                          style={{ display: 'block', textAlign: 'center', background: FOREST, color: CREAM, fontSize: 13, fontWeight: 500, padding: '9px 0', borderRadius: 6, textDecoration: 'none' }}
+                        >
+                          View listing
+                        </Link>
+                      )}
+
+                      {sellerRef && (
+                        <Link
+                          href={`/listing/${listing.id}`}
+                          style={{
+                            display: 'block',
+                            textAlign: 'center',
+                            color: '#666',
+                            fontSize: 12,
+                            textDecoration: 'underline',
+                            marginTop: 8,
+                          }}
+                        >
+                          View listing
+                        </Link>
+                      )}
                     </div>
-                    <Link
-                      href={`/listing/${listing.id}`}
-                      style={{ display: 'block', textAlign: 'center', background: '#2D4A3E', color: '#FAF8F5', fontSize: 13, fontWeight: 500, padding: '9px 0', borderRadius: 6, textDecoration: 'none' }}
-                    >
-                      View listing
-                    </Link>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {hasMore && (
@@ -179,4 +244,32 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24 
       )}
     </div>
   )
+}
+
+const primaryButtonStyle: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  textAlign: 'center',
+  background: FOREST,
+  color: CREAM,
+  fontSize: 13,
+  fontWeight: 500,
+  padding: '9px 0',
+  borderRadius: 6,
+  border: 'none',
+  cursor: 'pointer',
+}
+
+const addedButtonStyle: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  textAlign: 'center',
+  background: '#fff',
+  color: FOREST,
+  fontSize: 13,
+  fontWeight: 500,
+  padding: '8px 0',
+  borderRadius: 6,
+  border: `1px solid ${FOREST}`,
+  cursor: 'pointer',
 }
