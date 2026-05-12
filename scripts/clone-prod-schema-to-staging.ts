@@ -17,8 +17,8 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
-const PROD_REF = 'vsnhrukqqmukkpqlyrhh'
-const STAGING_REF = 'dbqlgknktoctbchxfsvu'
+const PROD_REF: string = 'vsnhrukqqmukkpqlyrhh'
+const STAGING_REF: string = 'dbqlgknktoctbchxfsvu'
 
 function loadEnvFile(filename: string): Record<string, string> {
   const filePath = path.resolve(process.cwd(), filename)
