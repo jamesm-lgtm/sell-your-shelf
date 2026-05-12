@@ -4,6 +4,7 @@ import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import ListingViewTracker from '@/app/components/ListingViewTracker'
+import AddToBasketButton from '@/app/components/AddToBasketButton'
 
 export const revalidate = 0
 
@@ -62,7 +63,7 @@ export default async function ListingPage({ params }: Props) {
   // Check listing is still active (marketplace_listings is a view, double-check status)
   const { data: rawListing } = await supabase
     .from('listings')
-    .select('status')
+    .select('status, user_id, format')
     .eq('id', id)
     .single()
 
@@ -213,12 +214,29 @@ export default async function ListingPage({ params }: Props) {
           </div>
         )}
 
+        {username && rawListing.user_id && (
+          <div style={{ marginBottom: 16 }}>
+            <AddToBasketButton
+              seller={{ sellerId: rawListing.user_id as string, sellerUsername: username }}
+              item={{
+                listingId: Number(id),
+                title: listing.title,
+                author: listing.author ?? null,
+                priceGbp: Number(listing.asking_price_gbp),
+                format: (rawListing.format as 'paperback' | 'hardback' | null) ?? null,
+                coverUrl: cover ?? null,
+                category: listing.category ?? null,
+              }}
+            />
+          </div>
+        )}
+
         {bookSlug && (
           <Link
             href={`/books/${bookSlug}`}
-            style={{ display: 'block', textAlign: 'center', background: '#2D4A3E', color: '#FAF8F5', fontSize: 14, fontWeight: 600, padding: '14px 32px', borderRadius: 8, textDecoration: 'none', marginBottom: 32 }}
+            style={{ display: 'block', textAlign: 'center', background: '#fff', color: '#2D4A3E', fontSize: 14, fontWeight: 500, padding: '12px 32px', borderRadius: 8, textDecoration: 'none', marginBottom: 32, border: '1px solid #2D4A3E' }}
           >
-            Buy available copies →
+            See other copies of this book →
           </Link>
         )}
 
