@@ -1,0 +1,191 @@
+// Client-side basket model. localStorage only — no Supabase persistence in Phase 1.
+// Single seller per basket. Free shipping over £10. Large-parcel surcharge over 2kg total.
+
+export const BASKET_STORAGE_KEY = 'sys:basket:v1'
+export const UNLOCK_FLASH_FLAG = 'sys:basket:unlocked-once'
+
+export const FREE_SHIPPING_THRESHOLD_GBP = 10
+export const LARGE_PARCEL_WEIGHT_G = 2000
+export const LARGE_PARCEL_FEE_GBP = 3.5
+
+// Heuristic per-book weights (grams). Packaging is per-parcel, not per-book.
+const WEIGHT_PAPERBACK_G = 280
+const WEIGHT_HARDBACK_G = 800
+const WEIGHT_UNKNOWN_G = 350
+const PACKAGING_G = 150
+
+export type BasketFormat = 'paperback' | 'hardback' | null
+
+export type BasketItem = {
+  listingId: number
+  title: string
+  author: string | null
+  priceGbp: number
+  format: BasketFormat
+  coverUrl: string | null
+  category: string | null
+}
+
+export type Basket = {
+  sellerId: string
+  sellerUsername: string
+  items: BasketItem[]
+}
+
+export function emptyBasket(): null {
+  return null
+}
+
+export function weightForItem(format: BasketFormat): number {
+  if (format === 'paperback') return WEIGHT_PAPERBACK_G
+  if (format === 'hardback') return WEIGHT_HARDBACK_G
+  return WEIGHT_UNKNOWN_G
+}
+
+export function totalWeightG(items: BasketItem[]): number {
+  if (items.length === 0) return 0
+  return items.reduce((sum, it) => sum + weightForItem(it.format), 0) + PACKAGING_G
+}
+
+export function subtotalGbp(items: BasketItem[]): number {
+  return items.reduce((sum, it) => sum + Number(it.priceGbp), 0)
+}
+
+export type ShippingState =
+  | { kind: 'empty' }
+  | { kind: 'below'; gapGbp: number; progressPct: number }
+  | { kind: 'unlocked' }
+  | { kind: 'oversize' }
+
+export function shippingState(items: BasketItem[]): ShippingState {
+  if (items.length === 0) return { kind: 'empty' }
+  if (totalWeightG(items) > LARGE_PARCEL_WEIGHT_G) return { kind: 'oversize' }
+  const sub = subtotalGbp(items)
+  if (sub >= FREE_SHIPPING_THRESHOLD_GBP) return { kind: 'unlocked' }
+  return {
+    kind: 'below',
+    gapGbp: round2(FREE_SHIPPING_THRESHOLD_GBP - sub),
+    progressPct: Math.max(0, Math.min(100, (sub / FREE_SHIPPING_THRESHOLD_GBP) * 100)),
+  }
+}
+
+export function shippingCostGbp(items: BasketItem[]): number {
+  const state = shippingState(items)
+  if (state.kind === 'oversize') return LARGE_PARCEL_FEE_GBP
+  if (state.kind === 'unlocked') return 0
+  return 0 // below threshold: shown as TBD pre-checkout; treat as 0 for current display
+}
+
+export function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+// ---------- Suggestion engine ----------
+// Pick combinations of shelf inventory (not in basket) that close the gap to £10.
+// Prefer single-book solutions, then 2-book, then 3-book.
+// Target window: [gap, gap × 1.5] — "slightly over, not under".
+// Affinity: prefer combinations sharing a category with current basket items.
+
+export type Candidate = {
+  listingId: number
+  priceGbp: number
+  category: string | null
+}
+
+export type Suggestion = {
+  items: Candidate[]
+  totalGbp: number
+}
+
+export function buildSuggestions(args: {
+  candidates: Candidate[]
+  gapGbp: number
+  basketCategories: Set<string>
+  maxSuggestions?: number
+}): Suggestion[] {
+  const { candidates, gapGbp, basketCategories } = args
+  const maxSuggestions = args.maxSuggestions ?? 3
+  if (gapGbp <= 0 || candidates.length === 0) return []
+
+  const lower = gapGbp
+  const upper = gapGbp * 1.5
+
+  const inWindow = (total: number) => total >= lower && total <= upper
+
+  const score = (combo: Candidate[]): number => {
+    // Smaller combos preferred; affinity bonus; closer to lower bound preferred.
+    const total = combo.reduce((s, c) => s + c.priceGbp, 0)
+    const sizePenalty = combo.length * 1000
+    const overshoot = Math.max(0, total - lower) * 10
+    const affinityBonus = combo.some(
+      (c) => c.category && basketCategories.has(c.category),
+    )
+      ? -500
+      : 0
+    return sizePenalty + overshoot + affinityBonus
+  }
+
+  const found: Suggestion[] = []
+  const seen = new Set<string>()
+  const keyFor = (combo: Candidate[]) =>
+    combo
+      .map((c) => c.listingId)
+      .sort((a, b) => a - b)
+      .join(',')
+
+  // 1-book
+  for (const c of candidates) {
+    if (inWindow(c.priceGbp)) {
+      const combo = [c]
+      const k = keyFor(combo)
+      if (!seen.has(k)) {
+        seen.add(k)
+        found.push({ items: combo, totalGbp: round2(c.priceGbp) })
+      }
+    }
+  }
+
+  // 2-book — only if we don't yet have enough
+  if (found.length < maxSuggestions) {
+    for (let i = 0; i < candidates.length; i++) {
+      for (let j = i + 1; j < candidates.length; j++) {
+        const t = candidates[i].priceGbp + candidates[j].priceGbp
+        if (inWindow(t)) {
+          const combo = [candidates[i], candidates[j]]
+          const k = keyFor(combo)
+          if (!seen.has(k)) {
+            seen.add(k)
+            found.push({ items: combo, totalGbp: round2(t) })
+          }
+        }
+        if (found.length >= maxSuggestions * 3) break
+      }
+      if (found.length >= maxSuggestions * 3) break
+    }
+  }
+
+  // 3-book — only if still under-supplied
+  if (found.length < maxSuggestions) {
+    outer: for (let i = 0; i < candidates.length; i++) {
+      for (let j = i + 1; j < candidates.length; j++) {
+        for (let k = j + 1; k < candidates.length; k++) {
+          const t =
+            candidates[i].priceGbp + candidates[j].priceGbp + candidates[k].priceGbp
+          if (inWindow(t)) {
+            const combo = [candidates[i], candidates[j], candidates[k]]
+            const key = keyFor(combo)
+            if (!seen.has(key)) {
+              seen.add(key)
+              found.push({ items: combo, totalGbp: round2(t) })
+            }
+          }
+          if (found.length >= maxSuggestions * 3) break outer
+        }
+      }
+    }
+  }
+
+  // Rank: affinity + smallest combo + smallest overshoot. Keep top N.
+  found.sort((a, b) => score(a.items) - score(b.items))
+  return found.slice(0, maxSuggestions)
+}
