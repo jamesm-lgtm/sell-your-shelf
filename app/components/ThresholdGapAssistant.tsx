@@ -1,13 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useBasket, useBasketShipping } from './BasketProvider'
 import {
   buildSuggestions,
   Candidate,
   Suggestion,
   BasketItem,
+  subtotalGbp,
 } from '@/app/lib/basket'
+import {
+  trackBasketSuggestionShown,
+  trackBasketSuggestionClicked,
+} from '@/app/lib/basketAnalytics'
 
 const FOREST = '#2D4A3E'
 const FOREST_DEEP = '#1F3329'
@@ -73,6 +78,26 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
     })
   }, [debouncedGap, candidates, basketCategories])
 
+  // Fire basket_suggestion_shown once per meaningful change of the offer set —
+  // not on every render. Guarded by a ref so the debounced suggestion array
+  // doesn't double-emit.
+  const lastShownKeyRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!basket || state.kind !== 'below' || suggestions.length === 0) return
+    const key = `${suggestions.length}|${Math.round(state.gapGbp * 100)}|${suggestions
+      .map((s) => s.items.map((c) => c.listingId).sort((a, b) => a - b).join('-'))
+      .join('::')}`
+    if (lastShownKeyRef.current === key) return
+    lastShownKeyRef.current = key
+    trackBasketSuggestionShown({
+      placement: 'shelf_top',
+      seller,
+      gapGbp: state.gapGbp,
+      numSuggestions: suggestions.length,
+      basketTotalGbp: subtotalGbp(basket.items),
+    })
+  }, [basket, state, suggestions, seller])
+
   // Hide when basket empty, when threshold met, when oversized, or when no candidates.
   if (!basket || state.kind !== 'below' || suggestions.length === 0) return null
 
@@ -93,7 +118,17 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
         category: l.books?.category ?? null,
       })
     }
-    addItems(seller, items)
+    const itemsBefore = basket.items
+    const itemsAfter = [...itemsBefore, ...items.filter((it) => !itemsBefore.some((b) => b.listingId === it.listingId))]
+    trackBasketSuggestionClicked({
+      placement: 'shelf_top',
+      seller,
+      numBooks: items.length,
+      suggestionTotalGbp: suggestion.totalGbp,
+      itemsBefore,
+      itemsAfter,
+    })
+    addItems(seller, items, 'suggestion')
   }
 
   return (

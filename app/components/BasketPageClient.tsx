@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import { useBasket, useBasketShipping } from './BasketProvider'
@@ -8,6 +8,10 @@ import {
   FREE_SHIPPING_THRESHOLD_GBP,
   LARGE_PARCEL_FEE_GBP,
 } from '@/app/lib/basket'
+import {
+  trackBasketPageViewed,
+  trackCheckoutCtaClicked,
+} from '@/app/lib/basketAnalytics'
 
 const FOREST = '#2D4A3E'
 const FOREST_DEEP = '#1F3329'
@@ -57,6 +61,16 @@ export default function BasketPageClient() {
       cancelled = true
     }
   }, [basket])
+
+  // Fire basket_page_viewed once per visit, after the stale-check has resolved
+  // so the stale_items_count is accurate.
+  const viewFiredRef = useRef(false)
+  useEffect(() => {
+    if (viewFiredRef.current) return
+    if (!hydrated || !basket || basket.items.length === 0) return
+    viewFiredRef.current = true
+    trackBasketPageViewed({ basket, staleItemsCount: staleIds.size })
+  }, [hydrated, basket, staleIds])
 
   // Show a quiet hydrate state to avoid SSR/CSR flicker.
   if (!hydrated) {
@@ -189,7 +203,7 @@ export default function BasketPageClient() {
                 )}
               </div>
               <button
-                onClick={() => removeItem(it.listingId)}
+                onClick={() => removeItem(it.listingId, 'basket_page')}
                 aria-label={`Remove ${it.title}`}
                 style={{
                   background: 'transparent',
@@ -241,6 +255,7 @@ export default function BasketPageClient() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
         <button
           onClick={() => {
+            trackCheckoutCtaClicked({ basket })
             if (typeof window !== 'undefined') {
               window.alert('Checkout is coming soon. Multi-item checkout is in build.')
             }

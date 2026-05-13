@@ -18,7 +18,7 @@ export default function AddToBasketButton({ seller, item }: Props) {
   if (inBasket) {
     return (
       <button
-        onClick={() => removeItem(item.listingId)}
+        onClick={() => removeItem(item.listingId, 'card_toggle')}
         style={{
           display: 'block',
           width: '100%',
@@ -39,7 +39,7 @@ export default function AddToBasketButton({ seller, item }: Props) {
 
   return (
     <button
-      onClick={() => addItem(seller, item)}
+      onClick={() => addItem(seller, item, 'listing_page')}
       style={{
         display: 'block',
         width: '100%',

@@ -11,7 +11,13 @@ import {
   Candidate,
   Suggestion,
   BasketItem,
+  subtotalGbp,
 } from '@/app/lib/basket'
+import {
+  trackBasketSuggestionShown,
+  trackBasketSuggestionClicked,
+  trackCrossSellerModalAction,
+} from '@/app/lib/basketAnalytics'
 
 const FOREST = '#2D4A3E'
 const FOREST_DEEP = '#1F3329'
@@ -152,7 +158,7 @@ function SuggestionsExpander({
   setIsOpen: (v: boolean) => void
 }) {
   const shelf = useShelfInventory()
-  const { addItems } = useBasket()
+  const { basket, addItems } = useBasket()
 
   // Only offer suggestions when the user is browsing the same seller's shelf the
   // basket belongs to — otherwise we can't add to this basket anyway.
@@ -175,12 +181,30 @@ function SuggestionsExpander({
     })
   }, [enabled, shelf, basketItemIds, basketCategories, gapGbp])
 
+  // Fire basket_suggestion_shown once per meaningful change of the offer set.
+  const lastShownKeyRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!enabled || !shelf || suggestions.length === 0 || !basket) return
+    const key = `${suggestions.length}|${Math.round(gapGbp * 100)}|${suggestions
+      .map((s) => s.items.map((c) => c.listingId).sort((a, b) => a - b).join('-'))
+      .join('::')}`
+    if (lastShownKeyRef.current === key) return
+    lastShownKeyRef.current = key
+    trackBasketSuggestionShown({
+      placement: 'widget_expander',
+      seller: shelf.seller,
+      gapGbp,
+      numSuggestions: suggestions.length,
+      basketTotalGbp: subtotalGbp(basket.items),
+    })
+  }, [enabled, shelf, suggestions, gapGbp, basket])
+
   if (!enabled || suggestions.length === 0) return null
 
   const shelfById = new Map<number, ShelfListing>((shelf?.listings ?? []).map((l) => [l.id, l]))
 
   const handleAdd = (s: Suggestion) => {
-    if (!shelf) return
+    if (!shelf || !basket) return
     const items: BasketItem[] = []
     for (const c of s.items) {
       const l = shelfById.get(c.listingId)
@@ -195,7 +219,17 @@ function SuggestionsExpander({
         category: l.books?.category ?? null,
       })
     }
-    addItems(shelf.seller, items)
+    const itemsBefore = basket.items
+    const itemsAfter = [...itemsBefore, ...items.filter((it) => !itemsBefore.some((b) => b.listingId === it.listingId))]
+    trackBasketSuggestionClicked({
+      placement: 'widget_expander',
+      seller: shelf.seller,
+      numBooks: items.length,
+      suggestionTotalGbp: s.totalGbp,
+      itemsBefore,
+      itemsAfter,
+    })
+    addItems(shelf.seller, items, 'suggestion')
   }
 
   return (
@@ -391,7 +425,14 @@ function CrossSellerModal() {
         justifyContent: 'center',
         padding: 16,
       }}
-      onClick={dismissConflict}
+      onClick={() => {
+        trackCrossSellerModalAction({
+          action: 'cancel',
+          currentSellerUsername: currentSeller.sellerUsername,
+          attemptedSellerUsername: attempt.seller.sellerUsername,
+        })
+        dismissConflict()
+      }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -422,7 +463,14 @@ function CrossSellerModal() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
           <Link
             href="/basket"
-            onClick={dismissConflict}
+            onClick={() => {
+              trackCrossSellerModalAction({
+                action: 'checkout',
+                currentSellerUsername: currentSeller.sellerUsername,
+                attemptedSellerUsername: attempt.seller.sellerUsername,
+              })
+              dismissConflict()
+            }}
             style={{
               background: FOREST,
               color: CREAM,
@@ -438,6 +486,11 @@ function CrossSellerModal() {
           </Link>
           <button
             onClick={() => {
+              trackCrossSellerModalAction({
+                action: 'clear',
+                currentSellerUsername: currentSeller.sellerUsername,
+                attemptedSellerUsername: attempt.seller.sellerUsername,
+              })
               clearBasket()
               dismissConflict()
             }}
@@ -455,7 +508,14 @@ function CrossSellerModal() {
             Clear basket
           </button>
           <button
-            onClick={dismissConflict}
+            onClick={() => {
+              trackCrossSellerModalAction({
+                action: 'cancel',
+                currentSellerUsername: currentSeller.sellerUsername,
+                attemptedSellerUsername: attempt.seller.sellerUsername,
+              })
+              dismissConflict()
+            }}
             style={{
               background: 'transparent',
               color: '#666',

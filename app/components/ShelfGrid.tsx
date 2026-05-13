@@ -175,7 +175,7 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
                       {sellerRef ? (
                         inBasket ? (
                           <button
-                            onClick={() => removeItem(listing.id)}
+                            onClick={() => removeItem(listing.id, 'card_toggle')}
                             style={addedButtonStyle}
                           >
                             <span aria-hidden style={{ marginRight: 6 }}>✓</span>
@@ -183,7 +183,7 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
                           </button>
                         ) : (
                           <button
-                            onClick={() => addItem(sellerRef, listingToBasketItem(listing))}
+                            onClick={() => addItem(sellerRef, listingToBasketItem(listing), 'shelf_card')}
                             style={primaryButtonStyle}
                           >
                             Add to basket
