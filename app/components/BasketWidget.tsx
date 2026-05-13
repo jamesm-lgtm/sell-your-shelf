@@ -48,16 +48,26 @@ export default function BasketWidget() {
       <div data-sys-basket-widget style={containerStyle}>
         <div style={cardStyle(flash)}>
           {/* Header row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: CREAM }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: CREAM, lineHeight: 1.2 }}>
                 {itemCount} {itemCount === 1 ? 'book' : 'books'}
-              </span>
-              <span style={{ fontSize: 12, color: 'rgba(250,248,245,0.7)' }}>
+              </div>
+              <div
+                title={`@${basket.sellerUsername}`}
+                style={{
+                  fontSize: 12,
+                  color: 'rgba(250,248,245,0.65)',
+                  marginTop: 2,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 @{basket.sellerUsername}
-              </span>
+              </div>
             </div>
-            <span style={{ fontSize: 15, fontWeight: 600, color: CREAM }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: CREAM, flexShrink: 0 }}>
               £{subtotal.toFixed(2)}
             </span>
           </div>
