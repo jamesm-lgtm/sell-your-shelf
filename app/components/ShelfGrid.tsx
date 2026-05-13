@@ -246,30 +246,42 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
   )
 }
 
+// Reserve enough vertical space for the longer "✓ Added — Remove?" wrap so
+// toggling never shifts surrounding cards in the grid row.
+const BUTTON_MIN_HEIGHT = 52
+
 const primaryButtonStyle: React.CSSProperties = {
-  display: 'block',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   width: '100%',
+  minHeight: BUTTON_MIN_HEIGHT,
   textAlign: 'center',
   background: FOREST,
   color: CREAM,
   fontSize: 13,
   fontWeight: 500,
-  padding: '9px 0',
+  padding: '6px 8px',
   borderRadius: 6,
   border: 'none',
   cursor: 'pointer',
+  lineHeight: 1.25,
 }
 
 const addedButtonStyle: React.CSSProperties = {
-  display: 'block',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   width: '100%',
+  minHeight: BUTTON_MIN_HEIGHT,
   textAlign: 'center',
   background: '#fff',
   color: FOREST,
   fontSize: 13,
   fontWeight: 500,
-  padding: '8px 0',
+  padding: '6px 8px',
   borderRadius: 6,
   border: `1px solid ${FOREST}`,
   cursor: 'pointer',
+  lineHeight: 1.25,
 }
