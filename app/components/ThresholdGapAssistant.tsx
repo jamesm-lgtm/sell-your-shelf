@@ -100,20 +100,22 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
     <section
       aria-label="Get to free shipping"
       style={{
-        marginTop: 36,
-        padding: '20px 0 4px',
-        borderTop: '0.5px solid #E5E3DF',
+        marginBottom: 24,
+        padding: '14px 16px 14px',
+        borderRadius: 10,
+        background: '#FFFDF6',
+        border: `1px solid ${GOLD}`,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: FOREST_DEEP, margin: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 600, color: FOREST_DEEP, margin: 0 }}>
           Get to free shipping
         </h2>
         <span style={{ fontSize: 12, color: '#999' }}>
           £{state.gapGbp.toFixed(2)} to go
         </span>
       </div>
-      <p style={{ fontSize: 13, color: '#666', margin: '4px 0 16px' }}>
+      <p style={{ fontSize: 13, color: '#666', margin: '4px 0 12px' }}>
         Add one of these to unlock free postage on this order.
       </p>
 

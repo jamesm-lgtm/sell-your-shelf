@@ -6,6 +6,7 @@ import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import ShelfVisitTracker from '@/app/components/ShelfVisitTracker'
 import ThresholdGapAssistant from '@/app/components/ThresholdGapAssistant'
+import { RegisterShelfInventory } from '@/app/components/ShelfInventoryProvider'
 
 export const revalidate = 0
 
@@ -110,16 +111,20 @@ export default async function SellerShelfPage({ params }: Props) {
       </div>
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
-        <ShelfGrid
+        <ThresholdGapAssistant
           listings={safeListings}
           seller={{ sellerId: user.id, sellerUsername: user.username }}
         />
-        <ThresholdGapAssistant
+        <ShelfGrid
           listings={safeListings}
           seller={{ sellerId: user.id, sellerUsername: user.username }}
         />
       </div>
 
+      <RegisterShelfInventory
+        listings={safeListings}
+        seller={{ sellerId: user.id, sellerUsername: user.username }}
+      />
       <ShelfVisitTracker username={user.username} />
 
       <Footer />

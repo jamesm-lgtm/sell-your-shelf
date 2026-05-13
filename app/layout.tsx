@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { BasketProvider } from "./components/BasketProvider";
 import BasketWidget from "./components/BasketWidget";
+import { ShelfInventoryProvider } from "./components/ShelfInventoryProvider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.sellyourshelf.com"),
@@ -41,8 +42,10 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <BasketProvider>
-          {children}
-          <BasketWidget />
+          <ShelfInventoryProvider>
+            {children}
+            <BasketWidget />
+          </ShelfInventoryProvider>
         </BasketProvider>
         <Analytics />
       </body>
