@@ -279,12 +279,134 @@ async function insertPurchaseSystemMessage(
 }
 
 async function fireOrderConfirmationNotifications(
-  _supabase: SupabaseClient,
-  _orderId: string,
+  supabase: SupabaseClient,
+  orderId: string,
 ): Promise<void> {
-  // TODO Step 5 (emails) and Step 6 (push): fire order_confirmation email
-  // to buyer, new_sale to seller, and the two push notifications.
-  // Intentionally left as a no-op for Step 2 — the order is paid in the DB
-  // and the system message lands; emails/pushes follow in Steps 5/6.
-  return
+  // Fetch everything we need for both emails in parallel.
+  const { data: order } = await supabase
+    .from('orders')
+    .select(`
+      id, total_gbp, subtotal_gbp, shipping_gbp, wallet_applied_gbp,
+      card_charged_gbp, platform_fee_gbp, seller_payout_gbp, parcel_tier,
+      shipping_address, buyer_id, buyer_email, seller_id
+    `)
+    .eq('id', orderId)
+    .single()
+
+  if (!order) {
+    console.warn('Could not load order for notification fan-out:', orderId)
+    return
+  }
+
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('listing_id, title, author, price_gbp, platform_fee_gbp, seller_payout_gbp')
+    .eq('order_id', orderId)
+
+  const itemRows = items ?? []
+
+  const { data: seller } = await supabase
+    .from('users')
+    .select('id, email, first_name, username')
+    .eq('id', order.seller_id)
+    .single()
+
+  // Buyer profile — only present if the auth user was successfully created
+  let buyerProfile: { email?: string | null; first_name?: string | null; username?: string | null } | null = null
+  if (order.buyer_id) {
+    const { data } = await supabase
+      .from('users')
+      .select('email, first_name, username')
+      .eq('id', order.buyer_id)
+      .maybeSingle()
+    buyerProfile = data
+  }
+
+  const buyerEmail = buyerProfile?.email ?? order.buyer_email
+  const buyerName = buyerProfile?.first_name || buyerProfile?.username || 'there'
+  const sellerEmail = seller?.email
+  const sellerName = seller?.first_name || seller?.username || 'there'
+  const sellerUsername = seller?.username
+
+  const supabaseUrl = (Deno as unknown as { env: { get: (k: string) => string | undefined } }).env.get('SUPABASE_URL')
+  const serviceKey = (Deno as unknown as { env: { get: (k: string) => string | undefined } }).env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!supabaseUrl || !serviceKey) {
+    console.warn('Missing env for send-email call; skipping fan-out')
+    return
+  }
+
+  const sendEmailUrl = `${supabaseUrl}/functions/v1/send-email`
+
+  // ----- buyer: order_confirmation -----
+  if (buyerEmail) {
+    try {
+      await fetch(sendEmailUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          type: 'order_confirmation',
+          to: buyerEmail,
+          data: {
+            buyerName,
+            sellerUsername: sellerUsername ?? undefined,
+            items: itemRows.map((it: { title: string; author: string | null; price_gbp: number }) => ({
+              title: it.title,
+              author: it.author,
+              priceGbp: Number(it.price_gbp),
+            })),
+            subtotalGbp: Number(order.subtotal_gbp),
+            shippingGbp: Number(order.shipping_gbp),
+            totalGbp: Number(order.total_gbp),
+            walletAppliedGbp: Number(order.wallet_applied_gbp),
+            cardChargedGbp: Number(order.card_charged_gbp),
+            shippingAddress: order.shipping_address as Record<string, string> | null,
+            estimatedDeliveryDays: '2-3 working days',
+            orderId,
+          },
+        }),
+      })
+    } catch (err) {
+      console.error('order_confirmation email failed:', err)
+    }
+  }
+
+  // ----- seller: new_sale -----
+  if (sellerEmail) {
+    try {
+      await fetch(sendEmailUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          type: 'new_sale',
+          to: sellerEmail,
+          data: {
+            sellerName,
+            buyerName: buyerProfile?.username || buyerName,
+            sellerUsername: sellerUsername ?? undefined,
+            items: itemRows.map((it: { title: string; price_gbp: number; platform_fee_gbp: number; seller_payout_gbp: number }) => ({
+              title: it.title,
+              priceGbp: Number(it.price_gbp),
+              platformFeeGbp: Number(it.platform_fee_gbp),
+              payoutGbp: Number(it.seller_payout_gbp),
+            })),
+            subtotalGbp: Number(order.subtotal_gbp),
+            totalPlatformFeeGbp: Number(order.platform_fee_gbp),
+            totalPayoutGbp: Number(order.seller_payout_gbp),
+            parcelTier: order.parcel_tier as string | undefined,
+            orderId,
+          },
+        }),
+      })
+    } catch (err) {
+      console.error('new_sale email failed:', err)
+    }
+  }
+
+  // TODO Step 6: fire push notifications (buyer + seller) here.
 }
