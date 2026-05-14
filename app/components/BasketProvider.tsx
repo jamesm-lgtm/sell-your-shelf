@@ -91,7 +91,7 @@ export function BasketProvider({ children }: { children: React.ReactNode }) {
   // without forcing the callback to re-memo on every basket change.
   const basketRef = useRef<Basket | null>(null)
   // Last shipping state, to detect threshold / oversize transitions.
-  const prevShippingKindRef = useRef<'empty' | 'below' | 'unlocked' | 'oversize' | null>(null)
+  const prevShippingKindRef = useRef<'empty' | 'below' | 'unlocked' | 'oversize' | 'exceeded' | null>(null)
 
   // Hydrate from localStorage on mount.
   useEffect(() => {

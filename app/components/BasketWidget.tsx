@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useBasket, useBasketShipping } from './BasketProvider'
 import { useShelfInventory, ShelfListing } from './ShelfInventoryProvider'
 import {
-  LARGE_PARCEL_FEE_GBP,
   UNLOCK_FLASH_FLAG,
   buildSuggestions,
   Candidate,
@@ -105,7 +104,13 @@ export default function BasketWidget() {
 
           {state.kind === 'oversize' && (
             <div style={messageOversizeStyle}>
-              Larger parcel — £{LARGE_PARCEL_FEE_GBP.toFixed(2)} shipping
+              Approaching 5kg limit ({(state.weightG / 1000).toFixed(1)}kg)
+            </div>
+          )}
+
+          {state.kind === 'exceeded' && (
+            <div style={messageExceededStyle}>
+              Over 10kg limit — remove items to continue
             </div>
           )}
 
@@ -575,6 +580,13 @@ const messageUnlockedStyle: React.CSSProperties = {
 const messageOversizeStyle: React.CSSProperties = {
   fontSize: 13,
   color: 'rgba(250,248,245,0.85)',
+  marginBottom: 12,
+}
+
+const messageExceededStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: '#FCA5A5',
+  fontWeight: 600,
   marginBottom: 12,
 }
 

@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { useBasket, useBasketShipping } from './BasketProvider'
 import {
   FREE_SHIPPING_THRESHOLD_GBP,
-  LARGE_PARCEL_FEE_GBP,
+  SHIPPING_FLAT_GBP,
 } from '@/app/lib/basket'
 import {
   trackBasketPageViewed,
@@ -106,18 +106,17 @@ export default function BasketPageClient() {
   }
 
   const staleCount = staleIds.size
-  const shippingLabel =
-    state.kind === 'unlocked'
-      ? 'Free'
-      : state.kind === 'oversize'
-      ? `£${LARGE_PARCEL_FEE_GBP.toFixed(2)}`
-      : 'Calculated at checkout'
-  const totalGbp =
-    state.kind === 'oversize'
-      ? subtotal + LARGE_PARCEL_FEE_GBP
-      : state.kind === 'unlocked'
-      ? subtotal
-      : subtotal
+  // Flat £2.50 shipping below £10, free above. Soft warn at 5kg (still flat).
+  // Hard cap at 10kg blocks checkout (the button below is disabled in that case).
+  const isUnlocked = state.kind === 'unlocked'
+  const isExceeded = state.kind === 'exceeded'
+  const isOversize = state.kind === 'oversize'
+  const shippingLabel = isUnlocked
+    ? 'Free'
+    : isExceeded
+    ? '—'
+    : `£${SHIPPING_FLAT_GBP.toFixed(2)}`
+  const totalGbp = isUnlocked ? subtotal : isExceeded ? subtotal : subtotal + SHIPPING_FLAT_GBP
 
   return (
     <div>
@@ -237,7 +236,9 @@ export default function BasketPageClient() {
           value={shippingLabel}
           hint={
             state.kind === 'oversize'
-              ? `Parcel weight ${(weightG / 1000).toFixed(1)}kg — over our 2kg free-shipping cap.`
+              ? `Approaching 5kg limit (${(weightG / 1000).toFixed(1)}kg).`
+              : state.kind === 'exceeded'
+              ? `Over 10kg limit (${(weightG / 1000).toFixed(1)}kg) — remove items to continue.`
               : state.kind === 'below'
               ? `Add £${state.gapGbp.toFixed(2)} to unlock free shipping (orders over £${FREE_SHIPPING_THRESHOLD_GBP}).`
               : state.kind === 'unlocked'
@@ -253,27 +254,44 @@ export default function BasketPageClient() {
 
       {/* CTAs */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
-        <button
-          onClick={() => {
-            trackCheckoutCtaClicked({ basket })
-            if (typeof window !== 'undefined') {
-              window.alert('Checkout is coming soon. Multi-item checkout is in build.')
-            }
-          }}
-          disabled={staleCount > 0}
-          style={{
-            background: staleCount > 0 ? '#B8B8B8' : FOREST,
-            color: CREAM,
-            border: 'none',
-            fontSize: 15,
-            fontWeight: 600,
-            padding: '13px 0',
-            borderRadius: 8,
-            cursor: staleCount > 0 ? 'not-allowed' : 'pointer',
-          }}
-        >
-          Checkout (coming soon)
-        </button>
+        {staleCount > 0 || isExceeded ? (
+          <button
+            disabled
+            style={{
+              background: '#B8B8B8',
+              color: CREAM,
+              border: 'none',
+              fontSize: 15,
+              fontWeight: 600,
+              padding: '13px 0',
+              borderRadius: 8,
+              cursor: 'not-allowed',
+            }}
+          >
+            {isExceeded
+              ? 'Remove items to get under 10kg'
+              : 'Remove unavailable items to continue'}
+          </button>
+        ) : (
+          <Link
+            href="/checkout"
+            onClick={() => trackCheckoutCtaClicked({ basket })}
+            style={{
+              background: FOREST,
+              color: CREAM,
+              border: 'none',
+              fontSize: 15,
+              fontWeight: 600,
+              padding: '13px 0',
+              borderRadius: 8,
+              textAlign: 'center',
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Checkout
+          </Link>
+        )}
         <Link
           href={`/${basket.sellerUsername}`}
           style={{

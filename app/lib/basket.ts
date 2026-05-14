@@ -1,12 +1,18 @@
 // Client-side basket model. localStorage only — no Supabase persistence in Phase 1.
-// Single seller per basket. Free shipping over £10. Large-parcel surcharge over 2kg total.
+// Single seller per basket. Free shipping over £10, flat £2.50 below threshold.
+// Soft warn at 5kg (parcel still ships at flat rate). Hard cap at 10kg.
 
 export const BASKET_STORAGE_KEY = 'sys:basket:v1'
 export const UNLOCK_FLASH_FLAG = 'sys:basket:unlocked-once'
 
 export const FREE_SHIPPING_THRESHOLD_GBP = 10
-export const LARGE_PARCEL_WEIGHT_G = 2000
-export const LARGE_PARCEL_FEE_GBP = 3.5
+export const SHIPPING_FLAT_GBP = 2.5
+export const SOFT_CAP_WEIGHT_G = 5000   // warn the buyer; checkout still allowed
+export const HARD_CAP_WEIGHT_G = 10_000 // block checkout
+
+// Kept as aliases for any existing call sites; treat both as the soft cap.
+export const LARGE_PARCEL_WEIGHT_G = SOFT_CAP_WEIGHT_G
+export const LARGE_PARCEL_FEE_GBP = SHIPPING_FLAT_GBP
 
 // Heuristic per-book weights (grams). Packaging is per-parcel, not per-book.
 const WEIGHT_PAPERBACK_G = 280
@@ -51,15 +57,25 @@ export function subtotalGbp(items: BasketItem[]): number {
   return items.reduce((sum, it) => sum + Number(it.priceGbp), 0)
 }
 
+// Shipping state — drives widget + basket + checkout copy.
+//   below       : items present, subtotal < £10
+//   unlocked    : subtotal >= £10 (free shipping)
+//   oversize    : weight > 5kg soft cap (warn — shipping is still flat)
+//   exceeded    : weight > 10kg hard cap (block checkout)
+// `oversize` and `exceeded` always take precedence over the subtotal state so
+// the warning is visible regardless of basket total.
 export type ShippingState =
   | { kind: 'empty' }
   | { kind: 'below'; gapGbp: number; progressPct: number }
   | { kind: 'unlocked' }
-  | { kind: 'oversize' }
+  | { kind: 'oversize'; weightG: number }
+  | { kind: 'exceeded'; weightG: number }
 
 export function shippingState(items: BasketItem[]): ShippingState {
   if (items.length === 0) return { kind: 'empty' }
-  if (totalWeightG(items) > LARGE_PARCEL_WEIGHT_G) return { kind: 'oversize' }
+  const weightG = totalWeightG(items)
+  if (weightG > HARD_CAP_WEIGHT_G) return { kind: 'exceeded', weightG }
+  if (weightG > SOFT_CAP_WEIGHT_G) return { kind: 'oversize', weightG }
   const sub = subtotalGbp(items)
   if (sub >= FREE_SHIPPING_THRESHOLD_GBP) return { kind: 'unlocked' }
   return {
@@ -71,9 +87,10 @@ export function shippingState(items: BasketItem[]): ShippingState {
 
 export function shippingCostGbp(items: BasketItem[]): number {
   const state = shippingState(items)
-  if (state.kind === 'oversize') return LARGE_PARCEL_FEE_GBP
   if (state.kind === 'unlocked') return 0
-  return 0 // below threshold: shown as TBD pre-checkout; treat as 0 for current display
+  if (state.kind === 'empty' || state.kind === 'exceeded') return 0
+  // below, oversize → flat rate
+  return SHIPPING_FLAT_GBP
 }
 
 export function round2(n: number): number {
