@@ -171,7 +171,7 @@ export default function CheckoutFlow() {
       if (data.requires_payment === false) {
         setWalletCovered(true)
         clearBasket()
-        window.location.assign(`/order/${data.order_id}/confirmation`)
+        window.location.assign(`/orders/${data.order_id}/confirmation`)
         return
       }
 
@@ -374,7 +374,7 @@ function PaymentForm({
       const result = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/order/${orderId}/confirmation`,
+          return_url: `${window.location.origin}/orders/${orderId}/confirmation`,
         },
         redirect: 'if_required',
       })
@@ -387,7 +387,7 @@ function PaymentForm({
 
       if (result.paymentIntent?.status === 'succeeded') {
         onSuccess()
-        router.push(`/order/${orderId}/confirmation`)
+        router.push(`/orders/${orderId}/confirmation`)
         return
       }
 
