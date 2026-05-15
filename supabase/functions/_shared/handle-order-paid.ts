@@ -5,6 +5,7 @@
 // Idempotent: re-running on an already-paid order is a no-op.
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { computeBadgeTotal, getPushTokens, sendExpoPush } from './expo-push.ts'
 
 export type HandleOrderPaidArgs = {
   supabase: SupabaseClient
@@ -408,5 +409,52 @@ async function fireOrderConfirmationNotifications(
     }
   }
 
-  // TODO Step 6: fire push notifications (buyer + seller) here.
+  // ----- Expo push notifications (buyer + seller) -----
+  const itemCount = itemRows.length
+  const totalLabel = `£${Number(order.total_gbp).toFixed(2)}`
+  const buyerHandle = buyerProfile?.username || buyerProfile?.first_name || 'A buyer'
+
+  const sellerTokens = await getPushTokens(supabase, order.seller_id)
+  const buyerTokens = order.buyer_id ? await getPushTokens(supabase, order.buyer_id) : []
+
+  const [sellerBadge, buyerBadge] = await Promise.all([
+    sellerTokens.length > 0 ? computeBadgeTotal(supabase, order.seller_id) : Promise.resolve(0),
+    order.buyer_id && buyerTokens.length > 0
+      ? computeBadgeTotal(supabase, order.buyer_id)
+      : Promise.resolve(0),
+  ])
+
+  const sellerBody =
+    `${buyerHandle} bought ${itemCount} ${itemCount === 1 ? 'book' : 'books'} for ${totalLabel}`
+
+  const firstTitle = itemRows[0]?.title ?? 'a book'
+  const buyerBody =
+    itemCount === 1
+      ? `Your copy of "${firstTitle}"${sellerUsername ? ` from @${sellerUsername}` : ''} is on the way`
+      : `Your ${itemCount} books${sellerUsername ? ` from @${sellerUsername}` : ''} are on the way`
+
+  const deepLinkData = { screen: 'Orders', orderId }
+
+  const notifications = [
+    ...sellerTokens.map((token) => ({
+      to: token,
+      title: 'You made a sale! 🎉',
+      body: sellerBody,
+      sound: 'default' as const,
+      badge: sellerBadge,
+      channelId: 'default',
+      data: deepLinkData,
+    })),
+    ...buyerTokens.map((token) => ({
+      to: token,
+      title: 'Order confirmed ✓',
+      body: buyerBody,
+      sound: 'default' as const,
+      badge: buyerBadge,
+      channelId: 'default',
+      data: deepLinkData,
+    })),
+  ]
+
+  await sendExpoPush(notifications)
 }
