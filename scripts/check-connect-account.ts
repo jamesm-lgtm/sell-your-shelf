@@ -18,7 +18,7 @@ async function main() {
       }),
   ) as Record<string, string>
 
-  const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' })
+  const stripe = new Stripe(env.STRIPE_SECRET_KEY)
   const acc = await stripe.accounts.retrieve(id)
 
   console.log('charges_enabled:', acc.charges_enabled)

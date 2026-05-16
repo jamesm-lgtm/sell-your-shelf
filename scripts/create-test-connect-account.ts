@@ -86,7 +86,7 @@ async function main() {
   if (existingWallet?.stripe_account_id?.startsWith('acct_')) {
     console.log(`  ! Seller already has a real Stripe account: ${existingWallet.stripe_account_id}`)
     console.log(`    status=${existingWallet.stripe_account_status}. Will reuse rather than create a new one.`)
-    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' })
+    const stripe = new Stripe(stripeKey)
     try {
       const acc = await stripe.accounts.retrieve(existingWallet.stripe_account_id)
       console.log(`    charges_enabled=${acc.charges_enabled} details_submitted=${acc.details_submitted}`)
@@ -104,7 +104,7 @@ async function main() {
 
   // 3. Create a Custom Connect account with Stripe's test values that pass
   //    verification instantly.
-  const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' })
+  const stripe = new Stripe(stripeKey)
 
   console.log('→ Creating Stripe Custom Connect account…')
   const account = await stripe.accounts.create({
