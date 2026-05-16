@@ -6,6 +6,7 @@
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { computeBadgeTotal, getPushTokens, sendExpoPush } from './expo-push.ts'
+import { trackServerEvent } from './analytics.ts'
 
 export type HandleOrderPaidArgs = {
   supabase: SupabaseClient
@@ -113,10 +114,26 @@ export async function handleOrderPaid(
   }
 
   // 8. Notifications — emails + push.
-  // Wired in Steps 5/6. For now we hand off to the (yet-to-be-written) helpers
-  // and the existing stripe-webhook flow continues to handle single-item events.
   await fireOrderConfirmationNotifications(supabase, orderId).catch((err) => {
     console.error('Notification fan-out failed (non-fatal):', err)
+  })
+
+  // 9. Analytics: order_paid (covers both webhook and wallet-only paths)
+  const paidAt = Date.now()
+  const createdAt = order.created_at ? new Date(order.created_at as string).getTime() : paidAt
+  await trackServerEvent({
+    supabase,
+    eventName: 'order_paid',
+    sellerId: order.seller_id,
+    userId: buyerId,
+    properties: {
+      order_id: orderId,
+      total_gbp: Number(order.total_gbp),
+      item_count: (items ?? []).length,
+      is_guest: !buyerId && !!order.checkout_session_id,
+      time_to_pay_seconds: Math.round((paidAt - createdAt) / 1000),
+      paid_via: stripeChargeId ? 'card' : 'wallet',
+    },
   })
 
   // Refetch the updated order so callers see current state

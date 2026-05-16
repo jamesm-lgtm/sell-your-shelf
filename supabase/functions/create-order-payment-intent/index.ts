@@ -17,6 +17,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@17'
 import { handleOrderPaid } from '../_shared/handle-order-paid.ts'
+import { trackServerEvent } from '../_shared/analytics.ts'
 
 // Lazy Stripe init — validation/stale-item paths return without touching
 // Stripe, so the function still runs cleanly even when STRIPE_SECRET_KEY is
@@ -373,6 +374,28 @@ serve(async (req) => {
       await supabase.from('orders').delete().eq('id', order.id)
       return serverError('Failed to create order items')
     }
+
+    // ----- analytics: order_created -----
+    await trackServerEvent({
+      supabase,
+      eventName: 'order_created',
+      sellerId,
+      userId: buyerId,
+      properties: {
+        order_id: order.id,
+        seller_username: null, // resolved client-side or via join in analysis
+        total_gbp: round2(totalGbp),
+        subtotal_gbp: round2(subtotalGbp),
+        shipping_gbp: round2(shippingGbp),
+        wallet_applied_gbp: round2(walletAppliedGbp),
+        card_charged_gbp: round2(cardChargedGbp),
+        platform_fee_gbp: round2(platformFeeGbp),
+        parcel_tier: parcelTier,
+        item_count: activeListings.length,
+        is_guest: !buyerId,
+        estimated_weight_grams: weightG,
+      },
+    })
 
     // ----- wallet debit (Stripe Connect account charge) — for wallet-only AND mixed -----
     let buyerTransferId: string | null = null

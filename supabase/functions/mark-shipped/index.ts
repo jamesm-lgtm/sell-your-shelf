@@ -18,6 +18,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { computeBadgeTotal, getPushTokens, sendExpoPush } from '../_shared/expo-push.ts'
+import { trackServerEvent } from '../_shared/analytics.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -187,6 +188,36 @@ async function markOrderShipped(supabase: SupabaseClient, orderId: string): Prom
       )
     }
   }
+
+  // ----- analytics: order_shipped -----
+  // Compute time_to_ship_seconds from paid_at if available.
+  let timeToShipSeconds: number | null = null
+  try {
+    const { data: ts } = await supabase
+      .from('orders')
+      .select('paid_at, shipped_at')
+      .eq('id', orderId)
+      .single()
+    if (ts?.paid_at && ts?.shipped_at) {
+      timeToShipSeconds = Math.round(
+        (new Date(ts.shipped_at).getTime() - new Date(ts.paid_at).getTime()) / 1000,
+      )
+    }
+  } catch {
+    // best-effort
+  }
+  await trackServerEvent({
+    supabase,
+    eventName: 'order_shipped',
+    sellerId: order.seller_id,
+    userId: order.buyer_id,
+    properties: {
+      order_id: orderId,
+      item_count: items.length,
+      tracking_number: order.tracking_number ?? null,
+      time_to_ship_seconds: timeToShipSeconds,
+    },
+  })
 
   return json(200, { success: true })
 }

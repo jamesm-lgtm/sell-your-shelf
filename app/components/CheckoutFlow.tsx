@@ -16,6 +16,10 @@ import {
   SHIPPING_FLAT_GBP,
   SOFT_CAP_WEIGHT_G,
 } from '@/app/lib/basket'
+import {
+  trackCheckoutInitiated,
+  trackCheckoutStaleItemsDetected,
+} from '@/app/lib/basketAnalytics'
 
 const FOREST = '#2D4A3E'
 const FOREST_DEEP = '#1F3329'
@@ -130,6 +134,12 @@ export default function CheckoutFlow() {
     }
 
     setSubmitting(true)
+
+    // Phase 1B analytics: fire on the actual checkout start (this is the
+    // "buyer commits" moment, distinct from clicking the basket Checkout
+    // button which the /basket page already tracks).
+    trackCheckoutInitiated({ basket, isGuest: true, applyWallet: false })
+
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/create-order-payment-intent`, {
         method: 'POST',
@@ -156,7 +166,9 @@ export default function CheckoutFlow() {
       const data = await res.json().catch(() => ({}))
 
       if (res.status === 409 && Array.isArray(data?.stale_items)) {
-        setStaleItems(data.stale_items as StaleItem[])
+        const stale = data.stale_items as StaleItem[]
+        setStaleItems(stale)
+        trackCheckoutStaleItemsDetected({ basket, staleItemCount: stale.length })
         return
       }
 

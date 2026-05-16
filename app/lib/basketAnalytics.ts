@@ -278,3 +278,40 @@ export const trackCheckoutCtaClicked = safe(function (args: { basket: Basket }) 
     { sellerId: basket.sellerId },
   )
 })
+
+// ---------- phase 1b checkout events ----------
+
+export const trackCheckoutInitiated = safe(function (args: {
+  basket: Basket
+  isGuest: boolean
+  applyWallet?: boolean
+}) {
+  const { basket, isGuest, applyWallet } = args
+  track(
+    'checkout_initiated',
+    {
+      seller_username: basket.sellerUsername,
+      basket_total_gbp: subtotalGbp(basket.items),
+      basket_item_count: basket.items.length,
+      is_guest: isGuest,
+      apply_wallet: !!applyWallet,
+      threshold_status: statusFromItems(basket.items),
+    },
+    { sellerId: basket.sellerId },
+  )
+})
+
+export const trackCheckoutStaleItemsDetected = safe(function (args: {
+  basket: Basket
+  staleItemCount: number
+}) {
+  track(
+    'checkout_stale_items_detected',
+    {
+      seller_username: args.basket.sellerUsername,
+      stale_item_count: args.staleItemCount,
+      basket_item_count: args.basket.items.length,
+    },
+    { sellerId: args.basket.sellerId },
+  )
+})
