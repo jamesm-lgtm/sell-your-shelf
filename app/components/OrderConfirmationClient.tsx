@@ -1,8 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useBasket } from './BasketProvider'
+
+// How aggressively we poll for webhook-driven order updates. The Stripe
+// webhook typically arrives within 1-2 seconds of the client-side redirect
+// to this page, but cold starts can push it to 5-10s. Cap at ~40s to avoid
+// hammering the server if something is wrong.
+const POLL_INTERVAL_MS = 2_000
+const POLL_MAX_MS = 40_000
 
 const FOREST = '#2D4A3E'
 const FOREST_DEEP = '#1F3329'
@@ -25,6 +33,7 @@ type Props = {
 
 export default function OrderConfirmationClient(props: Props) {
   const { clearBasket } = useBasket()
+  const router = useRouter()
 
   // The basket should have been cleared at payment-submit time; clear again
   // here as a safety net so users who land directly on this URL (e.g. from an
@@ -43,21 +52,76 @@ export default function OrderConfirmationClient(props: Props) {
     props.status === 'delivered' ||
     props.status === 'completed'
 
+  // Poll for webhook completion. The confirmation page is a server component,
+  // so we trigger router.refresh() (re-runs the RSC fetch) until status flips
+  // out of payment_pending. Stops on success or after POLL_MAX_MS.
+  const pollStartRef = useRef<number | null>(null)
+  const [givingUp, setGivingUp] = useState(false)
+  useEffect(() => {
+    if (isPaid || props.status === 'cancelled') return
+    if (pollStartRef.current === null) pollStartRef.current = Date.now()
+    const id = setInterval(() => {
+      const elapsed = Date.now() - (pollStartRef.current ?? Date.now())
+      if (elapsed > POLL_MAX_MS) {
+        setGivingUp(true)
+        clearInterval(id)
+        return
+      }
+      router.refresh()
+    }, POLL_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [isPaid, props.status, router])
+
+  if (props.status === 'cancelled') {
+    return (
+      <div style={{ padding: '48px 0', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 22, color: FOREST_DEEP, fontWeight: 600, marginBottom: 8 }}>
+          Payment didn't go through
+        </h1>
+        <p style={{ color: '#666', fontSize: 14, marginBottom: 16 }}>
+          We weren't able to take payment for this order. Nothing has been charged.
+        </p>
+        <Link
+          href="/"
+          style={{
+            display: 'inline-block',
+            background: FOREST,
+            color: CREAM,
+            fontSize: 14,
+            fontWeight: 500,
+            padding: '11px 22px',
+            borderRadius: 8,
+            textDecoration: 'none',
+          }}
+        >
+          Continue browsing
+        </Link>
+      </div>
+    )
+  }
+
   if (!isPaid) {
     return (
       <div style={{ padding: '48px 0', textAlign: 'center' }}>
         <h1 style={{ fontSize: 22, color: FOREST_DEEP, fontWeight: 600, marginBottom: 8 }}>
-          Confirming your payment…
+          {givingUp ? 'Still waiting on payment confirmation…' : 'Confirming your payment…'}
         </h1>
         <p style={{ color: '#666', fontSize: 14, marginBottom: 4 }}>
-          We're waiting for Stripe to confirm. This usually takes a few seconds.
+          {givingUp
+            ? "It's taking longer than usual. Your payment is being processed — feel free to close this tab and we'll email you when it lands."
+            : "We're waiting for Stripe to confirm. This usually takes a few seconds."}
         </p>
-        <p style={{ color: '#999', fontSize: 12 }}>
-          If this page doesn't update in 30 seconds,{' '}
-          <a href="mailto:support@sellyourshelf.com" style={{ color: FOREST }}>
-            email support
-          </a>{' '}
-          with your order id <code>{props.orderId.slice(0, 8)}</code>.
+        <p style={{ color: '#999', fontSize: 12, marginTop: 12 }}>
+          Order id <code>{props.orderId.slice(0, 8)}</code>
+          {givingUp && (
+            <>
+              {' '}—{' '}
+              <a href="mailto:support@sellyourshelf.com" style={{ color: FOREST }}>
+                email support
+              </a>{' '}
+              if you'd like us to check on it.
+            </>
+          )}
         </p>
       </div>
     )
