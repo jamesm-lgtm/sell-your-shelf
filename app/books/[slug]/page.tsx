@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import AppBadges from '@/app/components/AppBadges'
 import BuyNowLink from '@/app/components/BuyNowLink'
 
 export const revalidate = 0
@@ -131,8 +132,6 @@ export default async function BookPage({ params }: Props) {
 
   const lowestPrice = Number(listings[0].asking_price_gbp).toFixed(2)
   const highestPrice = Number(listings[listings.length - 1].asking_price_gbp).toFixed(2)
-
-  const APP_STORE_URL = 'https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=book_page&utm_medium=web&utm_campaign=sell_cta'
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -286,12 +285,14 @@ export default async function BookPage({ params }: Props) {
           <p style={{ color: 'rgba(250,248,245,0.7)', fontSize: 13, marginBottom: 20 }}>
             List it in seconds with the Sell Your Shelf app
           </p>
-          <a
-            href={APP_STORE_URL}
-            style={{ display: 'inline-block', background: '#FAF8F5', color: '#2D4A3E', fontSize: 14, fontWeight: 600, padding: '12px 32px', borderRadius: 8, textDecoration: 'none' }}
-          >
-            Download on the App Store
-          </a>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <AppBadges
+              utm={{ source: 'book_page', medium: 'footer', campaign: 'sell_your_copy' }}
+              size="md"
+              layout="auto"
+              align="center"
+            />
+          </div>
         </div>
 
       </div>
