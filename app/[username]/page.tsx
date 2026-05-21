@@ -4,6 +4,7 @@ import Link from 'next/link'
 import ShelfGrid from '@/app/components/ShelfGrid'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import AppBadges from '@/app/components/AppBadges'
 import ShelfVisitTracker from '@/app/components/ShelfVisitTracker'
 import ThresholdGapAssistant from '@/app/components/ThresholdGapAssistant'
 import { RegisterShelfInventory } from '@/app/components/ShelfInventoryProvider'
@@ -86,8 +87,6 @@ export default async function SellerShelfPage({ params }: Props) {
     books: { cover_url: string | null; cover_url_hosted?: string | null; category?: string | null } | null
   }>
 
-  const APP_STORE_URL = `https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=shelf&utm_medium=share&utm_campaign=${user.username}`
-
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
@@ -126,6 +125,25 @@ export default async function SellerShelfPage({ params }: Props) {
         seller={{ sellerId: user.id, sellerUsername: user.username }}
       />
       <ShelfVisitTracker username={user.username} />
+
+      <div style={{ background: '#F0EDE8', borderTop: '0.5px solid #E5E3DF', padding: '32px 24px' }}>
+        <div style={{ maxWidth: 840, margin: '0 auto', textAlign: 'center' }}>
+          <p style={{ fontSize: 16, fontWeight: 500, color: '#1A1A1A', marginBottom: 6 }}>
+            Got a shelf of your own?
+          </p>
+          <p style={{ fontSize: 13, color: '#666', marginBottom: 20 }}>
+            Scan, list and sell your books in 90 seconds with the app.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <AppBadges
+              utm={{ source: 'shelf', medium: 'footer', campaign: `@${user.username}` }}
+              size="md"
+              layout="auto"
+              align="center"
+            />
+          </div>
+        </div>
+      </div>
 
       <Footer />
 
