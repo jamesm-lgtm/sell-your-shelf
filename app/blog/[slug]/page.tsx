@@ -205,7 +205,7 @@ export default async function BlogPostPage({ params }: Props) {
 </div>
 
         {/* CTA */}
-        <BlogCTA />
+        <BlogCTA slug={post.slug} />
       </article>
 
       {/* Related posts */}
