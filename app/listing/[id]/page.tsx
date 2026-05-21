@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import AppBadges from '@/app/components/AppBadges'
+import ListingDeepLink from '@/app/components/ListingDeepLink'
 import ListingViewTracker from '@/app/components/ListingViewTracker'
 import AddToBasketButton from '@/app/components/AddToBasketButton'
 
@@ -91,10 +93,10 @@ export default async function ListingPage({ params }: Props) {
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '')
     : null)
-  const appStoreUrl = `https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=listing&utm_medium=web&utm_campaign=${id}`
-
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+
+      <ListingDeepLink listingId={id} />
 
       <SiteNav />
 
@@ -240,20 +242,18 @@ export default async function ListingPage({ params }: Props) {
           </Link>
         )}
 
-        <div style={{ background: '#F0EDE8', borderRadius: 12, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', marginBottom: 2 }}>
-              Want to sell your books?
-            </p>
-            <p style={{ fontSize: 12, color: '#666' }}>
-              List 30 books in 90 seconds with AI shelf scanning
-            </p>
-          </div>
-          <a href={appStoreUrl}
-            style={{ background: '#2D4A3E', color: '#FAF8F5', fontSize: 13, fontWeight: 500, padding: '9px 20px', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}
-          >
-            Get the app
-          </a>
+        <div style={{ background: '#F0EDE8', borderRadius: 12, padding: '20px 24px' }}>
+          <p style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', marginBottom: 2 }}>
+            Want to sell your books?
+          </p>
+          <p style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
+            List 30 books in 90 seconds with AI shelf scanning
+          </p>
+          <AppBadges
+            utm={{ source: 'listing', medium: 'footer', campaign: `listing_${id}` }}
+            size="md"
+            layout="auto"
+          />
         </div>
 
       </div>
