@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import AppBadges from '@/app/components/AppBadges'
 
 export const revalidate = 0
 
@@ -65,8 +66,6 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
   const totalPaid = transaction
     ? (Number(transaction.sale_price_gbp) + Number(transaction.shipping_cost_gbp)).toFixed(2)
     : null
-  const appStoreUrl = 'https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=web_checkout&utm_medium=confirmation&utm_campaign=order_confirmed'
-
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
@@ -119,7 +118,7 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
           </div>
         )}
 
-        {/* App Store CTA */}
+        {/* App badges */}
         <div style={{ background: '#2D4A3E', borderRadius: 12, padding: '24px', marginBottom: 32 }}>
           <p style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
             Download the app to track your order
@@ -127,12 +126,14 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
           <p style={{ color: 'rgba(250,248,245,0.7)', fontSize: 13, marginBottom: 20 }}>
             Get shipping updates, message your seller, and manage your account
           </p>
-          <a
-            href={appStoreUrl}
-            style={{ display: 'inline-block', background: '#FAF8F5', color: '#2D4A3E', fontSize: 14, fontWeight: 600, padding: '12px 32px', borderRadius: 8, textDecoration: 'none' }}
-          >
-            Download on the App Store
-          </a>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <AppBadges
+              utm={{ source: 'web_checkout', medium: 'confirmation', campaign: 'order_confirmed' }}
+              size="md"
+              layout="auto"
+              align="center"
+            />
+          </div>
         </div>
 
         <Link href="/new" style={{ fontSize: 14, color: '#2D4A3E', textDecoration: 'none', fontWeight: 500 }}>
