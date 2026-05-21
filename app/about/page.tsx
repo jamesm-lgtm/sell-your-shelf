@@ -1,6 +1,6 @@
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
-import Link from 'next/link'
+import AppBadges from '@/app/components/AppBadges'
 
 export const metadata = {
   title: 'About — Sell Your Shelf',
@@ -8,8 +8,6 @@ export const metadata = {
 }
 
 export default function About() {
-  const appStoreUrl = 'https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=about&utm_medium=web'
-
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
       <SiteNav />
@@ -63,13 +61,11 @@ export default function About() {
             </p>
 
             <div className="pt-6">
-              <a
-                href={appStoreUrl}
-                className="inline-block px-6 py-3 rounded-lg text-sm font-semibold text-white"
-                style={{ backgroundColor: '#2D4A3E' }}
-              >
-                Download the app →
-              </a>
+              <AppBadges
+                utm={{ source: 'about', medium: 'footer', campaign: 'get_the_app' }}
+                size="md"
+                layout="auto"
+              />
             </div>
           </div>
         </div>
