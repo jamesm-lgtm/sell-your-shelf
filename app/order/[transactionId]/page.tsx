@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import AppBadges from '@/app/components/AppBadges'
 
 export const revalidate = 0
 
@@ -44,7 +45,6 @@ export default async function OrderStatusPage({ params }: Props) {
   const cover = book?.books?.cover_url
 
   const currentStepIndex = STATUS_STEPS.indexOf(transaction.status as any)
-  const appStoreUrl = 'https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=order_status&utm_medium=web'
 
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
@@ -127,17 +127,19 @@ export default async function OrderStatusPage({ params }: Props) {
           )}
         </div>
 
-        {/* App Store CTA */}
+        {/* App badges */}
         <div style={{ background: '#2D4A3E', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
           <p style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, marginBottom: 16 }}>
             Download the Sell Your Shelf app
           </p>
-          <a
-            href={appStoreUrl}
-            style={{ display: 'inline-block', background: '#FAF8F5', color: '#2D4A3E', fontSize: 14, fontWeight: 600, padding: '12px 32px', borderRadius: 8, textDecoration: 'none' }}
-          >
-            Download on the App Store
-          </a>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <AppBadges
+              utm={{ source: 'web_checkout', medium: 'order_status', campaign: 'order_status' }}
+              size="md"
+              layout="auto"
+              align="center"
+            />
+          </div>
         </div>
 
       </div>

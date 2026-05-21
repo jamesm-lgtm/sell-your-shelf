@@ -3,6 +3,7 @@ import Link from 'next/link'
 import ShelfGrid from '@/app/components/ShelfGrid'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import AppBadges from '@/app/components/AppBadges'
 import CuratedRows from '@/app/components/CuratedRows'
 import { getCuratedRows } from '@/app/lib/editorial'
 
@@ -49,8 +50,6 @@ export default async function NewInPage() {
     books: { cover_url: string | null; cover_url_hosted?: string | null } | null
     users: { username: string } | null
   }>
-
-  const APP_STORE_URL = 'https://apps.apple.com/gb/app/sell-your-shelf/id6739630632?utm_source=new&utm_medium=web'
 
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
@@ -116,6 +115,25 @@ export default async function NewInPage() {
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
         <ShelfGrid listings={safeListings} showSeller pageSize={24} />
+      </div>
+
+      <div style={{ background: '#F0EDE8', borderTop: '0.5px solid #E5E3DF', padding: '32px 24px' }}>
+        <div style={{ maxWidth: 840, margin: '0 auto', textAlign: 'center' }}>
+          <p style={{ fontSize: 16, fontWeight: 500, color: '#1A1A1A', marginBottom: 6 }}>
+            Browse on the go
+          </p>
+          <p style={{ fontSize: 13, color: '#666', marginBottom: 20 }}>
+            Get push alerts for new listings and message sellers from your phone.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <AppBadges
+              utm={{ source: 'new_in', medium: 'footer', campaign: 'get_the_app' }}
+              size="md"
+              layout="auto"
+              align="center"
+            />
+          </div>
+        </div>
       </div>
 
       <Footer />
