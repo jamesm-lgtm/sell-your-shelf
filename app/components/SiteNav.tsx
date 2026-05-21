@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import AppBadges from './AppBadges'
 
 type SearchResult = {
   book_id: number
@@ -427,9 +428,11 @@ export default function SiteNav({ current = null }: Props) {
           <Link href="/new" style={linkStyle(current === 'browse')}>Shop books</Link>
           <Link href="/blog" style={linkStyle(current === 'blog')}>Blog</Link>
           <Link href="/support" style={linkStyle(current === 'support')}>Support</Link>
-          <a href="https://apps.apple.com/gb/app/sell-your-shelf/id6739630632" style={{ background: '#FAF8F5', color: '#2D4A3E', fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 6, textDecoration: 'none' }}>
-            Get the app
-          </a>
+          <AppBadges
+            utm={{ source: 'nav', medium: 'header', campaign: 'get_the_app' }}
+            size="sm"
+            layout="row"
+          />
         </div>
 
         {/* Mobile nav */}
@@ -511,9 +514,13 @@ export default function SiteNav({ current = null }: Props) {
           <Link href="/support" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'support' ? 600 : 400 }}>
             Support
           </Link>
-          <a href="https://apps.apple.com/gb/app/sell-your-shelf/id6739630632" style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none' }}>
-            Get the App
-          </a>
+          <div style={{ paddingTop: 4 }}>
+            <AppBadges
+              utm={{ source: 'nav', medium: 'mobile_menu', campaign: 'get_the_app' }}
+              size="md"
+              layout="row"
+            />
+          </div>
         </div>
       )}
 
