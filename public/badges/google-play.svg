@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 135 40" role="img" aria-label="Get it on Google Play">
+  <rect width="135" height="40" rx="6.5" ry="6.5" fill="#000"/>
+  <rect x="0.5" y="0.5" width="134" height="39" rx="6" ry="6" fill="none" stroke="#A6A6A6" stroke-width="0.5"/>
+  <g transform="translate(10 8)">
+    <linearGradient id="gp-a" x1="9.99" y1="11.95" x2="2.16" y2="19.78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00A0FF"/>
+      <stop offset=".26" stop-color="#00A1FF"/>
+      <stop offset=".51" stop-color="#00BEFF"/>
+      <stop offset=".76" stop-color="#00D2FF"/>
+      <stop offset="1" stop-color="#00DFFF"/>
+    </linearGradient>
+    <path d="M.27.62A2.45 2.45 0 000 1.74V22.27A2.45 2.45 0 00.28 23.39l.07.06L11.85 11.94v-.13L.34.55z" fill="url(#gp-a)"/>
+    <linearGradient id="gp-b" x1="19.34" y1="16.01" x2="-1.05" y2="16.01" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE000"/>
+      <stop offset=".41" stop-color="#FFBD00"/>
+      <stop offset=".78" stop-color="#FFA500"/>
+      <stop offset="1" stop-color="#FF9C00"/>
+    </linearGradient>
+    <path d="M15.7 15.77l-3.84-3.84V11.8l3.84-3.84.08.05 4.55 2.59c1.3.73 1.3 1.94 0 2.68l-4.55 2.59-.08.04z" fill="url(#gp-b)"/>
+    <linearGradient id="gp-c" x1="13.21" y1="17.94" x2="-1.66" y2="32.81" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF3A44"/>
+      <stop offset="1" stop-color="#C31162"/>
+    </linearGradient>
+    <path d="M15.78 15.72l-3.93-3.93L.27 23.39a1.57 1.57 0 002.01.06l13.5-7.67" fill="url(#gp-c)"/>
+    <linearGradient id="gp-d" x1="-2.21" y1="3.47" x2="4.43" y2="10.11" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#32A071"/>
+      <stop offset=".07" stop-color="#2DA771"/>
+      <stop offset=".48" stop-color="#15CF74"/>
+      <stop offset=".8" stop-color="#06E775"/>
+      <stop offset="1" stop-color="#00F076"/>
+    </linearGradient>
+    <path d="M15.78 8.01L2.28.34A1.57 1.57 0 00.27.4l11.58 11.4z" fill="url(#gp-d)"/>
+  </g>
+  <g fill="#FFF">
+    <text x="40" y="16" font-family="Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="7" font-weight="400" letter-spacing="0.3">GET IT ON</text>
+    <text x="40" y="31" font-family="Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="500" letter-spacing="-0.2">Google Play</text>
+  </g>
+</svg>
