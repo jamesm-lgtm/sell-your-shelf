@@ -1,16 +1,21 @@
 // cancel-order-payment
 //
-// Client-initiated rollback for a payment_pending multi-item order. Called
-// by the mobile OrderCheckoutScreen when the Stripe Payment Sheet fails to
-// confirm on device after create-order-payment-intent has already
-// (a) charged the buyer's Connect wallet for the wallet portion, and/or
-// (b) created a PaymentIntent for the card portion.
+// Client-initiated rollback for a torn checkout. Accepts ONE of:
+//   { order_id }          — new multi-item flow (cancels orders row)
+//   { payment_intent_id } — legacy single-item flow (no orders row exists
+//                           until the webhook fires, so we work from the
+//                           PI's metadata.buyer_transfer_id)
+//
+// Called when the Stripe Payment Sheet fails to confirm on device after
+// create-order-payment-intent (or legacy create-payment-intent) has
+// already (a) charged the buyer's Connect wallet for the wallet portion,
+// and/or (b) created a PaymentIntent for the card portion.
 //
 // Without this endpoint, a torn checkout leaves the wallet portion
 // stranded — the buyer's balance is debited but no order ever pays.
 //
-// Idempotent: re-running on an already-cancelled or already-paid order
-// returns 200 with no side effects.
+// Idempotent: re-running on an already-terminal order returns 200 with
+// no side effects.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -55,11 +60,15 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => null)
     const orderId = body?.order_id as string | undefined
-    if (!orderId) return json(400, { error: 'order_id is required' })
+    const paymentIntentId = body?.payment_intent_id as string | undefined
+
+    if (!orderId && !paymentIntentId) {
+      return json(400, { error: 'order_id or payment_intent_id is required' })
+    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Authn — only the buyer can cancel their own pending order.
+    // Authn — only the buyer can cancel.
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return json(401, { error: 'Missing authorization' })
@@ -67,10 +76,78 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (!user) return json(401, { error: 'Invalid authorization' })
 
+    const stripe = getStripe(modeFromRequest(req))
+
+    // ----- Legacy single-item path -----
+    // No orders row exists until the webhook lands. We work from the PI's
+    // metadata.buyer_transfer_id and verify the caller is the buyer named
+    // in the PI metadata.
+    if (paymentIntentId && !orderId) {
+      let pi: Stripe.PaymentIntent
+      try {
+        pi = await stripe.paymentIntents.retrieve(paymentIntentId)
+      } catch (piErr) {
+        console.error('PI retrieve failed for', paymentIntentId, piErr)
+        return json(404, { error: 'PaymentIntent not found' })
+      }
+
+      const meta = (pi.metadata ?? {}) as Record<string, string>
+      if (meta.buyer_id !== user.id) {
+        return json(403, { error: 'Not your payment' })
+      }
+
+      // Idempotent — PI already in a terminal state.
+      if (pi.status === 'succeeded' || pi.status === 'canceled') {
+        return json(200, {
+          payment_intent_id: pi.id,
+          status: pi.status,
+          rolled_back: false,
+          reason: 'pi_already_terminal',
+        })
+      }
+
+      let walletRefundId: string | null = null
+      const buyerTransferId = meta.buyer_transfer_id
+      if (buyerTransferId) {
+        try {
+          const refund = await stripe.refunds.create({
+            charge: buyerTransferId,
+            reason: 'requested_by_customer',
+            metadata: {
+              listing_id: meta.listing_id ?? '',
+              reason: 'client_payment_sheet_failed',
+            },
+          })
+          walletRefundId = refund.id
+          console.log('🔄 Refunded legacy wallet charge', buyerTransferId, '→', refund.id)
+        } catch (refundErr) {
+          console.error(
+            '⚠️ Legacy wallet refund FAILED for charge', buyerTransferId, refundErr,
+          )
+        }
+      }
+
+      try {
+        await stripe.paymentIntents.cancel(pi.id, {
+          cancellation_reason: 'abandoned',
+        })
+      } catch (cancelErr) {
+        console.warn('PI cancel non-fatal error for', pi.id, cancelErr)
+      }
+
+      return json(200, {
+        payment_intent_id: pi.id,
+        status: 'cancelled',
+        rolled_back: true,
+        wallet_refund_id: walletRefundId,
+      })
+    }
+
+    // ----- Multi-item path -----
     const { data: order, error: orderErr } = await supabase
       .from('orders')
       .select('id, buyer_id, status, buyer_transfer_id, stripe_payment_intent_id, wallet_applied_gbp')
-      .eq('id', orderId)
+      .eq('id', orderId!)
       .single()
 
     if (orderErr || !order) return json(404, { error: 'Order not found' })
@@ -85,8 +162,6 @@ serve(async (req) => {
         reason: 'order_already_terminal',
       })
     }
-
-    const stripe = getStripe(modeFromRequest(req))
 
     // 1. Refund the wallet portion if any was captured.
     let walletRefundId: string | null = null
