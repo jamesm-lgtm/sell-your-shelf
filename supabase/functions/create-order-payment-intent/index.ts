@@ -503,9 +503,28 @@ serve(async (req) => {
       })
     } catch (piErr) {
       // Roll back: the order hasn't been paid and never will be on this attempt.
-      // Mark cancelled rather than DELETE so the record survives for audit. If
-      // the buyer retries we'll create a fresh order anyway.
+      // CRITICAL: if a wallet charge was already captured above, refund it
+      // here — otherwise the buyer's Connect balance is stranded with
+      // nothing to show for it.
       console.error('PaymentIntent creation failed; cancelling order:', piErr)
+      if (buyerTransferId) {
+        try {
+          await stripe().refunds.create({
+            charge: buyerTransferId,
+            reason: 'requested_by_customer',
+            metadata: { order_id: order.id, reason: 'pi_creation_failed' },
+          })
+          console.log('🔄 Refunded stranded wallet charge:', buyerTransferId)
+        } catch (refundErr) {
+          // Log loud and proud — support will need to reconcile manually
+          // if Stripe refund itself fails.
+          console.error(
+            '⚠️ Wallet refund FAILED after PI creation error. Manual reconciliation needed for charge',
+            buyerTransferId,
+            refundErr,
+          )
+        }
+      }
       await supabase
         .from('orders')
         .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
