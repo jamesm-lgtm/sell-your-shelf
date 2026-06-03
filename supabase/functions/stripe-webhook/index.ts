@@ -3,16 +3,36 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { handleOrderPaid } from "../_shared/handle-order-paid.ts";
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+// Live mode (primary) + test mode (iOS/Android dev builds). Test secrets
+// are optional; signature verification falls back through whatever is
+// configured.
+const stripeLive = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2023-10-16",
 });
+const stripeTestKey = Deno.env.get("STRIPE_TEST_SECRET_KEY");
+const stripeTest = stripeTestKey
+  ? new Stripe(stripeTestKey, { apiVersion: "2023-10-16" })
+  : null;
+// Default reference used for signature verification — the constructEvent
+// call only needs HMAC, so either instance works.
+const stripe = stripeLive;
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Support both platform and Connect webhook secrets
+// Support platform + Connect + test webhook secrets. Test endpoint is
+// configured separately in Stripe Dashboard (Test mode → Webhooks) and
+// emits its own signing secret.
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
 const webhookSecretConnect = Deno.env.get("STRIPE_WEBHOOK_SECRET_CONNECT");
+const webhookSecretTest = Deno.env.get("STRIPE_TEST_WEBHOOK_SECRET");
+
+// Pick the right Stripe instance for any post-verification API calls
+// (transfers, refunds, etc). event.livemode is the source of truth.
+function stripeFor(event: Stripe.Event): Stripe {
+  if (!event.livemode && stripeTest) return stripeTest;
+  return stripeLive;
+}
 
 // Constants
 const SHIPPING_CHARGE_GBP = 2.50; // What buyer pays for shipping
@@ -68,28 +88,32 @@ serve(async (req: Request) => {
   try {
     const body = await req.text();
     
-    // Try platform webhook secret first, then Connect webhook secret
-    let event: Stripe.Event;
-    
-    try {
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-      console.log("✅ Verified with platform webhook secret");
-    } catch (err) {
-      if (webhookSecretConnect) {
-        try {
-          event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecretConnect);
-          console.log("✅ Verified with Connect webhook secret");
-        } catch (err2) {
-          console.error("❌ Signature verification failed for both secrets");
-          return new Response("Invalid signature", { status: 400 });
-        }
-      } else {
-        console.error("❌ Signature verification failed, no Connect secret configured");
-        return new Response("Invalid signature", { status: 400 });
+    // Try each configured webhook secret in turn — platform live, Connect,
+    // then test. First one that verifies wins.
+    let event: Stripe.Event | null = null;
+    const candidates: Array<{ name: string; secret: string | null | undefined }> = [
+      { name: "platform", secret: webhookSecret },
+      { name: "Connect", secret: webhookSecretConnect },
+      { name: "test", secret: webhookSecretTest },
+    ];
+
+    for (const { name, secret } of candidates) {
+      if (!secret) continue;
+      try {
+        event = await stripe.webhooks.constructEventAsync(body, signature, secret);
+        console.log(`✅ Verified with ${name} webhook secret`);
+        break;
+      } catch {
+        // Try the next secret.
       }
     }
-    
-    console.log("📩 Webhook received:", event.type);
+
+    if (!event) {
+      console.error("❌ Signature verification failed against all configured secrets");
+      return new Response("Invalid signature", { status: 400 });
+    }
+
+    console.log("📩 Webhook received:", event.type, "livemode:", event.livemode);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -552,7 +576,7 @@ serve(async (req: Request) => {
         const sellerBalanceAmount = parseInt(seller_balance_transfer_pence || "0");
         if (sellerBalanceAmount > 0) {
           try {
-            const sellerTransfer = await stripe.transfers.create({
+            const sellerTransfer = await stripeFor(event).transfers.create({
               amount: sellerBalanceAmount,
               currency: "gbp",
               destination: seller_stripe_account,

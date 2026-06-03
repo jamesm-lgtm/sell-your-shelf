@@ -22,13 +22,27 @@ import { trackServerEvent } from '../_shared/analytics.ts'
 // Lazy Stripe init — validation/stale-item paths return without touching
 // Stripe, so the function still runs cleanly even when STRIPE_SECRET_KEY is
 // missing on the project (e.g. fresh staging environment).
-let _stripe: Stripe | null = null
-function getStripe(): Stripe {
-  if (_stripe) return _stripe
-  const key = Deno.env.get('STRIPE_SECRET_KEY')
-  if (!key) throw new Error('STRIPE_SECRET_KEY is not configured on this project')
-  _stripe = new Stripe(key, { apiVersion: '2023-10-16' })
-  return _stripe
+//
+// Mode switching:
+//   - Web checkout: no mode header → live (STRIPE_SECRET_KEY)
+//   - iOS/Android dev builds: send `x-stripe-mode: test` → test
+//     (STRIPE_TEST_SECRET_KEY). The PI gets metadata.mode='test' so the
+//     stripe-webhook handler downstream can pick the right Stripe instance.
+type StripeMode = 'live' | 'test'
+const _stripeByMode: Partial<Record<StripeMode, Stripe>> = {}
+function getStripe(mode: StripeMode): Stripe {
+  const cached = _stripeByMode[mode]
+  if (cached) return cached
+  const envKey = mode === 'test' ? 'STRIPE_TEST_SECRET_KEY' : 'STRIPE_SECRET_KEY'
+  const key = Deno.env.get(envKey)
+  if (!key) throw new Error(`${envKey} is not configured on this project`)
+  const stripe = new Stripe(key, { apiVersion: '2023-10-16' })
+  _stripeByMode[mode] = stripe
+  return stripe
+}
+
+function modeFromRequest(req: Request): StripeMode {
+  return req.headers.get('x-stripe-mode') === 'test' ? 'test' : 'live'
 }
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -87,6 +101,9 @@ const serverError = (msg: string) => json(500, { error: msg })
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' })
+
+  const stripeMode = modeFromRequest(req)
+  const stripe = () => getStripe(stripeMode)
 
   try {
     const body = await req.json().catch(() => null)
@@ -308,7 +325,7 @@ serve(async (req) => {
       ) {
         buyerStripeAccountId = buyerWallet.stripe_account_id
         try {
-          const balance = await getStripe().balance.retrieve({
+          const balance = await stripe().balance.retrieve({
             stripeAccount: buyerStripeAccountId,
           })
           const availablePence =
@@ -402,7 +419,7 @@ serve(async (req) => {
     if (walletAppliedGbp > 0 && buyerStripeAccountId) {
       try {
         const walletPence = Math.round(walletAppliedGbp * 100)
-        const buyerCharge = await getStripe().charges.create({
+        const buyerCharge = await stripe().charges.create({
           amount: walletPence,
           currency: 'gbp',
           source: buyerStripeAccountId,
@@ -430,7 +447,7 @@ serve(async (req) => {
       let sellerTransferId: string | null = null
       if (sellerPayoutGbp > 0) {
         try {
-          const transfer = await getStripe().transfers.create({
+          const transfer = await stripe().transfers.create({
             amount: Math.round(sellerPayoutGbp * 100),
             currency: 'gbp',
             destination: sellerWallet.stripe_account_id,
@@ -470,7 +487,7 @@ serve(async (req) => {
 
     let paymentIntent
     try {
-      paymentIntent = await getStripe().paymentIntents.create({
+      paymentIntent = await stripe().paymentIntents.create({
         amount: cardPence,
         currency: 'gbp',
         automatic_payment_methods: { enabled: true },
@@ -480,14 +497,34 @@ serve(async (req) => {
           order_id: order.id,
           type: 'multi_item_order',
           checkout_session_id: checkoutSessionId ?? '',
-          platform: 'web',
+          platform: stripeMode === 'test' ? 'mobile_test' : 'web',
+          mode: stripeMode,
         },
       })
     } catch (piErr) {
       // Roll back: the order hasn't been paid and never will be on this attempt.
-      // Mark cancelled rather than DELETE so the record survives for audit. If
-      // the buyer retries we'll create a fresh order anyway.
+      // CRITICAL: if a wallet charge was already captured above, refund it
+      // here — otherwise the buyer's Connect balance is stranded with
+      // nothing to show for it.
       console.error('PaymentIntent creation failed; cancelling order:', piErr)
+      if (buyerTransferId) {
+        try {
+          await stripe().refunds.create({
+            charge: buyerTransferId,
+            reason: 'requested_by_customer',
+            metadata: { order_id: order.id, reason: 'pi_creation_failed' },
+          })
+          console.log('🔄 Refunded stranded wallet charge:', buyerTransferId)
+        } catch (refundErr) {
+          // Log loud and proud — support will need to reconcile manually
+          // if Stripe refund itself fails.
+          console.error(
+            '⚠️ Wallet refund FAILED after PI creation error. Manual reconciliation needed for charge',
+            buyerTransferId,
+            refundErr,
+          )
+        }
+      }
       await supabase
         .from('orders')
         .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })

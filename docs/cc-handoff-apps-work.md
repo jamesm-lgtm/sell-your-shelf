@@ -521,5 +521,296 @@ Doing them out of order causes specific predictable failures — see the
 
 ---
 
-End of handoff. Confirm app repo structure with the user, then start
-with session 1.
+## 9. Session 1–3 retrospective (added 2026-06-03)
+
+The apps phase actually shipped on 2026-06-03 in a single condensed
+session that hit Sessions 1, 2, and 3 plus a critical Stripe bug
+discovery. This section captures what was built, what was learned,
+and what's still open — because the original handoff (sections 0–7)
+had inferred-only knowledge of the app repo, and the real shape of
+the codebase produced a few surprises.
+
+### 9.1 RN app reality check (vs §0 of this doc)
+
+- **Repo**: `jamesm-lgtm/sell-your-shelf-mobile` (SEPARATE repo,
+  not in this web repo). Local clone at
+  `/Users/jamesmumberson/Documents/book-marketplace/SellYourShelf`.
+- **Framework**: Expo SDK 54, RN 0.81.5, React 19.1
+- **Navigation**: React Navigation v7 (native-stack + bottom-tabs).
+  **Not** Expo Router.
+- **Stripe**: `@stripe/stripe-react-native` 0.50.3
+- **Supabase client**: `@supabase/supabase-js` 2.81 (direct calls, no
+  React Query layer)
+- **Persistence**: AsyncStorage
+- **State mgmt before Sessions 1–3**: only React Context (`AuthContext`)
+- **State mgmt now**: Zustand added for basket store; Context
+  preserved for auth
+
+### 9.2 What shipped in Sessions 1–3
+
+All on `feat/multi-item-basket-ui` branch, squash-merged into mobile
+`main` as commit `0ee6ee4` and shipped via EAS production build as
+version `1.2.0` on 2026-06-03.
+
+**Session 1 — basket UI** (commit `224dd12`):
+- `lib/basket.ts` — pure pricing/threshold/suggestion engine, direct
+  port of web `app/lib/basket.ts`
+- `lib/basketStore.ts` — Zustand + AsyncStorage persistence with
+  single-seller invariant; cross-seller attempts stage a
+  `pendingCrossSeller` value
+- `utils/basketAnalytics.ts` — wraps existing `trackEvent()` helper.
+  Event names mirror web vocabulary. Module-level flags for once-per-
+  session unlocked/oversize de-dup (RN has no sessionStorage)
+- `components/AddToBasketButton.tsx`, `BasketWidget.tsx`,
+  `CrossSellerModal.tsx`
+- `screens/basket/BasketScreen.tsx` + `SuggestionsList.tsx`
+
+**Session 2 — checkout** (commit `4998474`):
+- `screens/checkout/OrderCheckoutScreen.tsx` — shipping form with
+  `user_addresses` autofill, wallet toggle, hits
+  `create-order-payment-intent`, presents Stripe Payment Sheet
+- `screens/checkout/StaleItemsModal.tsx` — 409 stale-items resolution
+- `screens/checkout/OrderConfirmationScreen.tsx` — polls
+  `orders.status` every 2s for up to 40s (handles webhook race)
+- `BasketScreen` checkout CTA wired to navigate to `OrderCheckout`
+
+**Session 3 — order detail + seller actions** (commit `f24b088`):
+- `screens/profile/OrderDetailScreen.tsx` — full detail view for a
+  multi-item order. Seller actions (Generate Label → POST
+  `create-shipping-label` with `order_id`; Mark Shipped → POST
+  `mark-shipped` with `order_id`). Buyer view: tracking timeline.
+- `screens/profile/OrdersScreen.tsx` extended to parallel-fetch
+  multi-item orders alongside transactions and interleave by date.
+  Tap card → OrderDetail.
+- `usePushNotifications` — `data.orderId` deep-links to OrderDetail
+  (when present); legacy `screen: 'Orders'` without orderId still
+  lands on the Orders list.
+
+**Post-session UX polish + safety fixes** (commits `e8585fe` through
+`e341c41`):
+- Widget shows subtotal not subtotal+shipping (paired with threshold
+  banner this is internally consistent)
+- Profile menu now has a Basket entry (always-available path even
+  when basket is empty; widget hides on empty)
+- Suggestion cards show cover + author, tap-through to BookDetail
+  for single-book suggestions, `+` pill for one-tap add
+- "Browse all books from {seller}" link below suggestions
+- "Spend £10 with one seller to unlock free delivery" caption under
+  threshold progress bar
+- Basket Checkout CTA gated behind sign-in (matches BookDetail Buy
+  Now — app has no guest checkout, per §0)
+
+### 9.3 The Stripe account discovery — the big finding of the day
+
+**Symptom**: every iOS Payment Sheet attempt failed with
+`No such payment_intent`. Took a session to diagnose.
+
+**Root cause**: App.tsx's bundled `pk_test_…D2UTUDZ72I4…` was for a
+**Stripe Sandbox account** (`acct_1SVWPD2UTUDZ72I4`), but the prod
+Supabase `STRIPE_SECRET_KEY` env var is `sk_live_…SVWP2Ju…` for the
+real **Sell Your Shelf** account (`acct_1SVWP2JuRWLZOp9n`). Different
+accounts → publishable key can't see PIs the server creates →
+confirmation fails.
+
+The sandbox `pk_test_` had been there since commit `5625a83`
+(2025-12-14), apparently set when first wiring Stripe from a sandbox
+playground before the real Connect platform was configured. Never
+updated.
+
+**Critical for future debugging**: Stripe keys encode the account ID
+in their prefix. The first ~16 chars after `pk_…_` / `sk_…_` are the
+account identifier. To verify two keys are from the same account,
+compare prefixes:
+
+```
+pk_test_51SVWP2JuRWLZOp9n…    ┐
+sk_test_51SVWP2JuRWLZOp9n…    ├ all same account (acct_1SVWP2JuRWLZOp9n)
+pk_live_51SVWP2JuRWLZOp9n…    │
+sk_live_51SVWP2JuRWLZOp9n…    ┘
+
+pk_test_51SVWPD2UTUDZ72I4…   ← DIFFERENT account
+```
+
+A `GET /v1/account` with the secret key returns `id: acct_…` which
+can be compared against the prefix to verify.
+
+**Fix** (commits `42bcf62`, `1db0225` on mobile):
+```ts
+const STRIPE_PUBLISHABLE_KEY = __DEV__
+  ? 'pk_test_51SVWP2JuRWLZOp9n…'
+  : 'pk_live_51SVWP2JuRWLZOp9n…';
+```
+Both for Sell Your Shelf, `__DEV__`-gated.
+
+**Required Supabase env vars** (already set on prod project
+`vsnhrukqqmukkpqlyrhh`):
+- `STRIPE_SECRET_KEY` — sk_live_ for live mode (production)
+- `STRIPE_TEST_SECRET_KEY` — sk_test_ for test mode (dev builds)
+- `STRIPE_TEST_WEBHOOK_SECRET` — paired with a separate Stripe Test
+  Mode webhook endpoint `we_1TeJoGJuRWLZOp9nuAho0oSf`
+
+### 9.4 The `x-stripe-mode` header convention
+
+To let dev builds (bundled with `pk_test_`) talk through the same
+production Supabase project as live builds (which need `pk_live_`-
+compatible PIs), edge functions read an `x-stripe-mode: test` header:
+
+- No header → live mode (uses `STRIPE_SECRET_KEY`)
+- `x-stripe-mode: test` → test mode (uses `STRIPE_TEST_SECRET_KEY`)
+
+Mobile clients add the header in dev builds via:
+```ts
+const headers = __DEV__ ? { 'x-stripe-mode': 'test' } : {};
+supabase.functions.invoke('create-order-payment-intent', { body, headers });
+```
+
+Applied in: `create-order-payment-intent`, `create-payment-intent`,
+`cancel-order-payment`. `stripe-webhook` autodetects mode via the
+multi-secret verification fallback + `event.livemode`.
+
+**For new functions that touch Stripe**: copy the
+`getStripe(mode)` + `modeFromRequest(req)` helper from
+`create-order-payment-intent/index.ts`. Don't read
+`STRIPE_SECRET_KEY` directly — go through the helper.
+
+### 9.5 Wallet rollback for torn checkouts (closes §3 item #2 partially)
+
+The partial-wallet checkout path debits the buyer's Stripe Connect
+balance BEFORE creating the card PaymentIntent, and BEFORE the
+client successfully confirms the PI on device. If anything between
+those steps fails — server PI creation throws, network glitch on
+device, 3DS reject, user dismisses Payment Sheet — the wallet
+portion is stranded with no order ever paying.
+
+This caught the build out: during real iOS testing one £2 wallet
+charge was stranded. Manual refund via Stripe Dashboard recovered
+it.
+
+**Fixed in both flows** (mobile commits `a224231`, `e341c41`; web
+commits `aeb6b60`, `c7329bb`):
+
+1. **Server-side rollback on PI creation failure**:
+   `create-order-payment-intent` and `create-payment-intent` now
+   wrap `stripe.paymentIntents.create()` in try/catch that refunds
+   the `buyerCharge` before returning the error.
+
+2. **Client-initiated rollback on Payment Sheet failure**: new edge
+   function `cancel-order-payment` accepts either
+   `{ order_id }` (multi-item) or `{ payment_intent_id }` (legacy
+   single-item), refunds any wallet charge, cancels the PI on
+   Stripe, marks the order cancelled. Idempotent. Mobile clients
+   call it from every Payment Sheet failure branch (init error,
+   confirm error, **including user-Canceled** — because dismissing
+   the sheet after wallet debit shouldn't leave the buyer out of
+   pocket).
+
+This is the refund-handler item from §3 of this doc, in the
+specific form needed for torn checkouts. The broader refund
+handler (buyer-initiated cancellation of paid orders) is still
+deferred.
+
+### 9.6 Legacy `create-payment-intent` now in the repo
+
+Was previously deployed to prod Supabase but missing from git
+(noted in §1 of this doc). Pulled down via
+`supabase functions download create-payment-intent` and committed
+on 2026-06-03 (web commit `c7329bb`) with the two fixes from §9.3
+and §9.5 applied:
+- Mode hook (header-aware)
+- Wallet rollback on PI creation failure
+
+If you find yourself editing the legacy function: it now lives at
+`supabase/functions/create-payment-intent/index.ts`. Source of
+truth is the repo.
+
+### 9.7 Working example — verified ledger
+
+Last successful end-to-end test order (multi-item, test mode):
+
+```
+Order id          cc3073ca-79c1-4589-b01d-54f652b46ff6
+Buyer             jmumberson+0306a@gmail.com
+Seller            hotmilk (acct connected via Stripe Connect)
+Items             2 books (£3.58 + £6.50)
+Subtotal          £10.08
+Shipping          £0.00 (≥ £10 threshold)
+Total             £10.08
+
+Platform fee      £2.30 (£1 flat on <£5 + 20% of ≥£5 book)
+Seller payout     £7.78
+Wallet applied    £0.00
+Card charged      £10.08
+
+Stripe PI         pi_3TeK4SJuRWLZOp9n0yN0zyG2 (test mode)
+Stripe charge     ch_3TeK4SJuRWLZOp9n0pszxpOU
+Status            paid (paid_at ~52s after created_at)
+```
+
+Use this as the reference for "the math is correct" when verifying
+new orders.
+
+### 9.8 Still open after Sessions 1–3
+
+- **Apple/Google store review** of v1.2.0 build submitted
+  2026-06-03 (typically 24–48h)
+- **Seller smoke test on production build** — Generate Label +
+  Mark Shipped on the OrderDetail screen. Never run end-to-end on
+  multi-item order_id path.
+- **TestFlight live-mode smoke test** with a real card — the
+  *only* test that exercises the `pk_live_` path
+- **expo-av deprecation** — Scanner uses it; will break on SDK 55.
+  Migrate to `expo-audio` + `expo-video`.
+- **Web PR `claude/romantic-banach-723e95` (sell-your-shelf #7)**
+  — still draft. Has the test-mode hook + wallet rollback + legacy
+  function capture + new cancel-order-payment.
+- **Refund handler for buyer-initiated cancellations** (Phase 1C
+  proper)
+- `delivered` → `completed` state transitions (Phase 1C)
+- Loops bearer token rotation to Supabase Vault (Phase 1C)
+- `increment_seller_earnings` RPC still missing — `user_wallets.
+  available_balance_gbp` stays frozen. Don't read it; use Stripe
+  balance API.
+
+### 9.9 New things in production after 2026-06-03
+
+For future sessions that work on the apps:
+
+| Surface | What changed |
+|---|---|
+| Mobile binary | v1.2.0 — basket UI, multi-item checkout, OrderDetail, correct Stripe keys |
+| Mobile `App.tsx` | `__DEV__`-gated `pk_test_`/`pk_live_` for Sell Your Shelf account |
+| Edge fn `create-order-payment-intent` | header mode switch, wallet rollback |
+| Edge fn `create-payment-intent` | now in repo, header mode switch, wallet rollback |
+| Edge fn `cancel-order-payment` | NEW — client-initiated rollback for both flows |
+| Edge fn `stripe-webhook` | multi-secret verification (live + Connect + test) |
+| Supabase env vars on prod | `STRIPE_TEST_SECRET_KEY`, `STRIPE_TEST_WEBHOOK_SECRET` added |
+| Stripe Dashboard | New Test mode webhook `we_1TeJoGJuRWLZOp9nuAho0oSf` |
+
+### 9.10 Important pitfalls to remember
+
+In addition to §7 of this doc:
+
+**The `platform` field on `transactions` rows is unreliable.** The
+legacy `create-payment-intent` function defaults `platform: 'ios'`
+when the caller doesn't specify. Web checkouts that didn't bother
+setting it inherited `'ios'` and look like iOS-originated rows.
+Don't trust `platform` for audit/analytics — check
+`metadata.platform` on the Stripe PI directly, or correlate with
+User-Agent in Stripe Logs.
+
+**`__DEV__` gates client-side mode but the server-side env vars
+matter too.** If Supabase had `STRIPE_TEST_SECRET_KEY` unset and
+a dev build sent the test header, the function would error. Always
+deploy paired env vars before changing mode logic.
+
+**Stripe Sandbox accounts have separate IDs.** A sandbox created
+inside your real account's dashboard is a distinct
+`acct_<different_id>` with its own keyset. Don't grab keys from
+sandbox if your platform infrastructure (Connect, webhooks,
+secrets) is on the real account. Verify by comparing key prefixes
+to your `acct_…` ID before pasting into production code.
+
+---
+
+End of session 1–3 retrospective. Future sessions: read §0–§7 for
+the original brief, then §9 for what actually happened.
