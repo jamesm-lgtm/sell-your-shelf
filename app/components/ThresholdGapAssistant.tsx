@@ -13,6 +13,7 @@ import {
   trackBasketSuggestionShown,
   trackBasketSuggestionClicked,
 } from '@/app/lib/basketAnalytics'
+import { resolveBookCover } from '@/app/lib/coverUrl'
 
 const FOREST = '#2D4A3E'
 const FOREST_DEEP = '#1F3329'
@@ -25,6 +26,7 @@ type Listing = {
   asking_price_gbp: number
   format?: 'paperback' | 'hardback' | null
   books: { cover_url: string | null; cover_url_hosted?: string | null; category?: string | null } | null
+  listing_images?: Array<{ url: string; sort_order: number }> | null
 }
 
 type Props = {
@@ -114,7 +116,7 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
         author: l.author,
         priceGbp: Number(l.asking_price_gbp),
         format: l.format ?? null,
-        coverUrl: l.books?.cover_url_hosted || l.books?.cover_url || null,
+        coverUrl: resolveBookCover(l.books, l.listing_images),
         category: l.books?.category ?? null,
       })
     }
@@ -183,7 +185,7 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
             >
               <div style={{ display: 'flex', gap: 6 }}>
                 {previewBooks.map((b) => {
-                  const cover = b.books?.cover_url_hosted || b.books?.cover_url
+                  const cover = resolveBookCover(b.books, b.listing_images)
                   return (
                     <div
                       key={b.id}

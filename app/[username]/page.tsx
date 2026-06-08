@@ -72,7 +72,7 @@ export default async function SellerShelfPage({ params }: Props) {
 
   const { data: listings } = await supabase
     .from('listings')
-    .select('id, title, author, asking_price_gbp, condition, format, books(cover_url, cover_url_hosted, category)')
+    .select('id, title, author, asking_price_gbp, condition, format, books(cover_url, cover_url_hosted, category), listing_images(url, sort_order)')
     .eq('user_id', user.id)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
@@ -85,6 +85,7 @@ export default async function SellerShelfPage({ params }: Props) {
     condition: string
     format: 'paperback' | 'hardback' | null
     books: { cover_url: string | null; cover_url_hosted?: string | null; category?: string | null } | null
+    listing_images: Array<{ url: string; sort_order: number }> | null
   }>
 
   return (

@@ -6,6 +6,7 @@ import Footer from '@/app/components/Footer'
 import AppBadges from '@/app/components/AppBadges'
 import CuratedRows from '@/app/components/CuratedRows'
 import { getCuratedRows } from '@/app/lib/editorial'
+import { resolveBookCover } from '@/app/lib/coverUrl'
 
 export const revalidate = 0
 
@@ -85,15 +86,20 @@ export default async function Home() {
 
   const { data: recentListings } = await supabase
     .from('listings')
-    .select('id, title, author, asking_price_gbp, books(cover_url, cover_url_hosted)')
+    .select('id, title, author, asking_price_gbp, books(cover_url, cover_url_hosted), listing_images(url, sort_order)')
     .eq('status', 'active')
     .not('book_id', 'is', null)
     .order('created_at', { ascending: false })
     .limit(40)
 
-  const withCovers = (recentListings as any[])?.filter(
-    (l: any) => l.books?.cover_url_hosted || l.books?.cover_url
-  ) ?? []
+  // Resolve each listing's display cover via the central precedence
+  // (seller gallery → edition → work).
+  const withCovers = ((recentListings as any[]) ?? [])
+    .map((l: any) => ({
+      ...l,
+      _resolved_cover: resolveBookCover(l.books, l.listing_images),
+    }))
+    .filter((l: any) => l._resolved_cover)
 
   const curatedRows = await getCuratedRows()
 
@@ -210,7 +216,7 @@ export default async function Home() {
                   <div style={{ width: 80, borderRadius: 8, overflow: 'hidden', background: '#2D4A3E' }}>
                     <div style={{ aspectRatio: '2/3' }}>
                       <img
-                        src={listing.books.cover_url_hosted || listing.books.cover_url}
+                        src={listing._resolved_cover}
                         alt={listing.title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       />

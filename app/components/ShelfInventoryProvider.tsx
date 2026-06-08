@@ -13,6 +13,8 @@ import {
 // widget can compute suggestions from anywhere in the layout. When the shelf
 // page unmounts (user navigates away), the data resets to null.
 
+import type { ListingImageRow } from '@/app/lib/coverUrl'
+
 export type ShelfListing = {
   id: number
   title: string
@@ -20,6 +22,7 @@ export type ShelfListing = {
   asking_price_gbp: number
   format?: 'paperback' | 'hardback' | null
   books: { cover_url: string | null; cover_url_hosted?: string | null; category?: string | null } | null
+  listing_images?: ListingImageRow[] | null
 }
 
 export type ShelfSeller = { sellerId: string; sellerUsername: string }

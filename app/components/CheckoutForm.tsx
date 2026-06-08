@@ -5,6 +5,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { getOrCreateSessionId } from '@/app/lib/session'
 import { track } from '@/app/lib/analytics'
+import { resolveBookCover } from '@/app/lib/coverUrl'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -38,6 +39,7 @@ type ListingData = {
   condition: string
   cover_url: string | null
   cover_url_hosted?: string | null
+  listing_images?: Array<{ url: string; sort_order: number }> | null
   username: string | null
 }
 
@@ -317,13 +319,19 @@ export default function CheckoutForm({ listing }: Props) {
       <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '16px 20px', marginBottom: 24 }}>
         <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
           <div style={{ width: 60, borderRadius: 6, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3', flexShrink: 0 }}>
-            {(listing.cover_url_hosted || listing.cover_url) ? (
-              <img src={listing.cover_url_hosted || listing.cover_url!} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, textAlign: 'center', padding: 4 }}>{listing.title}</span>
-              </div>
-            )}
+            {(() => {
+              const cover = resolveBookCover(
+                { cover_url: listing.cover_url, cover_url_hosted: listing.cover_url_hosted ?? null },
+                listing.listing_images
+              );
+              return cover ? (
+                <img src={cover} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, textAlign: 'center', padding: 4 }}>{listing.title}</span>
+                </div>
+              );
+            })()}
           </div>
           <div>
             <p style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>{listing.title}</p>

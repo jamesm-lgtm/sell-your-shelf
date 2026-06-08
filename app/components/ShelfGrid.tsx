@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useBasket } from './BasketProvider'
 import type { BasketItem } from '@/app/lib/basket'
+import { resolveBookCover, type ListingImageRow } from '@/app/lib/coverUrl'
 
 type Listing = {
   id: number
@@ -13,6 +14,7 @@ type Listing = {
   condition: string
   format?: 'paperback' | 'hardback' | null
   books: { cover_url: string | null; cover_url_hosted?: string | null; category?: string | null } | null
+  listing_images?: ListingImageRow[] | null
   users?: { username: string } | null
 }
 
@@ -47,7 +49,7 @@ function listingToBasketItem(l: Listing): BasketItem {
     author: l.author,
     priceGbp: Number(l.asking_price_gbp),
     format: l.format ?? null,
-    coverUrl: l.books?.cover_url_hosted || l.books?.cover_url || null,
+    coverUrl: resolveBookCover(l.books, l.listing_images),
     category: l.books?.category ?? null,
   }
 }
@@ -130,12 +132,13 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 16 }}>
             {visible.map((listing) => {
               const inBasket = hasItem(listing.id)
+              const coverUrl = resolveBookCover(listing.books, listing.listing_images)
               return (
                 <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    {(listing.books?.cover_url_hosted || listing.books?.cover_url) ? (
+                    {coverUrl ? (
                       <img
-                        src={listing.books.cover_url_hosted || listing.books.cover_url!}
+                        src={coverUrl}
                         alt={listing.title}
                         style={{ height: '100%', width: '100%', objectFit: 'cover' }}
                       />

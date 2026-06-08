@@ -33,6 +33,7 @@ export default async function NewInPage() {
     .select(`
       id, title, author, asking_price_gbp, condition,
       books(cover_url, cover_url_hosted),
+      listing_images(url, sort_order),
       users!inner(username, deleted_at)
     `)
     .eq('status', 'active')
@@ -48,6 +49,7 @@ export default async function NewInPage() {
     asking_price_gbp: number
     condition: string
     books: { cover_url: string | null; cover_url_hosted?: string | null } | null
+    listing_images: Array<{ url: string; sort_order: number }> | null
     users: { username: string } | null
   }>
 

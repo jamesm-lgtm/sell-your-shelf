@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useBasket, useBasketShipping } from './BasketProvider'
 import { useShelfInventory, ShelfListing } from './ShelfInventoryProvider'
+import { resolveBookCover } from '@/app/lib/coverUrl'
 import {
   UNLOCK_FLASH_FLAG,
   buildSuggestions,
@@ -220,7 +221,7 @@ function SuggestionsExpander({
         author: l.author,
         priceGbp: Number(l.asking_price_gbp),
         format: l.format ?? null,
-        coverUrl: l.books?.cover_url_hosted || l.books?.cover_url || null,
+        coverUrl: resolveBookCover(l.books, l.listing_images),
         category: l.books?.category ?? null,
       })
     }
@@ -303,7 +304,7 @@ function SuggestionsExpander({
                 >
                   <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
                     {previewBooks.slice(0, 3).map((b) => {
-                      const cover = b.books?.cover_url_hosted || b.books?.cover_url
+                      const cover = resolveBookCover(b.books, b.listing_images)
                       return (
                         <div
                           key={b.id}

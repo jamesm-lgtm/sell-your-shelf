@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import type { ListingImageRow } from '@/app/lib/coverUrl'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,6 +11,8 @@ export type CuratedListing = {
   asking_price_gbp: number
   condition: string
   books: { title: string; author: string | null; cover_url: string | null; cover_url_hosted?: string | null } | null
+  /** Seller-uploaded gallery images for this listing; primary = lowest sort_order. */
+  listing_images: ListingImageRow[] | null
 }
 
 export type TagRow = {
@@ -47,7 +50,8 @@ export async function getCuratedRows(): Promise<TagRow[]> {
       tag_id,
       listings!inner(
         id, asking_price_gbp, condition, status,
-        books(title, author, cover_url, cover_url_hosted)
+        books(title, author, cover_url, cover_url_hosted),
+        listing_images(url, sort_order)
       )
     `)
     .in('tag_id', tags.map(t => t.id))
@@ -68,6 +72,7 @@ export async function getCuratedRows(): Promise<TagRow[]> {
       asking_price_gbp: listing.asking_price_gbp,
       condition: listing.condition,
       books: listing.books,
+      listing_images: listing.listing_images ?? null,
     })
   }
 

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { resolveBookCover, type ListingImageRow } from '@/app/lib/coverUrl'
 
 const CONDITIONS: Record<string, string> = {
   like_new: 'Like New',
@@ -12,6 +13,7 @@ type CuratedListing = {
   asking_price_gbp: number
   condition: string
   books: { title: string; author: string | null; cover_url: string | null; cover_url_hosted?: string | null } | null
+  listing_images?: ListingImageRow[] | null
 }
 
 type TagRow = {
@@ -49,7 +51,9 @@ export default function CuratedRows({ rows }: { rows: TagRow[] }) {
               </p>
             )}
             <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
-              {row.listings.slice(0, 8).map(listing => (
+              {row.listings.slice(0, 8).map(listing => {
+                const coverUrl = resolveBookCover(listing.books, listing.listing_images);
+                return (
                 <Link
                   key={listing.id}
                   href={`/listing/${listing.id}`}
@@ -57,9 +61,9 @@ export default function CuratedRows({ rows }: { rows: TagRow[] }) {
                 >
                   <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden' }}>
                     <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      {(listing.books?.cover_url_hosted || listing.books?.cover_url) ? (
+                      {coverUrl ? (
                         <img
-                          src={listing.books.cover_url_hosted || listing.books.cover_url!}
+                          src={coverUrl}
                           alt={listing.books?.title ?? ''}
                           style={{ height: '100%', width: '100%', objectFit: 'cover' }}
                         />
@@ -89,7 +93,8 @@ export default function CuratedRows({ rows }: { rows: TagRow[] }) {
                     </div>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

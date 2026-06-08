@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveBookCover } from '@/app/lib/coverUrl'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -74,6 +75,7 @@ export async function GET(req: NextRequest) {
       id, title, author, asking_price_gbp, condition, status,
       book_id,
       books(isbn, title, author, cover_url, cover_url_hosted, category),
+      listing_images(url, sort_order),
       users!inner(username, deleted_at)
     `)
     .eq('status', 'active')
@@ -124,7 +126,7 @@ export async function GET(req: NextRequest) {
           copy_count: 1,
           display_mode: 'individual' as const,
           listing_id: l.id,
-          cover_url: l.books?.cover_url_hosted || l.books?.cover_url || null,
+          cover_url: resolveBookCover(l.books, l.listing_images),
           is_verified: false,
           has_estimated_price: false,
           last_listed: '',
