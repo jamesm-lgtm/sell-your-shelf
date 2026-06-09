@@ -7,6 +7,7 @@ import Footer from '@/app/components/Footer'
 import AppBadges from '@/app/components/AppBadges'
 import ShelfVisitTracker from '@/app/components/ShelfVisitTracker'
 import ThresholdGapAssistant from '@/app/components/ThresholdGapAssistant'
+import BundlesRow, { type BundleRowBundle } from '@/app/components/BundlesRow'
 import { RegisterShelfInventory } from '@/app/components/ShelfInventoryProvider'
 
 export const revalidate = 0
@@ -88,6 +89,65 @@ export default async function SellerShelfPage({ params }: Props) {
     listing_images: Array<{ url: string; sort_order: number }> | null
   }>
 
+  // ---- Bundles (slice 8) ----------------------------------------------
+  // Fetch this seller's active bundles + their member listings. RLS allows
+  // public select on active bundles, so the unauthenticated supabase
+  // client used here can read them. We then hydrate each member with
+  // the existing listing data from safeListings (avoids re-fetching).
+  // Bundles whose members are no longer all active (e.g. one just sold
+  // and the auto-archive trigger hasn't fired yet, or another bundle
+  // already consumed it) are filtered out so we don't show inert cards.
+  const { data: bundleRows } = await supabase
+    .from('bundles')
+    .select(`
+      id,
+      name,
+      description,
+      pricing_mode,
+      discount_pct,
+      price_gbp,
+      bundle_items ( listing_id, sort_order )
+    `)
+    .eq('seller_id', user.id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+
+  const listingsById = new Map(safeListings.map((l) => [l.id, l]))
+  const rawBundles = (bundleRows ?? []) as Array<{
+    id: number
+    name: string
+    description: string | null
+    pricing_mode: 'discount' | 'absolute'
+    discount_pct: number | null
+    price_gbp: number | null
+    bundle_items: Array<{ listing_id: number; sort_order: number }>
+  }>
+
+  const bundles: BundleRowBundle[] = []
+  for (const b of rawBundles) {
+    const orderedItems = [...b.bundle_items].sort((a, b) => a.sort_order - b.sort_order)
+    const members: BundleRowBundle['members'] = []
+    let stale = false
+    for (const it of orderedItems) {
+      const listing = listingsById.get(it.listing_id)
+      if (!listing) { stale = true; break }
+      members.push(listing)
+    }
+    // Defensive: drop any bundle whose members can't all be matched to
+    // active listings on this shelf (e.g. one just sold but the
+    // auto-archive trigger hasn't caught up yet).
+    if (stale || members.length < 2) continue
+    bundles.push({
+      id: b.id,
+      name: b.name,
+      description: b.description,
+      pricing_mode: b.pricing_mode,
+      discount_pct: b.discount_pct,
+      price_gbp: b.price_gbp != null ? Number(b.price_gbp) : null,
+      members,
+    })
+  }
+
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
@@ -111,6 +171,10 @@ export default async function SellerShelfPage({ params }: Props) {
       </div>
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
+        <BundlesRow
+          bundles={bundles}
+          seller={{ sellerId: user.id, sellerUsername: user.username }}
+        />
         <ThresholdGapAssistant
           listings={safeListings}
           seller={{ sellerId: user.id, sellerUsername: user.username }}

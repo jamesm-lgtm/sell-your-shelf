@@ -33,7 +33,11 @@ type CrossSellerConflict = {
   currentSeller: SellerRef
 }
 
-export type AddSource = 'shelf_card' | 'listing_page' | 'suggestion'
+// 'bundle' added for slice 8 — buyer adds a whole bundle from the
+// BundlesRow on the shelf page (or the bundle strip on a book detail
+// page in slice 9). Analytics distinguishes it from 'shelf_card' so
+// we can measure bundle-adoption separately.
+export type AddSource = 'shelf_card' | 'listing_page' | 'suggestion' | 'bundle'
 export type RemoveSource = 'card_toggle' | 'basket_page' | 'widget'
 
 type BasketContextValue = {

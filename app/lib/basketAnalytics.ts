@@ -45,7 +45,9 @@ function safe<T extends unknown[]>(fn: (...args: T) => void) {
 
 // ---------- add / remove ----------
 
-type AddSource = 'shelf_card' | 'listing_page' | 'suggestion'
+// Keep in sync with BasketProvider.tsx — 'bundle' is the slice 8
+// addition for whole-bundle adds via BundlesRow / book detail strip.
+type AddSource = 'shelf_card' | 'listing_page' | 'suggestion' | 'bundle'
 
 export const trackBasketItemAdded = safe(function (args: {
   item: BasketItem
