@@ -7,6 +7,8 @@ import AppBadges from '@/app/components/AppBadges'
 import ListingDeepLink from '@/app/components/ListingDeepLink'
 import ListingViewTracker from '@/app/components/ListingViewTracker'
 import AddToBasketButton from '@/app/components/AddToBasketButton'
+import ListingBundleStrip, { type BundleStripBundle, type BundleStripMember } from '@/app/components/ListingBundleStrip'
+import { computeBundlePricing } from '@/app/lib/bundlePricing'
 
 export const revalidate = 0
 
@@ -93,6 +95,100 @@ export default async function ListingPage({ params }: Props) {
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '')
     : null)
+
+  // ---- Bundle strip (slice 9) ----------------------------------------
+  // Find any active bundles this listing belongs to (most listings won't
+  // be in any; some will be in one; very rarely more). For each, fetch
+  // the other members + pre-compute pricing so the client island just
+  // renders. Bundles with stale membership (member listing no longer
+  // active) are dropped — the auto-archive trigger normally catches
+  // this but there's a small race window.
+  const listingIdNum = Number(id)
+  const { data: bundleMemberRows } = await supabase
+    .from('bundle_items')
+    .select(`
+      bundle:bundles!inner (
+        id,
+        seller_id,
+        name,
+        pricing_mode,
+        discount_pct,
+        price_gbp,
+        status,
+        bundle_items (
+          listing_id,
+          sort_order,
+          listing:listings (
+            id,
+            title,
+            author,
+            asking_price_gbp,
+            status,
+            format,
+            books ( cover_url, cover_url_hosted, category ),
+            listing_images ( url, sort_order )
+          )
+        )
+      )
+    `)
+    .eq('listing_id', listingIdNum)
+
+  type RawBundle = {
+    id: number
+    seller_id: string
+    name: string
+    pricing_mode: 'discount' | 'absolute'
+    discount_pct: number | null
+    price_gbp: number | null
+    status: string
+    bundle_items: Array<{
+      listing_id: number
+      sort_order: number
+      listing: BundleStripMember & { status: string } | null
+    }>
+  }
+
+  const stripBundles: BundleStripBundle[] = []
+  for (const row of (bundleMemberRows ?? []) as unknown as Array<{ bundle: RawBundle | RawBundle[] | null }>) {
+    const b = (Array.isArray(row.bundle) ? row.bundle[0] : row.bundle) ?? null
+    if (!b) continue
+    if (b.status !== 'active') continue
+    // Only show bundles owned by THIS listing's seller — guards against
+    // the (shouldn't-happen) edge case where membership crosses sellers.
+    if (b.seller_id !== rawListing.user_id) continue
+
+    const orderedItems = [...b.bundle_items].sort((x, y) => x.sort_order - y.sort_order)
+    const members: BundleStripMember[] = []
+    let stale = false
+    for (const it of orderedItems) {
+      const listingRaw = it.listing as unknown
+      const listing = (Array.isArray(listingRaw) ? listingRaw[0] : listingRaw) as
+        | (BundleStripMember & { status: string })
+        | null
+      if (!listing || listing.status !== 'active') { stale = true; break }
+      members.push(listing)
+    }
+    if (stale || members.length < 2) continue
+
+    const pricing = computeBundlePricing({
+      listings: members.map((m) => ({
+        listingId: m.id,
+        askingPriceGbp: Number(m.asking_price_gbp),
+      })),
+      pricingMode: b.pricing_mode,
+      discountPct: b.discount_pct ?? undefined,
+      priceGbp: b.price_gbp != null ? Number(b.price_gbp) : undefined,
+    })
+
+    stripBundles.push({
+      id: b.id,
+      name: b.name,
+      members,
+      bundlePriceGbp: pricing.bundlePriceGbp,
+      totalDiscountGbp: pricing.totalDiscountGbp,
+    })
+  }
+
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
@@ -214,6 +310,14 @@ export default async function ListingPage({ params }: Props) {
               {description.length > 400 ? description.slice(0, 400) + '...' : description}
             </p>
           </div>
+        )}
+
+        {username && rawListing.user_id && stripBundles.length > 0 && (
+          <ListingBundleStrip
+            bundles={stripBundles}
+            seller={{ sellerId: rawListing.user_id as string, sellerUsername: username }}
+            currentListingId={listingIdNum}
+          />
         )}
 
         {username && rawListing.user_id && (
