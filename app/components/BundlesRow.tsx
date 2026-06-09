@@ -95,19 +95,41 @@ export default function BundlesRow({ bundles, seller }: Props) {
       >
         {bundles.map((b) => (
           <BundleCard key={b.id} bundle={b} basketHasItem={(id) => !!basket?.items.some((it) => it.listingId === id)} onAdd={() => {
-            const items: BasketItem[] = b.members.map((m) => ({
-              listingId: m.id,
-              title: m.title,
-              author: m.author,
-              priceGbp: Number(m.asking_price_gbp),
-              format: m.format ?? null,
-              coverUrl: resolveBookCover(m.books, m.listing_images),
-              category: m.books?.category ?? null,
-              // The signal that makes checkout apply the discount. Server
-              // revalidates membership + bundle status; if invalid the
-              // items charge at full price (silent drop, by design).
-              bundleId: b.id,
-            }))
+            // Compute effective per-item prices so the basket subtotal
+            // matches what the server will actually charge at checkout.
+            // (Pre-fix bug: priceGbp was the asking price, so basket
+            // showed pre-discount totals while checkout charged the
+            // discounted amount — buyer saw two different numbers.)
+            const pricing = computeBundlePricing({
+              listings: b.members.map((m) => ({
+                listingId: m.id,
+                askingPriceGbp: Number(m.asking_price_gbp),
+              })),
+              pricingMode: b.pricing_mode,
+              discountPct: b.discount_pct ?? undefined,
+              priceGbp: b.price_gbp != null ? Number(b.price_gbp) : undefined,
+            })
+            const effectiveByListing = new Map(
+              pricing.lines.map((l) => [l.listingId, l]),
+            )
+            const items: BasketItem[] = b.members.map((m) => {
+              const line = effectiveByListing.get(m.id)
+              return {
+                listingId: m.id,
+                title: m.title,
+                author: m.author,
+                priceGbp: line ? line.effectivePriceGbp : Number(m.asking_price_gbp),
+                format: m.format ?? null,
+                coverUrl: resolveBookCover(m.books, m.listing_images),
+                category: m.books?.category ?? null,
+                // The signal that makes checkout apply the discount. Server
+                // revalidates membership + bundle status; if invalid the
+                // items charge at full price (silent drop, by design).
+                bundleId: b.id,
+                originalPriceGbp: line ? line.originalPriceGbp : Number(m.asking_price_gbp),
+                bundleDiscountGbp: line ? line.discountGbp : 0,
+              }
+            })
             addItems(seller, items, 'bundle')
           }} />
         ))}

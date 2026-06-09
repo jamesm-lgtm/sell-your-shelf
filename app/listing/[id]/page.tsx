@@ -186,6 +186,19 @@ export default async function ListingPage({ params }: Props) {
       members,
       bundlePriceGbp: pricing.bundlePriceGbp,
       totalDiscountGbp: pricing.totalDiscountGbp,
+      // Server-computed per-line breakdown so the client island can
+      // populate effective prices when adding to basket. Avoids the
+      // client having to import bundlePricing.
+      lines: Object.fromEntries(
+        pricing.lines.map((l) => [
+          l.listingId,
+          {
+            effectivePriceGbp: l.effectivePriceGbp,
+            originalPriceGbp: l.originalPriceGbp,
+            discountGbp: l.discountGbp,
+          },
+        ]),
+      ),
     })
   }
 

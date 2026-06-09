@@ -117,6 +117,19 @@ export default function BasketPageClient() {
     ? '—'
     : `£${SHIPPING_FLAT_GBP.toFixed(2)}`
   const totalGbp = isUnlocked ? subtotal : isExceeded ? subtotal : subtotal + SHIPPING_FLAT_GBP
+  // Aggregate bundle discount across the whole basket. Subtotal already
+  // reflects the discount (priceGbp on each item is the EFFECTIVE
+  // post-discount amount); this surfaces a "Bundle discount −£X"
+  // summary row so the buyer sees the saving explicitly.
+  const basketItems = basket?.items ?? []
+  const totalBundleDiscount = basketItems.reduce(
+    (sum: number, it) => sum + Number(it.bundleDiscountGbp ?? 0),
+    0,
+  )
+  const preDiscountSubtotal = basketItems.reduce(
+    (sum: number, it) => sum + Number(it.originalPriceGbp ?? it.priceGbp),
+    0,
+  )
 
   return (
     <div>
@@ -195,6 +208,24 @@ export default function BasketPageClient() {
                   <div style={{ fontSize: 12, color: '#B85C00', marginTop: 4, fontWeight: 500 }}>
                     No longer available
                   </div>
+                ) : it.bundleId != null && Number(it.bundleDiscountGbp ?? 0) > 0 && it.originalPriceGbp != null ? (
+                  // Bundle-discounted line: show the effective price in
+                  // primary green next to the struck-through original, plus
+                  // a small "−£X bundle" caption so the buyer sees exactly
+                  // where the discount is coming from per item.
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 13, color: FOREST, fontWeight: 600 }}>
+                        £{Number(it.priceGbp).toFixed(2)}
+                      </span>
+                      <span style={{ fontSize: 12, color: '#999', textDecoration: 'line-through' }}>
+                        £{Number(it.originalPriceGbp).toFixed(2)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                      −£{Number(it.bundleDiscountGbp).toFixed(2)} bundle
+                    </div>
+                  </div>
                 ) : (
                   <div style={{ fontSize: 13, color: FOREST, fontWeight: 600, marginTop: 4 }}>
                     £{Number(it.priceGbp).toFixed(2)}
@@ -230,7 +261,22 @@ export default function BasketPageClient() {
           padding: 16,
         }}
       >
-        <Row label="Subtotal" value={`£${subtotal.toFixed(2)}`} />
+        {totalBundleDiscount > 0 ? (
+          <>
+            <Row
+              label="Items"
+              value={`£${preDiscountSubtotal.toFixed(2)}`}
+            />
+            <Row
+              label="Bundle discount"
+              value={`−£${totalBundleDiscount.toFixed(2)}`}
+              highlight
+            />
+            <Row label="Subtotal" value={`£${subtotal.toFixed(2)}`} />
+          </>
+        ) : (
+          <Row label="Subtotal" value={`£${subtotal.toFixed(2)}`} />
+        )}
         <Row
           label="Shipping"
           value={shippingLabel}

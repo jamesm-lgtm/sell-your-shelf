@@ -26,6 +26,16 @@ export type BasketItem = {
   listingId: number
   title: string
   author: string | null
+  /**
+   * What the BUYER PAYS for this item. For bundle items this is the
+   * EFFECTIVE (post-discount allocated) price, NOT the listing's
+   * asking price. Basket subtotal = sum of priceGbp, and that's
+   * exactly what the checkout server will charge — so the basket
+   * total and the actual charge always agree.
+   *
+   * (The pre-fix bug: BundlesRow set this to asking_price_gbp, so the
+   * basket showed £8 for a bundle that would actually charge £5.)
+   */
   priceGbp: number
   format: BasketFormat
   coverUrl: string | null
@@ -44,6 +54,19 @@ export type BasketItem = {
    * the discount silently drops off."
    */
   bundleId?: number | null
+  /**
+   * For bundle items: the listing's original asking price (pre-discount).
+   * Set alongside bundleId. Used by the basket page to render
+   * "£3.13 ~~£5.00~~" for visual context. Null/undefined for
+   * non-bundle items (priceGbp IS the asking price for them).
+   */
+  originalPriceGbp?: number | null
+  /**
+   * For bundle items: originalPriceGbp - priceGbp. Used by the basket
+   * page to render a "Bundle discount −£X" summary line and a per-item
+   * "−£X from «bundle»" caption.
+   */
+  bundleDiscountGbp?: number | null
 }
 
 export type Basket = {

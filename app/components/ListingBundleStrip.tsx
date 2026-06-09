@@ -41,6 +41,17 @@ export interface BundleStripBundle {
   members: BundleStripMember[]
   bundlePriceGbp: number
   totalDiscountGbp: number
+  /**
+   * Per-listing pricing breakdown — server-computed via
+   * computeBundlePricing so the basket gets the correct effective
+   * price + originalPrice + discount populated when the buyer taps Add.
+   * Map keyed by listing_id.
+   */
+  lines: Record<number, {
+    effectivePriceGbp: number
+    originalPriceGbp: number
+    discountGbp: number
+  }>
 }
 
 interface Props {
@@ -144,16 +155,23 @@ export default function ListingBundleStrip({ bundles, seller, currentListingId }
             </div>
             <button
               onClick={() => {
-                const items: BasketItem[] = b.members.map((m) => ({
-                  listingId: m.id,
-                  title: m.title,
-                  author: m.author,
-                  priceGbp: Number(m.asking_price_gbp),
-                  format: m.format ?? null,
-                  coverUrl: resolveBookCover(m.books, m.listing_images),
-                  category: m.books?.category ?? null,
-                  bundleId: b.id,
-                }))
+                // Effective prices from the server-computed lines so the
+                // basket subtotal matches the actual charge at checkout.
+                const items: BasketItem[] = b.members.map((m) => {
+                  const line = b.lines[m.id]
+                  return {
+                    listingId: m.id,
+                    title: m.title,
+                    author: m.author,
+                    priceGbp: line?.effectivePriceGbp ?? Number(m.asking_price_gbp),
+                    format: m.format ?? null,
+                    coverUrl: resolveBookCover(m.books, m.listing_images),
+                    category: m.books?.category ?? null,
+                    bundleId: b.id,
+                    originalPriceGbp: line?.originalPriceGbp ?? Number(m.asking_price_gbp),
+                    bundleDiscountGbp: line?.discountGbp ?? 0,
+                  }
+                })
                 addItems(seller, items, 'bundle')
               }}
               disabled={allInBasket}
