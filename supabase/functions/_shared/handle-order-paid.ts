@@ -318,10 +318,41 @@ async function fireOrderConfirmationNotifications(
 
   const { data: items } = await supabase
     .from('order_items')
-    .select('listing_id, title, author, price_gbp, platform_fee_gbp, seller_payout_gbp')
+    .select(
+      'listing_id, title, author, price_gbp, platform_fee_gbp, seller_payout_gbp, bundle_id, original_price_gbp, bundle_discount_gbp',
+    )
     .eq('order_id', orderId)
 
   const itemRows = items ?? []
+
+  // Bundle context: load the bundle names for any bundle_id present
+  // in this order's items, so emails can render "Bundle: «name»"
+  // headings instead of opaque ids. One query, two rows max in
+  // practice — we'd be amazed to see ≥ 3 bundles in a single order.
+  const bundleIds = Array.from(
+    new Set(
+      itemRows
+        .map((it: { bundle_id: number | null }) => it.bundle_id)
+        .filter((id): id is number => id !== null && id !== undefined),
+    ),
+  )
+  let bundleNamesById: Record<string, string> = {}
+  if (bundleIds.length > 0) {
+    const { data: bundleNameRows } = await supabase
+      .from('bundles')
+      .select('id, name')
+      .in('id', bundleIds)
+    bundleNamesById = Object.fromEntries(
+      (bundleNameRows ?? []).map((b: { id: number; name: string }) => [String(b.id), b.name]),
+    )
+  }
+  // Total bundle discount across the whole order — used in copy for
+  // "You saved £X with bundles" lines.
+  const totalBundleDiscountGbp = itemRows.reduce(
+    (sum: number, it: { bundle_discount_gbp: number | null }) =>
+      sum + Number(it.bundle_discount_gbp ?? 0),
+    0,
+  )
 
   const { data: seller } = await supabase
     .from('users')
@@ -370,10 +401,23 @@ async function fireOrderConfirmationNotifications(
           data: {
             buyerName,
             sellerUsername: sellerUsername ?? undefined,
-            items: itemRows.map((it: { title: string; author: string | null; price_gbp: number }) => ({
+            items: itemRows.map((it: {
+              title: string
+              author: string | null
+              price_gbp: number
+              bundle_id: number | null
+              original_price_gbp: number | null
+              bundle_discount_gbp: number | null
+            }) => ({
               title: it.title,
               author: it.author,
               priceGbp: Number(it.price_gbp),
+              // Bundle context (slice 7) — buyer email shows "−£X bundle"
+              // on bundled lines so the discount is legible per item.
+              bundleId: it.bundle_id ?? null,
+              bundleName: it.bundle_id ? bundleNamesById[String(it.bundle_id)] ?? null : null,
+              originalPriceGbp: it.original_price_gbp != null ? Number(it.original_price_gbp) : null,
+              bundleDiscountGbp: it.bundle_discount_gbp != null ? Number(it.bundle_discount_gbp) : null,
             })),
             subtotalGbp: Number(order.subtotal_gbp),
             shippingGbp: Number(order.shipping_gbp),
@@ -383,6 +427,10 @@ async function fireOrderConfirmationNotifications(
             shippingAddress: order.shipping_address as Record<string, string> | null,
             estimatedDeliveryDays: '2-3 working days',
             orderId,
+            // Aggregate so the email can render a "You saved £X with
+            // bundles" line at the bottom of the totals without
+            // re-summing client-side.
+            bundleSavingsGbp: totalBundleDiscountGbp > 0 ? totalBundleDiscountGbp : null,
           },
         }),
       })
@@ -407,17 +455,34 @@ async function fireOrderConfirmationNotifications(
             sellerName,
             buyerName: buyerProfile?.username || buyerName,
             sellerUsername: sellerUsername ?? undefined,
-            items: itemRows.map((it: { title: string; price_gbp: number; platform_fee_gbp: number; seller_payout_gbp: number }) => ({
+            items: itemRows.map((it: {
+              title: string
+              price_gbp: number
+              platform_fee_gbp: number
+              seller_payout_gbp: number
+              bundle_id: number | null
+              original_price_gbp: number | null
+              bundle_discount_gbp: number | null
+            }) => ({
               title: it.title,
               priceGbp: Number(it.price_gbp),
               platformFeeGbp: Number(it.platform_fee_gbp),
               payoutGbp: Number(it.seller_payout_gbp),
+              // Bundle context (slice 7) — seller email shows "−£X bundle"
+              // per line so the discount the seller chose is visible.
+              bundleId: it.bundle_id ?? null,
+              bundleName: it.bundle_id ? bundleNamesById[String(it.bundle_id)] ?? null : null,
+              originalPriceGbp: it.original_price_gbp != null ? Number(it.original_price_gbp) : null,
+              bundleDiscountGbp: it.bundle_discount_gbp != null ? Number(it.bundle_discount_gbp) : null,
             })),
             subtotalGbp: Number(order.subtotal_gbp),
             totalPlatformFeeGbp: Number(order.platform_fee_gbp),
             totalPayoutGbp: Number(order.seller_payout_gbp),
             parcelTier: order.parcel_tier as string | undefined,
             orderId,
+            // The seller chose this discount; surface it back so they
+            // can see exactly what they gave up in the volume bet.
+            bundleDiscountGbp: totalBundleDiscountGbp > 0 ? totalBundleDiscountGbp : null,
           },
         }),
       })
@@ -447,8 +512,21 @@ async function fireOrderConfirmationNotifications(
       : Promise.resolve(0),
   ])
 
+  // Bundle-aware push copy: single-bundle orders get a more specific
+  // headline ("bought your X bundle") so the seller sees their bundle
+  // actually working. Multi-bundle orders fall back to a generic
+  // "books · You earn" since enumerating bundles in 100 chars is messy.
+  const bundleIdsOnOrder = Array.from(
+    new Set(
+      itemRows
+        .map((it: { bundle_id: number | null }) => it.bundle_id)
+        .filter((id): id is number => id !== null && id !== undefined),
+    ),
+  )
   const sellerBody =
-    `${buyerHandle} bought ${itemCount} ${itemCount === 1 ? 'book' : 'books'} · You earn ${payoutLabel}`
+    bundleIdsOnOrder.length === 1
+      ? `${buyerHandle} bought your ${bundleNamesById[String(bundleIdsOnOrder[0])] ?? 'bundle'} · You earn ${payoutLabel}`
+      : `${buyerHandle} bought ${itemCount} ${itemCount === 1 ? 'book' : 'books'} · You earn ${payoutLabel}`
 
   const firstTitle = itemRows[0]?.title ?? 'a book'
   const buyerBody =

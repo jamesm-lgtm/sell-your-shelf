@@ -28,6 +28,13 @@ interface MultiItemBookLine {
   // seller-side extras
   platformFeeGbp?: number
   payoutGbp?: number
+  // bundle context (slice 7) — populated when the line was part of a
+  // bundle at checkout. priceGbp on a bundle line is the EFFECTIVE
+  // post-discount price; originalPriceGbp - bundleDiscountGbp = priceGbp.
+  bundleId?: number | null
+  bundleName?: string | null
+  originalPriceGbp?: number | null
+  bundleDiscountGbp?: number | null
 }
 
 interface EmailRequest {
@@ -66,6 +73,12 @@ interface EmailRequest {
     parcelTier?: string
     estimatedDeliveryDays?: string
     orderId?: string
+    // Bundle aggregates (slice 7). Null when no bundle applied to this
+    // order. Buyer email reads `bundleSavingsGbp` for the "You saved
+    // £X with bundles" line; seller email reads `bundleDiscountGbp`
+    // for the "Bundle discount you offered" line.
+    bundleSavingsGbp?: number | null
+    bundleDiscountGbp?: number | null
   }
 }
 
@@ -150,18 +163,36 @@ function multiOrderConfirmation(data: EmailRequest['data']): { subject: string; 
   const countLabel = items.length === 1 ? 'book' : 'books'
   const subject = `Order confirmed: ${items.length} ${countLabel}${sellerSuffix}`
 
+  // Bundle-aware per-item rendering: items that came from a bundle
+  // show the original price struck through + a small "−£X from «bundle»"
+  // caption, so the buyer can see exactly which lines were discounted
+  // and by how much. Non-bundle items render as before.
   const itemRows = items
-    .map(
-      (it) => `
+    .map((it) => {
+      const inBundle =
+        it.bundleId != null &&
+        Number(it.bundleDiscountGbp ?? 0) > 0 &&
+        it.originalPriceGbp != null
+      const priceCell = inBundle
+        ? `
+            <span style="color: #999; text-decoration: line-through; font-size: 12px;">${formatGbp(it.originalPriceGbp)}</span>
+            <span style="color: ${FOREST_DEEP}; font-weight: 600;">${formatGbp(it.priceGbp)}</span>
+          `
+        : formatGbp(it.priceGbp)
+      const bundleCaption = inBundle
+        ? `<div style="color: #999; font-size: 11px; margin-top: 2px;">−${formatGbp(it.bundleDiscountGbp)} from ${it.bundleName ? escapeHtml(it.bundleName) + ' bundle' : 'bundle'}</div>`
+        : ''
+      return `
         <tr>
           <td style="color: #1A1A1A; font-size: 14px; padding: 6px 0; vertical-align: top;">
             ${escapeHtml(it.title)}
             ${it.author ? `<div style="color: #666; font-size: 12px;">${escapeHtml(it.author)}</div>` : ''}
+            ${bundleCaption}
           </td>
-          <td style="color: #1A1A1A; font-size: 14px; padding: 6px 0; text-align: right; vertical-align: top; white-space: nowrap;">${formatGbp(it.priceGbp)}</td>
+          <td style="color: #1A1A1A; font-size: 14px; padding: 6px 0; text-align: right; vertical-align: top; white-space: nowrap;">${priceCell}</td>
         </tr>
-      `,
-    )
+      `
+    })
     .join('')
 
   const shippingValue =
@@ -174,6 +205,20 @@ function multiOrderConfirmation(data: EmailRequest['data']): { subject: string; 
       ? moneyRow('Wallet applied', `−${formatGbp(data.walletAppliedGbp)}`)
       : ''
 
+  // "You saved" line — only shown when bundles actually discounted this
+  // order. Sits below the total so it reads as celebration, not as a
+  // line in the running total.
+  const bundleSavingsRow =
+    Number(data.bundleSavingsGbp ?? 0) > 0
+      ? `<table style="width: 100%; margin-top: 8px; border-collapse: collapse;">
+           <tr>
+             <td colspan="2" style="text-align: right; color: ${FOREST_DEEP}; font-size: 13px; font-weight: 600;">
+               You saved ${formatGbp(data.bundleSavingsGbp)} with bundle pricing
+             </td>
+           </tr>
+         </table>`
+      : ''
+
   const deliveryDays = data.estimatedDeliveryDays ?? '2-3 working days'
 
   const itemsCard = cardBox(`
@@ -184,6 +229,7 @@ function multiOrderConfirmation(data: EmailRequest['data']): { subject: string; 
       ${walletRow}
       ${moneyRow('Total paid', formatGbp(data.cardChargedGbp ?? data.totalGbp), { bold: true, topRule: true })}
     </table>
+    ${bundleSavingsRow}
   `)
 
   const addressCard = cardBox(
@@ -210,20 +256,38 @@ function multiNewSale(data: EmailRequest['data']): { subject: string; html: stri
   const countLabel = items.length === 1 ? 'book' : 'books'
   const subject = `You've sold ${items.length} ${countLabel} to ${buyer}`
 
+  // Bundle-aware per-item rendering for the seller. We append the bundle
+  // delta to the fee/payout caption so it's clear: "this used to be
+  // £5.00, you discounted it to £4.25, fee is £1.00 on the £4.25, you
+  // receive £3.25." The 2026-06-09 fee sign-off was per-item fees on
+  // effective price — these numbers reflect exactly that.
   const itemRows = items
-    .map(
-      (it) => `
+    .map((it) => {
+      const inBundle =
+        it.bundleId != null &&
+        Number(it.bundleDiscountGbp ?? 0) > 0 &&
+        it.originalPriceGbp != null
+      const priceCell = inBundle
+        ? `
+            <span style="color: #999; text-decoration: line-through; font-size: 12px;">${formatGbp(it.originalPriceGbp)}</span>
+            <span style="color: #1A1A1A; font-weight: 500;">${formatGbp(it.priceGbp)}</span>
+          `
+        : formatGbp(it.priceGbp)
+      const bundleCaption = inBundle
+        ? ` · −${formatGbp(it.bundleDiscountGbp)} ${it.bundleName ? escapeHtml(it.bundleName) + ' bundle' : 'bundle'}`
+        : ''
+      return `
         <tr>
           <td style="color: #1A1A1A; font-size: 14px; padding: 6px 0 0 0; vertical-align: top;">${escapeHtml(it.title)}</td>
-          <td style="color: #1A1A1A; font-size: 14px; padding: 6px 0 0 0; text-align: right; vertical-align: top; white-space: nowrap;">${formatGbp(it.priceGbp)}</td>
+          <td style="color: #1A1A1A; font-size: 14px; padding: 6px 0 0 0; text-align: right; vertical-align: top; white-space: nowrap;">${priceCell}</td>
         </tr>
         <tr>
           <td colspan="2" style="color: #999; font-size: 12px; padding: 0 0 8px 0;">
-            Fee: ${formatGbp(it.platformFeeGbp)} · You receive: <span style="color: ${FOREST_DEEP}; font-weight: 600;">${formatGbp(it.payoutGbp)}</span>
+            Fee: ${formatGbp(it.platformFeeGbp)} · You receive: <span style="color: ${FOREST_DEEP}; font-weight: 600;">${formatGbp(it.payoutGbp)}</span>${bundleCaption}
           </td>
         </tr>
-      `,
-    )
+      `
+    })
     .join('')
 
   const parcelHint = data.parcelTier
@@ -233,10 +297,25 @@ function multiNewSale(data: EmailRequest['data']): { subject: string; html: stri
        </p>`
     : ''
 
+  // Seller's bundle context line — shows the discount the SELLER chose
+  // to give (out of their own payout, per effective-price fee sign-off).
+  // Sits between subtotal and fees so the running total tells the story:
+  // "you originally listed at X, you discounted by Y, then platform took
+  // Z, your take is W."
+  const bundleDiscountRow =
+    Number(data.bundleDiscountGbp ?? 0) > 0
+      ? moneyRow(
+          'Bundle discount you offered',
+          `−${formatGbp(data.bundleDiscountGbp)}`,
+          { valueColor: '#999' },
+        )
+      : ''
+
   const summaryCard = cardBox(`
     <table style="width: 100%; border-collapse: collapse;">${itemRows}</table>
     <table style="width: 100%; border-top: 1px solid #E5E3DF; margin-top: 12px; padding-top: 12px; border-collapse: collapse;">
       ${moneyRow('Subtotal sold', formatGbp(data.subtotalGbp))}
+      ${bundleDiscountRow}
       ${moneyRow('Platform fees', `−${formatGbp(data.totalPlatformFeeGbp)}`, { valueColor: '#DC2626' })}
       ${moneyRow('You receive', formatGbp(data.totalPayoutGbp), { bold: true, topRule: true })}
     </table>
