@@ -30,6 +30,20 @@ export type BasketItem = {
   format: BasketFormat
   coverUrl: string | null
   category: string | null
+  /**
+   * If this item was added as part of a bundle, the bundle.id (server
+   * id from public.bundles). Null/undefined for items added individually.
+   * The checkout caller (CheckoutForm) derives the unique non-null
+   * bundleIds from the basket and sends them to
+   * create-order-payment-intent; the server revalidates each (all
+   * members present, bundle still active) before applying the discount.
+   *
+   * Buyer can remove individual basket items without losing the rest
+   * of the bundle's items — they just lose the discount on this bundle.
+   * That matches the 2026-06-09 design: "If the buyer removes one item,
+   * the discount silently drops off."
+   */
+  bundleId?: number | null
 }
 
 export type Basket = {

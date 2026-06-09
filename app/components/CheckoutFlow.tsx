@@ -141,11 +141,24 @@ export default function CheckoutFlow() {
     trackCheckoutInitiated({ basket, isGuest: true, applyWallet: false })
 
     try {
+      // Collect unique non-null bundleIds from basket items. Server
+      // revalidates each (all members present + status='active') before
+      // applying any discount; if a bundle no longer applies the
+      // affected items charge at full price.
+      const bundleIds = Array.from(
+        new Set(
+          items
+            .map((it) => it.bundleId)
+            .filter((b): b is number => typeof b === 'number'),
+        ),
+      )
+
       const res = await fetch(`${SUPABASE_URL}/functions/v1/create-order-payment-intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listingIds: items.map((it) => it.listingId),
+          bundleIds: bundleIds.length > 0 ? bundleIds : undefined,
           shippingAddress: {
             name: `${firstName.trim()} ${lastName.trim()}`,
             line1: line1.trim(),

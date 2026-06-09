@@ -18,6 +18,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@17'
 import { handleOrderPaid } from '../_shared/handle-order-paid.ts'
 import { trackServerEvent } from '../_shared/analytics.ts'
+import {
+  computeBundlePricing,
+  platformFeeFor,
+  type BundlePricingResult,
+  type PricingMode,
+} from '../_shared/bundlePricing.ts'
 
 // Lazy Stripe init — validation/stale-item paths return without touching
 // Stripe, so the function still runs cleanly even when STRIPE_SECRET_KEY is
@@ -71,10 +77,10 @@ const corsHeaders = {
 }
 
 // ---------- helpers ----------
-function platformFeeForBookPence(pricePence: number): number {
-  if (pricePence < PLATFORM_FEE_THRESHOLD_PENCE) return PLATFORM_FEE_FLAT_PENCE
-  return Math.round(pricePence * (PLATFORM_FEE_PERCENT / 100))
-}
+// Note: the per-item platform fee rule (£1 flat under £5, 20% at/over £5)
+// now lives in _shared/bundlePricing.ts as platformFeeFor(gbp) — used
+// both for bundled and non-bundled items via effectivePriceFor() below.
+// The PLATFORM_FEE_* constants above are kept for reference only.
 
 function weightForFormat(format: string | null): number {
   if (format === 'paperback') return WEIGHT_PAPERBACK_G
@@ -111,6 +117,7 @@ serve(async (req) => {
 
     const {
       listingIds,
+      bundleIds,
       shippingAddress,
       buyerEmail,
       firstName,
@@ -120,6 +127,14 @@ serve(async (req) => {
       applyWallet,
     } = body as {
       listingIds?: unknown
+      // Optional: client hint that these bundles' member listings are
+      // all present in the basket and should receive their bundle
+      // discount. The server REVALIDATES — if any member is missing
+      // or the bundle is no longer active, the discount is silently
+      // dropped and those items are charged at full price (per the
+      // 2026-06-09 design: "If the buyer removes one item, the
+      // discount silently drops off").
+      bundleIds?: unknown
       shippingAddress?: Record<string, unknown>
       buyerEmail?: string
       firstName?: string
@@ -136,6 +151,20 @@ serve(async (req) => {
       !listingIds.every((id) => Number.isInteger(id) && (id as number) > 0)
     ) {
       return badRequest('listingIds must be a non-empty array of positive integers')
+    }
+    // bundleIds is optional; if present must be a clean integer array.
+    const validBundleIds: number[] = []
+    if (bundleIds !== undefined && bundleIds !== null) {
+      if (
+        !Array.isArray(bundleIds) ||
+        !bundleIds.every((id) => Number.isInteger(id) && (id as number) > 0)
+      ) {
+        return badRequest('bundleIds, if provided, must be an array of positive integers')
+      }
+      // Dedupe — a bundle is at most once per order.
+      for (const id of bundleIds as number[]) {
+        if (!validBundleIds.includes(id)) validBundleIds.push(id)
+      }
     }
     if (
       !shippingAddress ||
@@ -278,10 +307,115 @@ serve(async (req) => {
       checkoutSessionId = session.id
     }
 
+    // ----- resolve bundles (server-side revalidation) -----
+    // For each client-supplied bundleId we re-verify:
+    //   1. The bundle exists, is owned by this seller, and is status='active'.
+    //   2. Every member listing_id is present in this order's listingIds.
+    // Failed bundles are silently dropped — the items charge at full price.
+    // Per-listing maps capture the bundle context so we can write
+    // order_items.bundle_id / original_price_gbp / bundle_discount_gbp.
+    //
+    // (The DB has an `archive_bundles_for_listing` trigger that flips
+    // bundles to archived the moment a member listing leaves active.
+    // We still recheck here because there's a small race window between
+    // the buyer adding the bundle and submitting the order.)
+    type ResolvedBundle = {
+      bundleId: number
+      pricingMode: PricingMode
+      discountPct: number | null
+      priceGbp: number | null
+      pricing: BundlePricingResult
+    }
+    const resolvedBundles: ResolvedBundle[] = []
+    const bundleIdByListing = new Map<number, number>()
+    const originalPriceByListing = new Map<number, number>()
+    const bundleDiscountByListing = new Map<number, number>()
+    const effectivePriceByListing = new Map<number, number>()
+
+    if (validBundleIds.length > 0) {
+      const { data: bundleRows, error: bundleErr } = await supabase
+        .from('bundles')
+        .select(`
+          id,
+          seller_id,
+          pricing_mode,
+          discount_pct,
+          price_gbp,
+          status,
+          bundle_items ( listing_id )
+        `)
+        .in('id', validBundleIds)
+
+      if (bundleErr) {
+        console.error('Bundle fetch failed:', bundleErr)
+        return serverError('Could not load bundles')
+      }
+
+      const listingIdSet = new Set(activeListings.map((l) => l.id))
+      const priceByListingId = new Map(activeListings.map((l) => [l.id, Number(l.asking_price_gbp)]))
+
+      for (const b of (bundleRows ?? []) as Array<{
+        id: number
+        seller_id: string
+        pricing_mode: PricingMode
+        discount_pct: number | null
+        price_gbp: number | null
+        status: string
+        bundle_items: Array<{ listing_id: number }>
+      }>) {
+        // Reject silently — bundle no longer applies, items charge full price.
+        if (b.seller_id !== sellerId) continue
+        if (b.status !== 'active') continue
+        const memberIds = b.bundle_items.map((it) => it.listing_id)
+        if (memberIds.length < 2) continue
+        const allPresent = memberIds.every((id) => listingIdSet.has(id))
+        if (!allPresent) continue
+
+        // Guard: a single listing must not appear in two applied bundles
+        // (would double-discount). First bundle wins; later bundle dropped.
+        if (memberIds.some((id) => bundleIdByListing.has(id))) {
+          console.warn(`Bundle ${b.id} overlaps with an earlier applied bundle; dropping`)
+          continue
+        }
+
+        const memberListings = memberIds.map((id) => ({
+          listingId: id,
+          askingPriceGbp: priceByListingId.get(id) ?? 0,
+        }))
+        const pricing = computeBundlePricing({
+          listings: memberListings,
+          pricingMode: b.pricing_mode,
+          discountPct: b.discount_pct ?? undefined,
+          priceGbp: b.price_gbp != null ? Number(b.price_gbp) : undefined,
+        })
+
+        resolvedBundles.push({
+          bundleId: b.id,
+          pricingMode: b.pricing_mode,
+          discountPct: b.discount_pct,
+          priceGbp: b.price_gbp != null ? Number(b.price_gbp) : null,
+          pricing,
+        })
+
+        for (const line of pricing.lines) {
+          bundleIdByListing.set(line.listingId, b.id)
+          originalPriceByListing.set(line.listingId, line.originalPriceGbp)
+          bundleDiscountByListing.set(line.listingId, line.discountGbp)
+          effectivePriceByListing.set(line.listingId, line.effectivePriceGbp)
+        }
+      }
+    }
+
     // ----- compute money + weight -----
-    const subtotalGbp = activeListings.reduce(
-      (sum, l) => sum + Number(l.asking_price_gbp),
-      0,
+    // Effective price for fee/payout calc: bundle items use their
+    // allocated share; non-bundle items use their asking price.
+    function effectivePriceFor(l: { id: number; asking_price_gbp: number }): number {
+      const fromBundle = effectivePriceByListing.get(l.id)
+      return fromBundle != null ? fromBundle : Number(l.asking_price_gbp)
+    }
+
+    const subtotalGbp = round2(
+      activeListings.reduce((sum, l) => sum + effectivePriceFor(l), 0),
     )
     const weightG =
       activeListings.reduce((sum, l) => sum + weightForFormat(l.format), 0) + PACKAGING_G
@@ -293,19 +427,20 @@ serve(async (req) => {
     }
 
     const parcelTier = parcelTierForWeight(weightG)
+    // Free shipping uses what the BUYER PAYS (post-discount), per the
+    // 2026-06-09 fee sign-off. An aggressive bundle discount can pull
+    // the order under £10 and the buyer correctly pays shipping.
     const shippingGbp = subtotalGbp >= FREE_SHIPPING_THRESHOLD_GBP ? 0 : SHIPPING_FLAT_GBP
     const totalGbp = subtotalGbp + shippingGbp
 
-    // Per-book platform fee (matches single-item rule: £1 flat under £5, else 20%)
-    let platformFeePence = 0
-    const itemFees = activeListings.map((l) => {
-      const pricePence = Math.round(Number(l.asking_price_gbp) * 100)
-      const feePence = platformFeeForBookPence(pricePence)
-      platformFeePence += feePence
-      return { listingId: l.id, feePence, payoutPence: pricePence - feePence }
-    })
-    const platformFeeGbp = platformFeePence / 100
-    const sellerPayoutGbp = subtotalGbp - platformFeeGbp
+    // Per-book platform fee on EFFECTIVE post-discount price.
+    // Uses platformFeeFor() from _shared/bundlePricing.ts so the rule
+    // (£1 flat under £5, 20% at/over £5) is defined in one place across
+    // the three bundlePricing copies.
+    const platformFeeGbp = round2(
+      activeListings.reduce((sum, l) => sum + platformFeeFor(effectivePriceFor(l)), 0),
+    )
+    const sellerPayoutGbp = round2(subtotalGbp - platformFeeGbp)
 
     // ----- wallet handling (logged-in users with Connect balance) -----
     let walletAppliedGbp = 0
@@ -369,8 +504,10 @@ serve(async (req) => {
     }
 
     const orderItems = activeListings.map((l) => {
-      const pricePence = Math.round(Number(l.asking_price_gbp) * 100)
-      const feePence = platformFeeForBookPence(pricePence)
+      const effective = effectivePriceFor(l)
+      const fee = platformFeeFor(effective)
+      const bundleId = bundleIdByListing.get(l.id) ?? null
+      const inBundle = bundleId !== null
       return {
         order_id: order.id,
         listing_id: l.id,
@@ -378,10 +515,21 @@ serve(async (req) => {
         author: l.author,
         isbn: l.isbn,
         format: l.format,
-        price_gbp: round2(pricePence / 100),
-        platform_fee_gbp: round2(feePence / 100),
-        seller_payout_gbp: round2((pricePence - feePence) / 100),
+        // price_gbp = effective sale price (what fees/payout are computed
+        // on). For non-bundle items this equals asking_price; for bundle
+        // items it's the discounted share.
+        price_gbp: round2(effective),
+        platform_fee_gbp: round2(fee),
+        seller_payout_gbp: round2(effective - fee),
         weight_grams: weightForFormat(l.format),
+        // Bundle context (slice 6). Nulls for non-bundle items.
+        bundle_id: bundleId,
+        original_price_gbp: inBundle
+          ? round2(originalPriceByListing.get(l.id) ?? Number(l.asking_price_gbp))
+          : round2(Number(l.asking_price_gbp)),
+        bundle_discount_gbp: inBundle
+          ? round2(bundleDiscountByListing.get(l.id) ?? 0)
+          : 0,
       }
     })
 
