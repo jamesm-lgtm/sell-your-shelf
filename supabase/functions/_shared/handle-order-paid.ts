@@ -428,8 +428,14 @@ async function fireOrderConfirmationNotifications(
 
   // ----- Expo push notifications (buyer + seller) -----
   const itemCount = itemRows.length
-  const totalLabel = `£${Number(order.total_gbp).toFixed(2)}`
   const buyerHandle = buyerProfile?.username || buyerProfile?.first_name || 'A buyer'
+  // Seller-facing push surfaces the PAYOUT (what hits the seller's
+  // wallet) rather than the buyer-paid total. The previous copy said
+  // "@buyer bought 2 books for £12.00" which buyers wrongly read as
+  // their incoming money. Email + in-app OrderDetail already render
+  // the payout — this brings the push into line. Worth doing standalone,
+  // independent of the bundles feature.
+  const payoutLabel = `£${Number(order.seller_payout_gbp).toFixed(2)}`
 
   const sellerTokens = await getPushTokens(supabase, order.seller_id)
   const buyerTokens = order.buyer_id ? await getPushTokens(supabase, order.buyer_id) : []
@@ -442,7 +448,7 @@ async function fireOrderConfirmationNotifications(
   ])
 
   const sellerBody =
-    `${buyerHandle} bought ${itemCount} ${itemCount === 1 ? 'book' : 'books'} for ${totalLabel}`
+    `${buyerHandle} bought ${itemCount} ${itemCount === 1 ? 'book' : 'books'} · You earn ${payoutLabel}`
 
   const firstTitle = itemRows[0]?.title ?? 'a book'
   const buyerBody =
