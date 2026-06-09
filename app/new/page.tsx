@@ -53,6 +53,32 @@ export default async function NewInPage() {
     users: { username: string } | null
   }>
 
+  // Slice 10: tag listings with has_bundles so ShelfGrid renders the
+  // "Bundle" badge on covers. One follow-up query for bundle_items
+  // joined with bundles (active) restricted to the listing ids on this
+  // page — keeps the cost bounded to the page size.
+  const visibleListingIds = safeListings.map((l) => l.id)
+  let listingIdsInBundles = new Set<number>()
+  if (visibleListingIds.length > 0) {
+    const { data: bundleMembers } = await supabase
+      .from('bundle_items')
+      .select('listing_id, bundle:bundles!inner(status)')
+      .in('listing_id', visibleListingIds)
+    if (bundleMembers) {
+      for (const row of bundleMembers as unknown as Array<{
+        listing_id: number
+        bundle: { status: string } | { status: string }[] | null
+      }>) {
+        const b = (Array.isArray(row.bundle) ? row.bundle[0] : row.bundle) ?? null
+        if (b?.status === 'active') listingIdsInBundles.add(row.listing_id)
+      }
+    }
+  }
+  const safeListingsWithBundleFlag = safeListings.map((l) => ({
+    ...l,
+    has_bundles: listingIdsInBundles.has(l.id),
+  }))
+
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
@@ -116,7 +142,7 @@ export default async function NewInPage() {
       <CuratedRows rows={curatedRows} />
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
-        <ShelfGrid listings={safeListings} showSeller pageSize={24} />
+        <ShelfGrid listings={safeListingsWithBundleFlag} showSeller pageSize={24} />
       </div>
 
       <div style={{ background: '#F0EDE8', borderTop: '0.5px solid #E5E3DF', padding: '32px 24px' }}>

@@ -124,6 +124,9 @@ export default async function SellerShelfPage({ params }: Props) {
   }>
 
   const bundles: BundleRowBundle[] = []
+  // Listings that are in at least one valid bundle — drives the
+  // "Bundle" badge on ShelfGrid cards (slice 10).
+  const listingIdsInBundles = new Set<number>()
   for (const b of rawBundles) {
     const orderedItems = [...b.bundle_items].sort((a, b) => a.sort_order - b.sort_order)
     const members: BundleRowBundle['members'] = []
@@ -137,6 +140,7 @@ export default async function SellerShelfPage({ params }: Props) {
     // active listings on this shelf (e.g. one just sold but the
     // auto-archive trigger hasn't caught up yet).
     if (stale || members.length < 2) continue
+    for (const m of members) listingIdsInBundles.add(m.id)
     bundles.push({
       id: b.id,
       name: b.name,
@@ -147,6 +151,11 @@ export default async function SellerShelfPage({ params }: Props) {
       members,
     })
   }
+  // Tag listings with has_bundles so ShelfGrid renders the corner badge.
+  const safeListingsWithBundleFlag = safeListings.map((l) => ({
+    ...l,
+    has_bundles: listingIdsInBundles.has(l.id),
+  }))
 
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
@@ -180,7 +189,7 @@ export default async function SellerShelfPage({ params }: Props) {
           seller={{ sellerId: user.id, sellerUsername: user.username }}
         />
         <ShelfGrid
-          listings={safeListings}
+          listings={safeListingsWithBundleFlag}
           seller={{ sellerId: user.id, sellerUsername: user.username }}
         />
       </div>

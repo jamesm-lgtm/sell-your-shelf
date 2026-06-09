@@ -16,6 +16,10 @@ type Listing = {
   books: { cover_url: string | null; cover_url_hosted?: string | null; category?: string | null } | null
   listing_images?: ListingImageRow[] | null
   users?: { username: string } | null
+  // Slice 10: true iff this listing is in an active bundle. Drives a
+  // small "Bundle" badge in the corner of the cover so buyers know
+  // they could save by viewing the seller's shelf.
+  has_bundles?: boolean
 }
 
 type Props = {
@@ -135,7 +139,7 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
               const coverUrl = resolveBookCover(listing.books, listing.listing_images)
               return (
                 <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
                     {coverUrl ? (
                       <img
                         src={coverUrl}
@@ -146,6 +150,26 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
                       <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, padding: 8, textAlign: 'center' }}>
                         {listing.title}
                       </span>
+                    )}
+                    {listing.has_bundles && (
+                      <div
+                        title="Available as part of a bundle"
+                        style={{
+                          position: 'absolute',
+                          bottom: 6,
+                          right: 6,
+                          background: '#FFFDF6',
+                          border: '1px solid #C9A961',
+                          borderRadius: 4,
+                          padding: '2px 6px',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: '#1F3329',
+                          letterSpacing: 0.2,
+                        }}
+                      >
+                        Bundle
+                      </div>
                     )}
                   </div>
                   <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
