@@ -38,6 +38,8 @@ export interface BundleStripMember {
 export interface BundleStripBundle {
   id: number
   name: string
+  /** Seller-written or AI-derived pitch; rendered below the metadata. */
+  description?: string | null
   members: BundleStripMember[]
   bundlePriceGbp: number
   totalDiscountGbp: number
@@ -152,6 +154,26 @@ export default function ListingBundleStrip({ bundles, seller, currentListingId }
                 · bundle price{' '}
                 <span style={{ fontWeight: 600 }}>£{b.bundlePriceGbp.toFixed(2)}</span>
               </div>
+              {b.description ? (
+                // Pitch line — typically the AI's reasoning or whatever
+                // the seller wrote in the create sheet. Capped at 2
+                // lines via webkit-line-clamp so verbose descriptions
+                // don't blow out the strip height.
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: '#666',
+                    fontStyle: 'italic',
+                    marginTop: 4,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical' as const,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {b.description}
+                </div>
+              ) : null}
             </div>
             <button
               onClick={() => {

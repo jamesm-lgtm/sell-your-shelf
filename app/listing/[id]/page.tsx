@@ -111,6 +111,7 @@ export default async function ListingPage({ params }: Props) {
         id,
         seller_id,
         name,
+        description,
         pricing_mode,
         discount_pct,
         price_gbp,
@@ -137,6 +138,7 @@ export default async function ListingPage({ params }: Props) {
     id: number
     seller_id: string
     name: string
+    description: string | null
     pricing_mode: 'discount' | 'absolute'
     discount_pct: number | null
     price_gbp: number | null
@@ -183,6 +185,7 @@ export default async function ListingPage({ params }: Props) {
     stripBundles.push({
       id: b.id,
       name: b.name,
+      description: b.description,
       members,
       bundlePriceGbp: pricing.bundlePriceGbp,
       totalDiscountGbp: pricing.totalDiscountGbp,
