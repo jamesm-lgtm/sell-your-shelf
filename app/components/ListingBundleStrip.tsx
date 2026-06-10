@@ -216,6 +216,24 @@ export default function ListingBundleStrip({ bundles, seller, currentListingId }
           </div>
         )
       })}
+      {/* Single combined "See bundle details" link when there's only
+          one bundle — keeps the compact strip tidy. */}
+      {bundles.length === 1 && (
+        <a
+          href={`/bundle/${bundles[0].id}`}
+          style={{
+            fontSize: 11,
+            color: FOREST,
+            fontWeight: 600,
+            textDecoration: 'none',
+            textAlign: 'right',
+            paddingRight: 4,
+            paddingTop: 4,
+          }}
+        >
+          See bundle details →
+        </a>
+      )}
     </div>
   )
 }

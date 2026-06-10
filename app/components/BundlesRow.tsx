@@ -21,6 +21,7 @@
  */
 
 import { useMemo } from 'react'
+import Link from 'next/link'
 import { useBasket } from './BasketProvider'
 import { computeBundlePricing, type PricingMode } from '@/app/lib/bundlePricing'
 import { resolveBookCover } from '@/app/lib/coverUrl'
@@ -275,6 +276,22 @@ function BundleCard({ bundle, basketHasItem, onAdd }: BundleCardProps) {
           ? 'In basket'
           : `Add ${bundle.members.length} ${bundle.members.length === 1 ? 'book' : 'books'} to basket`}
       </button>
+      {/* Secondary action — go to the dedicated bundle page for the
+          full description + per-listing detail. Renders as a plain
+          link so the Add button stays the primary CTA. */}
+      <Link
+        href={`/bundle/${bundle.id}`}
+        style={{
+          textAlign: 'center',
+          fontSize: 12,
+          color: FOREST,
+          fontWeight: 600,
+          textDecoration: 'none',
+          padding: '4px 0',
+        }}
+      >
+        View bundle details →
+      </Link>
     </div>
   )
 }

@@ -42,17 +42,61 @@ export default async function NewInPage({
   const params = searchParams ? await searchParams : {}
   const bundlesOnly = params.bundles === '1'
 
-  const { data: listings } = await supabase
-    .from('listings')
-    .select(`
-      id, title, author, asking_price_gbp, condition,
-      books(cover_url, cover_url_hosted),
-      listing_images(url, sort_order),
-      users!inner(username, deleted_at)
-    `)
-    .eq('status', 'active')
-    .is('users.deleted_at', null)
-    .order('created_at', { ascending: false })
+  // When the buyer asks for bundles only, query the bundle universe
+  // FIRST and then restrict the listings query to just those ids.
+  // Avoids the previous bug where the 1000-row default cap on the
+  // listings query could exclude bundled listings, making the filter
+  // appear to show 0 results even when bundles existed (the badge
+  // computation needed those listings to be in the first 1000).
+  let bundledListingIdsUpfront: number[] | null = null
+  if (bundlesOnly) {
+    const { data: bms } = await supabase
+      .from('bundle_items')
+      .select('listing_id, bundle:bundles!inner(status)')
+    const collected = new Set<number>()
+    for (const row of (bms ?? []) as unknown as Array<{
+      listing_id: number
+      bundle: { status: string } | { status: string }[] | null
+    }>) {
+      const b = (Array.isArray(row.bundle) ? row.bundle[0] : row.bundle) ?? null
+      if (b?.status === 'active') collected.add(row.listing_id)
+    }
+    bundledListingIdsUpfront = Array.from(collected)
+  }
+
+  let listings: unknown
+  if (bundlesOnly) {
+    if (!bundledListingIdsUpfront || bundledListingIdsUpfront.length === 0) {
+      listings = []
+    } else {
+      const { data } = await supabase
+        .from('listings')
+        .select(`
+          id, title, author, asking_price_gbp, condition,
+          books(cover_url, cover_url_hosted),
+          listing_images(url, sort_order),
+          users!inner(username, deleted_at)
+        `)
+        .eq('status', 'active')
+        .is('users.deleted_at', null)
+        .in('id', bundledListingIdsUpfront)
+        .order('created_at', { ascending: false })
+      listings = data
+    }
+  } else {
+    const { data } = await supabase
+      .from('listings')
+      .select(`
+        id, title, author, asking_price_gbp, condition,
+        books(cover_url, cover_url_hosted),
+        listing_images(url, sort_order),
+        users!inner(username, deleted_at)
+      `)
+      .eq('status', 'active')
+      .is('users.deleted_at', null)
+      .order('created_at', { ascending: false })
+    listings = data
+  }
 
   const curatedRows = await getCuratedRows()
 
@@ -68,23 +112,29 @@ export default async function NewInPage({
   }>
 
   // Slice 10: tag listings with has_bundles so ShelfGrid renders the
-  // "Bundle" badge on covers. One follow-up query for bundle_items
-  // joined with bundles (active) restricted to the listing ids on this
-  // page — keeps the cost bounded to the page size.
-  const visibleListingIds = safeListings.map((l) => l.id)
+  // "Bundle" badge on covers. When the buyer's already filtered to
+  // bundles-only we know every visible listing is bundled (we used
+  // that set to drive the query upstream), so skip the lookup.
+  // Otherwise: one follow-up query for bundle_items joined with
+  // bundles (active) restricted to the listing ids on this page.
   let listingIdsInBundles = new Set<number>()
-  if (visibleListingIds.length > 0) {
-    const { data: bundleMembers } = await supabase
-      .from('bundle_items')
-      .select('listing_id, bundle:bundles!inner(status)')
-      .in('listing_id', visibleListingIds)
-    if (bundleMembers) {
-      for (const row of bundleMembers as unknown as Array<{
-        listing_id: number
-        bundle: { status: string } | { status: string }[] | null
-      }>) {
-        const b = (Array.isArray(row.bundle) ? row.bundle[0] : row.bundle) ?? null
-        if (b?.status === 'active') listingIdsInBundles.add(row.listing_id)
+  if (bundlesOnly) {
+    listingIdsInBundles = new Set(bundledListingIdsUpfront ?? [])
+  } else {
+    const visibleListingIds = safeListings.map((l) => l.id)
+    if (visibleListingIds.length > 0) {
+      const { data: bundleMembers } = await supabase
+        .from('bundle_items')
+        .select('listing_id, bundle:bundles!inner(status)')
+        .in('listing_id', visibleListingIds)
+      if (bundleMembers) {
+        for (const row of bundleMembers as unknown as Array<{
+          listing_id: number
+          bundle: { status: string } | { status: string }[] | null
+        }>) {
+          const b = (Array.isArray(row.bundle) ? row.bundle[0] : row.bundle) ?? null
+          if (b?.status === 'active') listingIdsInBundles.add(row.listing_id)
+        }
       }
     }
   }

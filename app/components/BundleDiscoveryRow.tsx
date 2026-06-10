@@ -76,7 +76,7 @@ export default function BundleDiscoveryRow({ bundles }: Props) {
           {bundles.map((b) => (
             <Link
               key={b.id}
-              href={`/${b.sellerUsername}`}
+              href={`/bundle/${b.id}`}
               style={{
                 flexShrink: 0,
                 width: 240,

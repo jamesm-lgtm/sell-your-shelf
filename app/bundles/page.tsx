@@ -235,7 +235,7 @@ export default async function BundlesIndexPage({
             {bundles.map((b) => (
               <Link
                 key={b.id}
-                href={`/${b.sellerUsername}`}
+                href={`/bundle/${b.id}`}
                 style={{
                   background: '#fff',
                   border: `1px solid ${GOLD}`,
