@@ -18,6 +18,7 @@ import Footer from '@/app/components/Footer'
 import BundleDetailAddButton, {
   type BundleDetailMember,
 } from '@/app/components/BundleDetailAddButton'
+import BundleShareButton from '@/app/components/BundleShareButton'
 import { computeBundlePricing } from '@/app/lib/bundlePricing'
 
 export const revalidate = 0
@@ -325,13 +326,23 @@ export default async function BundleDetailPage({
             </p>
           )}
 
-          {/* Add button (client island) */}
-          <BundleDetailAddButton
-            bundleId={bundle.id}
-            bundleName={bundle.name}
-            members={detailMembers}
-            seller={{ sellerId: bundle.seller_id, sellerUsername: seller.username }}
-          />
+          {/* Add + share buttons (client islands). Add is primary,
+              share gets a quieter pill next to it so sellers/buyers
+              can send the bundle URL via native share sheet (mobile)
+              or copy-link fallback (desktop). */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <BundleDetailAddButton
+              bundleId={bundle.id}
+              bundleName={bundle.name}
+              members={detailMembers}
+              seller={{ sellerId: bundle.seller_id, sellerUsername: seller.username }}
+            />
+            <BundleShareButton
+              url={`https://sellyourshelf.com/bundle/${bundle.id}`}
+              title={`${bundle.name} — bundle from @${seller.username}`}
+              description={bundle.description}
+            />
+          </div>
         </div>
 
         {/* Books in this bundle */}

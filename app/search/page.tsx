@@ -45,6 +45,15 @@ type BookResult = {
   similarity_score: number
 }
 
+type BundleResult = {
+  id: number
+  name: string
+  description: string | null
+  sellerUsername: string
+  memberCount: number
+  covers: Array<string | null>
+}
+
 function BookCard({ book }: { book: BookResult }) {
   const slug = book.slug || generateSlug(book.title, book.author || '')
   return (
@@ -165,6 +174,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   let books: BookResult[] = []
   let popularBooks: BookResult[] = []
+  let bundles: BundleResult[] = []
 
   if (q.length > 0) {
     const { data, error } = await supabase.rpc('search_books_fuzzy', {
@@ -174,6 +184,73 @@ export default async function SearchPage({ searchParams }: Props) {
 
     if (!error && data) {
       books = data as BookResult[]
+    }
+
+    // Search bundles by name or description. We escape % and _ to
+    // prevent the user's literal characters from acting as wildcards.
+    // Cheap ILIKE is fine at current bundle volume (well under a few
+    // thousand active rows); revisit if it grows enough to need a
+    // tsvector index.
+    const escaped = q.replace(/[%_]/g, (m) => `\\${m}`)
+    const { data: bundleRows } = await supabase
+      .from('bundles')
+      .select(
+        `
+        id,
+        name,
+        description,
+        seller:users!inner ( username, deleted_at ),
+        bundle_items (
+          sort_order,
+          listing:listings!inner (
+            id, status,
+            books ( cover_url, cover_url_hosted )
+          )
+        )
+        `,
+      )
+      .eq('status', 'active')
+      .or(`name.ilike.%${escaped}%,description.ilike.%${escaped}%`)
+      .limit(12)
+
+    type RawBundleRow = {
+      id: number
+      name: string
+      description: string | null
+      seller: { username: string; deleted_at: string | null } | Array<{ username: string; deleted_at: string | null }> | null
+      bundle_items: Array<{
+        sort_order: number
+        listing: {
+          id: number
+          status: string
+          books: { cover_url: string | null; cover_url_hosted: string | null } | null
+        } | Array<{
+          id: number
+          status: string
+          books: { cover_url: string | null; cover_url_hosted: string | null } | null
+        }> | null
+      }>
+    }
+    for (const raw of (bundleRows ?? []) as unknown as RawBundleRow[]) {
+      const seller = Array.isArray(raw.seller) ? raw.seller[0] : raw.seller
+      if (!seller || seller.deleted_at) continue
+      const sorted = [...raw.bundle_items].sort((a, b) => a.sort_order - b.sort_order)
+      let stale = false
+      const covers: Array<string | null> = []
+      for (const it of sorted) {
+        const l = Array.isArray(it.listing) ? it.listing[0] : it.listing
+        if (!l || l.status !== 'active') { stale = true; break }
+        covers.push(l.books?.cover_url_hosted || l.books?.cover_url || null)
+      }
+      if (stale || covers.length < 2) continue
+      bundles.push({
+        id: raw.id,
+        name: raw.name,
+        description: raw.description,
+        sellerUsername: seller.username,
+        memberCount: covers.length,
+        covers,
+      })
     }
 
     // If no results, fetch popular books as suggestions
@@ -219,7 +296,9 @@ export default async function SearchPage({ searchParams }: Props) {
                 Results for &ldquo;{q}&rdquo;
               </div>
               <div style={{ fontSize: 14, color: '#666' }}>
-                {books.length} {books.length === 1 ? 'book' : 'books'} found
+                {books.length} {books.length === 1 ? 'book' : 'books'}
+                {bundles.length > 0 ? ` · ${bundles.length} ${bundles.length === 1 ? 'bundle' : 'bundles'}` : ''}
+                {' '}found
               </div>
             </>
           ) : (
@@ -231,6 +310,81 @@ export default async function SearchPage({ searchParams }: Props) {
       </div>
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
+        {bundles.length > 0 && (
+          <div style={{ marginBottom: 28 }}>
+            <div style={{
+              fontSize: 16,
+              fontWeight: 500,
+              color: '#1A1A1A',
+              marginBottom: 12,
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 8,
+            }}>
+              <span aria-hidden>📚</span>
+              Bundles matching &ldquo;{q}&rdquo;
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+              gap: 12,
+            }}>
+              {bundles.map((b) => (
+                <Link
+                  key={b.id}
+                  href={`/bundle/${b.id}`}
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #C9A961',
+                    borderRadius: 10,
+                    padding: 12,
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {b.covers.slice(0, 4).map((c, i) => (
+                      <div key={i} style={{
+                        width: 36, height: 54,
+                        background: '#2D4A3E',
+                        borderRadius: 3,
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                      }}>
+                        {c ? <img src={c} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                      </div>
+                    ))}
+                    {b.memberCount > 4 && (
+                      <div style={{
+                        width: 36, height: 54,
+                        border: '1px dashed #C9A961',
+                        borderRadius: 3,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#999',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}>
+                        +{b.memberCount - 4}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1F3329', lineHeight: 1.3 }}>
+                    {b.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#666' }}>
+                    {b.memberCount} books · @{b.sellerUsername}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
         {q.length === 0 ? (
           <p style={{ color: '#999', fontSize: 15, textAlign: 'center', paddingTop: 48 }}>
             Use the search bar above to find books by title or author.

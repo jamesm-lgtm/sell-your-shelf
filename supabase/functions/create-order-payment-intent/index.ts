@@ -331,6 +331,13 @@ serve(async (req) => {
     const originalPriceByListing = new Map<number, number>()
     const bundleDiscountByListing = new Map<number, number>()
     const effectivePriceByListing = new Map<number, number>()
+    // Snapshot fields for order_items.bundle_*_at_sale columns
+    // (migration 20260610200000) — populated alongside bundleId so we
+    // can render bundle context historically even if the bundle is
+    // renamed or deleted.
+    const bundleNameByListing = new Map<number, string>()
+    const bundleDescriptionByListing = new Map<number, string | null>()
+    const bundlePricingModeByListing = new Map<number, PricingMode>()
 
     if (validBundleIds.length > 0) {
       const { data: bundleRows, error: bundleErr } = await supabase
@@ -338,6 +345,8 @@ serve(async (req) => {
         .select(`
           id,
           seller_id,
+          name,
+          description,
           pricing_mode,
           discount_pct,
           price_gbp,
@@ -357,6 +366,8 @@ serve(async (req) => {
       for (const b of (bundleRows ?? []) as Array<{
         id: number
         seller_id: string
+        name: string
+        description: string | null
         pricing_mode: PricingMode
         discount_pct: number | null
         price_gbp: number | null
@@ -402,6 +413,9 @@ serve(async (req) => {
           originalPriceByListing.set(line.listingId, line.originalPriceGbp)
           bundleDiscountByListing.set(line.listingId, line.discountGbp)
           effectivePriceByListing.set(line.listingId, line.effectivePriceGbp)
+          bundleNameByListing.set(line.listingId, b.name)
+          bundleDescriptionByListing.set(line.listingId, b.description)
+          bundlePricingModeByListing.set(line.listingId, b.pricing_mode)
         }
       }
     }
@@ -530,6 +544,17 @@ serve(async (req) => {
         bundle_discount_gbp: inBundle
           ? round2(bundleDiscountByListing.get(l.id) ?? 0)
           : 0,
+        // Snapshot fields (migration 20260610200000) — captured here
+        // so the bundle context survives subsequent renames, archival,
+        // or deletion of the source bundle. Consumers prefer the
+        // snapshot when present.
+        bundle_name_at_sale: inBundle ? bundleNameByListing.get(l.id) ?? null : null,
+        bundle_description_at_sale: inBundle
+          ? bundleDescriptionByListing.get(l.id) ?? null
+          : null,
+        bundle_pricing_mode_at_sale: inBundle
+          ? bundlePricingModeByListing.get(l.id) ?? null
+          : null,
       }
     })
 

@@ -319,16 +319,18 @@ async function fireOrderConfirmationNotifications(
   const { data: items } = await supabase
     .from('order_items')
     .select(
-      'listing_id, title, author, price_gbp, platform_fee_gbp, seller_payout_gbp, bundle_id, original_price_gbp, bundle_discount_gbp',
+      'listing_id, title, author, price_gbp, platform_fee_gbp, seller_payout_gbp, bundle_id, original_price_gbp, bundle_discount_gbp, bundle_name_at_sale, bundle_description_at_sale',
     )
     .eq('order_id', orderId)
 
   const itemRows = items ?? []
 
-  // Bundle context: load the bundle names for any bundle_id present
-  // in this order's items, so emails can render "Bundle: «name»"
-  // headings instead of opaque ids. One query, two rows max in
-  // practice — we'd be amazed to see ≥ 3 bundles in a single order.
+  // Bundle name resolution. Prefer the snapshot field
+  // (bundle_name_at_sale, migration 20260610200000) when present —
+  // guarantees the buyer/seller see the name they agreed at sale
+  // time even if the bundle's been renamed or archived since.
+  // Falls back to a live join for orders that pre-date the snapshot
+  // columns (existing pipe stays working for legacy rows).
   const bundleIds = Array.from(
     new Set(
       itemRows
@@ -336,15 +338,38 @@ async function fireOrderConfirmationNotifications(
         .filter((id): id is number => id !== null && id !== undefined),
     ),
   )
-  let bundleNamesById: Record<string, string> = {}
+  let liveNamesById: Record<string, string> = {}
   if (bundleIds.length > 0) {
     const { data: bundleNameRows } = await supabase
       .from('bundles')
       .select('id, name')
       .in('id', bundleIds)
-    bundleNamesById = Object.fromEntries(
+    liveNamesById = Object.fromEntries(
       (bundleNameRows ?? []).map((b: { id: number; name: string }) => [String(b.id), b.name]),
     )
+  }
+  // Build a per-item name resolver: snapshot first, live fallback.
+  function bundleNameForItem(it: {
+    bundle_id: number | null
+    bundle_name_at_sale: string | null
+  }): string | null {
+    if (!it.bundle_id) return null
+    if (it.bundle_name_at_sale) return it.bundle_name_at_sale
+    return liveNamesById[String(it.bundle_id)] ?? null
+  }
+  // For the per-bundle aggregate (push body, summary line) we use
+  // the snapshot of the first matching item per bundle_id.
+  const bundleNamesById: Record<string, string> = { ...liveNamesById }
+  for (const it of itemRows as Array<{
+    bundle_id: number | null
+    bundle_name_at_sale: string | null
+  }>) {
+    if (it.bundle_id && it.bundle_name_at_sale && !bundleNamesById[String(it.bundle_id)]) {
+      bundleNamesById[String(it.bundle_id)] = it.bundle_name_at_sale
+    } else if (it.bundle_id && it.bundle_name_at_sale) {
+      // Always prefer snapshot over live for already-set entries too.
+      bundleNamesById[String(it.bundle_id)] = it.bundle_name_at_sale
+    }
   }
   // Total bundle discount across the whole order — used in copy for
   // "You saved £X with bundles" lines.

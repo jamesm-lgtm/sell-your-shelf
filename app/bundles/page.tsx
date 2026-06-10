@@ -53,13 +53,54 @@ interface BundleCardData {
   name: string
   description: string | null
   sellerUsername: string
-  members: Array<{ id: number; title: string; cover_url: string | null }>
+  members: Array<{ id: number; title: string; cover_url: string | null; category: string | null }>
   bundlePriceGbp: number
   subtotalGbp: number
   savingsGbp: number
+  /** Newest-first epoch used as the default sort. */
+  createdAt: number
+  /** Set of unique non-null member categories — drives the category filter. */
+  categorySet: Set<string>
 }
 
-type SearchParams = Promise<{ page?: string }>
+type SortOption = 'newest' | 'biggest_savings' | 'lowest_price' | 'most_books'
+const SORT_LABEL: Record<SortOption, string> = {
+  newest: 'Newest first',
+  biggest_savings: 'Biggest savings',
+  lowest_price: 'Lowest price',
+  most_books: 'Most books',
+}
+
+// Category list mirrors /new — keeping them in sync would be nicer
+// but neither side changes often.
+const CATEGORIES = [
+  { slug: 'fiction', name: 'Fiction', match: 'Fiction' },
+  { slug: 'crime-thriller', name: 'Crime & Thriller', match: 'Crime & Thriller' },
+  { slug: 'sci-fi-fantasy', name: 'Sci-Fi & Fantasy', match: 'Sci-Fi & Fantasy' },
+  { slug: 'romance', name: 'Romance', match: 'Romance' },
+  { slug: 'childrens', name: "Children's", match: "Children's" },
+  { slug: 'young-adult', name: 'Young Adult', match: 'Young Adult' },
+  { slug: 'biography-memoir', name: 'Biography & Memoir', match: 'Biography & Memoir' },
+  { slug: 'history', name: 'History', match: 'History' },
+  { slug: 'science-nature', name: 'Science & Nature', match: 'Science & Nature' },
+  { slug: 'business-finance', name: 'Business & Finance', match: 'Business & Finance' },
+  { slug: 'self-help', name: 'Self-Help', match: 'Self-Help' },
+  { slug: 'cookery-food', name: 'Cookery & Food', match: 'Cookery & Food' },
+  { slug: 'art-photography', name: 'Art & Photography', match: 'Art & Photography' },
+  { slug: 'travel', name: 'Travel', match: 'Travel' },
+  { slug: 'reference-education', name: 'Reference & Education', match: 'Reference & Education' },
+  { slug: 'comics-graphic-novels', name: 'Comics & Graphic Novels', match: 'Comics & Graphic Novels' },
+  { slug: 'literary-fiction', name: 'Literary Fiction', match: 'Literary Fiction' },
+  { slug: 'classic-fiction', name: 'Classic Fiction', match: 'Classic Fiction' },
+  { slug: 'historical-fiction', name: 'Historical Fiction', match: 'Historical Fiction' },
+] as const
+
+function slugToCategory(slug: string | undefined): { slug: string; name: string; match: string } | null {
+  if (!slug) return null
+  return CATEGORIES.find((c) => c.slug === slug) ?? null
+}
+
+type SearchParams = Promise<{ page?: string; category?: string; sort?: string }>
 
 export default async function BundlesIndexPage({
   searchParams,
@@ -68,15 +109,23 @@ export default async function BundlesIndexPage({
 }) {
   const params = searchParams ? await searchParams : {}
   const pageNum = Math.max(1, Number(params.page ?? 1) || 1)
-  const from = (pageNum - 1) * PAGE_SIZE
-  const to = from + PAGE_SIZE - 1
+  const activeCategory = slugToCategory(params.category)
+  const sort: SortOption =
+    params.sort === 'biggest_savings' ||
+    params.sort === 'lowest_price' ||
+    params.sort === 'most_books'
+      ? params.sort
+      : 'newest'
 
-  // Fetch the page of active bundles. We join the seller (drop
-  // deleted users) and the bundle_items + member listings + covers
-  // in one go. Pricing is computed AFTER a follow-up batched query
-  // for asking_price_gbp (the inner select doesn't pull it to keep
-  // the projection small).
-  const { data: bRows, count } = await supabase
+  // We need to filter + sort across the WHOLE catalogue (category is
+  // derived from member categories, not a column on bundles; sort
+  // options like "biggest savings" need pricing applied per row).
+  // So fetch up to MAX_FETCH active bundles, hydrate, then filter +
+  // sort + paginate in code. Cheap at current scale (<<500 bundles).
+  // If the marketplace grows past that we'd revisit with a
+  // materialised view or per-bundle aggregate columns.
+  const MAX_FETCH = 500
+  const { data: bRows } = await supabase
     .from('bundles')
     .select(
       `
@@ -86,27 +135,27 @@ export default async function BundlesIndexPage({
       pricing_mode,
       discount_pct,
       price_gbp,
+      created_at,
       seller:users!inner ( username, deleted_at ),
       bundle_items (
         listing_id,
         sort_order,
         listing:listings!inner (
           id, title, status,
-          books ( cover_url, cover_url_hosted )
+          books ( cover_url, cover_url_hosted, category )
         )
       )
       `,
-      { count: 'exact' },
     )
     .eq('status', 'active')
     .order('created_at', { ascending: false })
-    .range(from, to)
+    .limit(MAX_FETCH)
 
   type RawListing = {
     id: number
     title: string
     status: string
-    books: { cover_url: string | null; cover_url_hosted: string | null } | null
+    books: { cover_url: string | null; cover_url_hosted: string | null; category: string | null } | null
   }
   type RawSeller = { username: string; deleted_at: string | null }
   type RawBundle = {
@@ -116,6 +165,7 @@ export default async function BundlesIndexPage({
     pricing_mode: 'discount' | 'absolute'
     discount_pct: number | null
     price_gbp: number | null
+    created_at: string
     seller: RawSeller | RawSeller[] | null
     bundle_items: Array<{
       listing_id: number
@@ -132,11 +182,14 @@ export default async function BundlesIndexPage({
     const sortedItems = [...raw.bundle_items].sort((a, b) => a.sort_order - b.sort_order)
     let stale = false
     const members: BundleCardData['members'] = []
+    const categorySet = new Set<string>()
     for (const it of sortedItems) {
       const l = Array.isArray(it.listing) ? it.listing[0] : it.listing
       if (!l || l.status !== 'active') { stale = true; break }
       const cover = l.books?.cover_url_hosted || l.books?.cover_url || null
-      members.push({ id: l.id, title: l.title, cover_url: cover })
+      const cat = l.books?.category ?? null
+      if (cat) categorySet.add(cat)
+      members.push({ id: l.id, title: l.title, cover_url: cover, category: cat })
     }
     if (stale || members.length < 2) continue
     draft.push({
@@ -148,6 +201,8 @@ export default async function BundlesIndexPage({
       bundlePriceGbp: 0,
       subtotalGbp: 0,
       savingsGbp: 0,
+      createdAt: new Date(raw.created_at).getTime(),
+      categorySet,
     })
   }
 
@@ -188,9 +243,41 @@ export default async function BundlesIndexPage({
     }
   }
 
-  const bundles = draft.filter((d) => d.bundlePriceGbp > 0)
-  const totalCount = count ?? bundles.length
+  // Filter → sort → paginate, all in JS. See comment above the fetch
+  // for why we do it client-side.
+  const priced = draft.filter((d) => d.bundlePriceGbp > 0)
+  const filtered = activeCategory
+    ? priced.filter((d) => d.categorySet.has(activeCategory.match))
+    : priced
+  const sorted = [...filtered].sort((a, b) => {
+    if (sort === 'biggest_savings') return b.savingsGbp - a.savingsGbp
+    if (sort === 'lowest_price') return a.bundlePriceGbp - b.bundlePriceGbp
+    if (sort === 'most_books') return b.members.length - a.members.length
+    return b.createdAt - a.createdAt
+  })
+  const totalCount = sorted.length
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+  const pageStart = (pageNum - 1) * PAGE_SIZE
+  const bundles = sorted.slice(pageStart, pageStart + PAGE_SIZE)
+
+  // Helper to build URLs that preserve filter+sort while changing one param.
+  function buildHref(overrides: { page?: number; category?: string | null; sort?: SortOption | null }): string {
+    const sp = new URLSearchParams()
+    const nextCategory =
+      overrides.category === null
+        ? null
+        : overrides.category !== undefined
+          ? overrides.category
+          : activeCategory?.slug ?? null
+    const nextSort =
+      overrides.sort === null ? null : overrides.sort !== undefined ? overrides.sort : sort
+    const nextPage = overrides.page !== undefined ? overrides.page : pageNum
+    if (nextCategory) sp.set('category', nextCategory)
+    if (nextSort && nextSort !== 'newest') sp.set('sort', nextSort)
+    if (nextPage > 1) sp.set('page', String(nextPage))
+    const qs = sp.toString()
+    return qs ? `/bundles?${qs}` : '/bundles'
+  }
 
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
@@ -213,15 +300,93 @@ export default async function BundlesIndexPage({
         </div>
       </div>
 
+      {/* Category pills + sort. Both submit via plain links so no client JS. */}
+      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '12px 16px', background: '#FFFDF6' }}>
+        <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', whiteSpace: 'nowrap', paddingBottom: 2 }}>
+            <Link
+              href={buildHref({ category: null, page: 1 })}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 999,
+                border: `1px solid ${activeCategory ? '#E5E3DF' : GOLD}`,
+                background: activeCategory ? '#fff' : FOREST,
+                color: activeCategory ? '#666' : '#FAF8F5',
+                fontSize: 12,
+                fontWeight: 600,
+                textDecoration: 'none',
+                flexShrink: 0,
+              }}
+            >
+              All
+            </Link>
+            {CATEGORIES.map((c) => {
+              const isActive = activeCategory?.slug === c.slug
+              return (
+                <Link
+                  key={c.slug}
+                  href={buildHref({ category: c.slug, page: 1 })}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 999,
+                    border: `1px solid ${isActive ? GOLD : '#E5E3DF'}`,
+                    background: isActive ? FOREST : '#fff',
+                    color: isActive ? '#FAF8F5' : '#666',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    flexShrink: 0,
+                  }}
+                >
+                  {c.name}
+                </Link>
+              )
+            })}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#666' }}>
+            <span>{totalCount} {totalCount === 1 ? 'bundle' : 'bundles'}</span>
+            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ color: '#999' }}>Sort:</span>
+              {(['newest', 'biggest_savings', 'lowest_price', 'most_books'] as SortOption[]).map((s) => {
+                const isActive = sort === s
+                return (
+                  <Link
+                    key={s}
+                    href={buildHref({ sort: s, page: 1 })}
+                    style={{
+                      color: isActive ? FOREST_DEEP : '#666',
+                      fontWeight: isActive ? 700 : 500,
+                      textDecoration: isActive ? 'underline' : 'none',
+                    }}
+                  >
+                    {SORT_LABEL[s]}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
         {bundles.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 16px', color: '#666' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }} aria-hidden>📚</div>
             <div style={{ fontSize: 16, color: '#1A1A1A', fontWeight: 500, marginBottom: 4 }}>
-              No bundles yet
+              {activeCategory ? `No bundles in ${activeCategory.name}` : 'No bundles yet'}
             </div>
             <div style={{ fontSize: 14 }}>
-              Check back soon — sellers are adding new bundles all the time.
+              {activeCategory ? (
+                <>
+                  Try{' '}
+                  <Link href={buildHref({ category: null, page: 1 })} style={{ color: FOREST, fontWeight: 600 }}>
+                    all bundles
+                  </Link>
+                  .
+                </>
+              ) : (
+                <>Check back soon — sellers are adding new bundles all the time.</>
+              )}
             </div>
           </div>
         ) : (
@@ -340,7 +505,7 @@ export default async function BundlesIndexPage({
         {totalPages > 1 && (
           <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center', fontSize: 13 }}>
             {pageNum > 1 ? (
-              <Link href={`/bundles?page=${pageNum - 1}`} style={{ color: FOREST, textDecoration: 'none', fontWeight: 600 }}>
+              <Link href={buildHref({ page: pageNum - 1 })} style={{ color: FOREST, textDecoration: 'none', fontWeight: 600 }}>
                 ← Newer
               </Link>
             ) : (
@@ -350,7 +515,7 @@ export default async function BundlesIndexPage({
               Page {pageNum} of {totalPages}
             </span>
             {pageNum < totalPages ? (
-              <Link href={`/bundles?page=${pageNum + 1}`} style={{ color: FOREST, textDecoration: 'none', fontWeight: 600 }}>
+              <Link href={buildHref({ page: pageNum + 1 })} style={{ color: FOREST, textDecoration: 'none', fontWeight: 600 }}>
                 Older →
               </Link>
             ) : (
