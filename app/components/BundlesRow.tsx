@@ -128,6 +128,11 @@ export default function BundlesRow({ bundles, seller }: Props) {
                 bundleId: b.id,
                 originalPriceGbp: line ? line.originalPriceGbp : Number(m.asking_price_gbp),
                 bundleDiscountGbp: line ? line.discountGbp : 0,
+                // Total bundle size — the basket compares this against
+                // the count of in-basket items with this bundleId to
+                // detect if the buyer has broken the bundle by removing
+                // a peer. If broken, basket reverts to original prices.
+                bundleTotalMembers: b.members.length,
               }
             })
             addItems(seller, items, 'bundle')

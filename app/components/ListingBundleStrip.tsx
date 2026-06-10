@@ -192,6 +192,7 @@ export default function ListingBundleStrip({ bundles, seller, currentListingId }
                     bundleId: b.id,
                     originalPriceGbp: line?.originalPriceGbp ?? Number(m.asking_price_gbp),
                     bundleDiscountGbp: line?.discountGbp ?? 0,
+                    bundleTotalMembers: b.members.length,
                   }
                 })
                 addItems(seller, items, 'bundle')

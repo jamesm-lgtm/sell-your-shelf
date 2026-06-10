@@ -7,6 +7,8 @@ import { useBasket, useBasketShipping } from './BasketProvider'
 import {
   FREE_SHIPPING_THRESHOLD_GBP,
   SHIPPING_FLAT_GBP,
+  bundleCompletenessMap,
+  type BasketItem,
 } from '@/app/lib/basket'
 import {
   trackBasketPageViewed,
@@ -117,13 +119,18 @@ export default function BasketPageClient() {
     ? '—'
     : `£${SHIPPING_FLAT_GBP.toFixed(2)}`
   const totalGbp = isUnlocked ? subtotal : isExceeded ? subtotal : subtotal + SHIPPING_FLAT_GBP
-  // Aggregate bundle discount across the whole basket. Subtotal already
-  // reflects the discount (priceGbp on each item is the EFFECTIVE
-  // post-discount amount); this surfaces a "Bundle discount −£X"
-  // summary row so the buyer sees the saving explicitly.
+  // Bundle-aware aggregates. Only items in still-complete bundles
+  // contribute to the visible discount; items whose bundle was broken
+  // by removal revert to their original asking price (matches what
+  // the server actually charges via the all-members-present gate in
+  // create-order-payment-intent).
   const basketItems = basket?.items ?? []
+  const completeness = bundleCompletenessMap(basketItems)
+  const isItemDiscountActive = (it: BasketItem) =>
+    it.bundleId != null && completeness.get(it.bundleId) === true
   const totalBundleDiscount = basketItems.reduce(
-    (sum: number, it) => sum + Number(it.bundleDiscountGbp ?? 0),
+    (sum: number, it) =>
+      sum + (isItemDiscountActive(it) ? Number(it.bundleDiscountGbp ?? 0) : 0),
     0,
   )
   const preDiscountSubtotal = basketItems.reduce(
@@ -208,7 +215,7 @@ export default function BasketPageClient() {
                   <div style={{ fontSize: 12, color: '#B85C00', marginTop: 4, fontWeight: 500 }}>
                     No longer available
                   </div>
-                ) : it.bundleId != null && Number(it.bundleDiscountGbp ?? 0) > 0 && it.originalPriceGbp != null ? (
+                ) : isItemDiscountActive(it) && Number(it.bundleDiscountGbp ?? 0) > 0 && it.originalPriceGbp != null ? (
                   // Bundle-discounted line: show the effective price in
                   // primary green next to the struck-through original, plus
                   // a small "−£X bundle" caption so the buyer sees exactly
@@ -227,8 +234,11 @@ export default function BasketPageClient() {
                     </div>
                   </div>
                 ) : (
+                  // Non-bundle item OR bundle item whose peers are gone —
+                  // show the original asking price (falls back to
+                  // priceGbp for non-bundle items where they're equal).
                   <div style={{ fontSize: 13, color: FOREST, fontWeight: 600, marginTop: 4 }}>
-                    £{Number(it.priceGbp).toFixed(2)}
+                    £{Number(it.originalPriceGbp ?? it.priceGbp).toFixed(2)}
                   </div>
                 )}
               </div>

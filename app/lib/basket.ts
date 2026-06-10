@@ -67,6 +67,14 @@ export type BasketItem = {
    * "−£X from «bundle»" caption.
    */
   bundleDiscountGbp?: number | null
+  /**
+   * Total members in the source bundle at add time. If the count of
+   * BasketItems sharing this bundleId doesn't match, the discount has
+   * been broken by the buyer removing items — the UI falls back to
+   * original prices to match what create-order-payment-intent will
+   * actually charge (server already gates on all-members-present).
+   */
+  bundleTotalMembers?: number | null
 }
 
 export type Basket = {
@@ -90,8 +98,55 @@ export function totalWeightG(items: BasketItem[]): number {
   return items.reduce((sum, it) => sum + weightForItem(it.format), 0) + PACKAGING_G
 }
 
+/**
+ * Per-bundle "is the discount still valid?" map. A bundle's discount
+ * applies iff every member from the original bundle is still in the
+ * basket — matches the all-members-present gate in
+ * create-order-payment-intent.
+ */
+export function bundleCompletenessMap(items: BasketItem[]): Map<number, boolean> {
+  const counts = new Map<number, { have: number; total: number }>()
+  for (const item of items) {
+    if (item.bundleId == null) continue
+    const total = Number(item.bundleTotalMembers ?? 0)
+    const existing = counts.get(item.bundleId)
+    if (existing) {
+      existing.have += 1
+    } else {
+      counts.set(item.bundleId, { have: 1, total })
+    }
+  }
+  const result = new Map<number, boolean>()
+  for (const [bundleId, { have, total }] of counts) {
+    result.set(bundleId, total > 0 && have === total)
+  }
+  return result
+}
+
+/**
+ * Effective per-item charge accounting for bundle state. If the bundle
+ * is still complete, the stored discounted price; otherwise the
+ * original asking price (or priceGbp for non-bundle items, which IS
+ * the asking price for them).
+ */
+export function effectivePriceForItem(
+  item: BasketItem,
+  completeness: Map<number, boolean>,
+): number {
+  if (item.bundleId != null && completeness.get(item.bundleId) === true) {
+    return Number(item.priceGbp)
+  }
+  return Number(item.originalPriceGbp ?? item.priceGbp)
+}
+
 export function subtotalGbp(items: BasketItem[]): number {
-  return items.reduce((sum, it) => sum + Number(it.priceGbp), 0)
+  // Bundle-aware: items in a broken bundle revert to their original
+  // asking price so basket subtotal matches what checkout will charge.
+  const completeness = bundleCompletenessMap(items)
+  return items.reduce(
+    (sum, it) => sum + effectivePriceForItem(it, completeness),
+    0,
+  )
 }
 
 // Shipping state — drives widget + basket + checkout copy.
