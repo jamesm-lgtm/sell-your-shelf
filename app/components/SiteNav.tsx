@@ -69,7 +69,7 @@ function clearRecentSearches() {
 }
 
 type Props = {
-  current?: 'browse' | 'support' | 'blog' | null
+  current?: 'browse' | 'bundles' | 'support' | 'blog' | null
 }
 
 export default function SiteNav({ current = null }: Props) {
@@ -426,6 +426,7 @@ export default function SiteNav({ current = null }: Props) {
             </svg>
           </button>
           <Link href="/new" style={linkStyle(current === 'browse')}>Shop books</Link>
+          <Link href="/bundles" style={linkStyle(current === 'bundles')}>Bundles</Link>
           <Link href="/blog" style={linkStyle(current === 'blog')}>Blog</Link>
           <Link href="/support" style={linkStyle(current === 'support')}>Support</Link>
           <AppBadges
@@ -507,6 +508,9 @@ export default function SiteNav({ current = null }: Props) {
         <div style={{ background: '#2D4A3E', padding: '8px 24px 20px', borderBottom: '1px solid rgba(250,248,245,0.1)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Link href="/new" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'browse' ? 600 : 400 }}>
             Shop books
+          </Link>
+          <Link href="/bundles" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'bundles' ? 600 : 400 }}>
+            Bundles
           </Link>
           <Link href="/blog" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'blog' ? 600 : 400 }}>
             Blog

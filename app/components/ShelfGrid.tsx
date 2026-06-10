@@ -156,19 +156,23 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
                         title="Available as part of a bundle"
                         style={{
                           position: 'absolute',
-                          bottom: 6,
-                          right: 6,
-                          background: '#FFFDF6',
-                          border: '1px solid #C9A961',
+                          top: 6,
+                          left: 6,
+                          background: '#C9A961',
                           borderRadius: 4,
-                          padding: '2px 6px',
-                          fontSize: 10,
-                          fontWeight: 600,
+                          padding: '3px 8px',
+                          fontSize: 11,
+                          fontWeight: 700,
                           color: '#1F3329',
-                          letterSpacing: 0.2,
+                          letterSpacing: 0.3,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                         }}
                       >
-                        Bundle
+                        <span aria-hidden style={{ fontSize: 11 }}>📚</span>
+                        BUNDLE
                       </div>
                     )}
                   </div>
