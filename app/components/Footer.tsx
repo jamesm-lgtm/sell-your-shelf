@@ -1,46 +1,72 @@
-import Image from 'next/image';
 import Link from 'next/link';
+
+// Brand "book spine" mark — three rounded bars of varying height, the
+// middle one dimmed. Reproduced inline (no image asset) per the homepage
+// redesign so the footer lockup matches the nav.
+function SpineMark() {
+  return (
+    <span style={{ display: 'flex', alignItems: 'flex-end', gap: 2.5, height: 20 }} aria-hidden>
+      <i style={{ display: 'block', width: 4, height: 16, borderRadius: 2, background: '#fff' }} />
+      <i style={{ display: 'block', width: 4, height: 12, borderRadius: 2, background: '#fff', opacity: 0.7 }} />
+      <i style={{ display: 'block', width: 4, height: 20, borderRadius: 2, background: '#fff' }} />
+    </span>
+  );
+}
+
+const linkStyle: React.CSSProperties = {
+  color: 'rgba(250,248,245,0.62)',
+  fontSize: 13.5,
+  textDecoration: 'none',
+};
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-400 py-16 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start gap-10">
-          <div>
-            <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <Image
-                src="/logo.png"
-                alt="Sell Your Shelf"
-                width={28}
-                height={28}
-                className="h-7 w-auto brightness-0 invert"
-              />
-              <span className="text-white font-semibold">Sell Your Shelf</span>
+    <footer style={{ background: '#15211C', color: 'rgba(250,248,245,0.62)', padding: '52px 40px 32px' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 40 }}>
+          <div style={{ maxWidth: 280 }}>
+            <Link
+              href="/"
+              style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 16, color: '#fff', marginBottom: 14, textDecoration: 'none' }}
+            >
+              <SpineMark /> Sell Your Shelf
             </Link>
-            <p className="text-sm leading-relaxed">
-              Sell Your Shelf Limited<br />
-              Company No. 16895246<br />
-              Registered in England and Wales
+            <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0 }}>
+              Sell Your Shelf Limited · Company No. 16895246<br />
+              Registered in England &amp; Wales. Giving secondhand books a second life.
             </p>
           </div>
 
-          <div className="flex gap-16 text-sm">
-            <div className="space-y-2">
-              <Link href="/about" className="block hover:text-white transition-colors">About</Link>
-              <Link href="/new" className="block hover:text-white transition-colors">Browse Books</Link>
-              <Link href="/support" className="block hover:text-white transition-colors">Support</Link>
-              <Link href="/contact" className="block hover:text-white transition-colors">Contact</Link>
+          <div style={{ display: 'flex', gap: 56, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Link href="/about" style={linkStyle}>About</Link>
+              <Link href="/new" style={linkStyle}>Browse books</Link>
+              <Link href="/bundles" style={linkStyle}>Bundles</Link>
+              <Link href="/support" style={linkStyle}>Support</Link>
             </div>
-            <div className="space-y-2">
-              <Link href="/terms" className="block hover:text-white transition-colors">Terms of Service</Link>
-              <Link href="/privacy" className="block hover:text-white transition-colors">Privacy Policy</Link>
-              <Link href="/returns" className="block hover:text-white transition-colors">Returns Policy</Link>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Link href="/terms" style={linkStyle}>Terms</Link>
+              <Link href="/privacy" style={linkStyle}>Privacy</Link>
+              <Link href="/returns" style={linkStyle}>Returns</Link>
+              <Link href="/contact" style={linkStyle}>Contact</Link>
             </div>
           </div>
         </div>
 
-        <div className="mt-16 pt-8 border-t border-white/10 text-sm">
-          © 2026 Sell Your Shelf Limited. All rights reserved.
+        <div
+          style={{
+            marginTop: 40,
+            paddingTop: 22,
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            fontSize: 12.5,
+            display: 'flex',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <span>© 2026 Sell Your Shelf Limited. All rights reserved.</span>
+          <span>Made for readers in the UK 🇬🇧</span>
         </div>
       </div>
     </footer>
