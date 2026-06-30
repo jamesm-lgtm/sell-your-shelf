@@ -1,9 +1,21 @@
 import type { Metadata } from "next";
+import { Fraunces } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { BasketProvider } from "./components/BasketProvider";
 import BasketWidget from "./components/BasketWidget";
 import { ShelfInventoryProvider } from "./components/ShelfInventoryProvider";
+
+// Display/heading typeface. Exposed as the --font-fraunces CSS variable
+// (wired into --font-serif in globals.css) so headings can opt into it
+// via fontFamily: 'var(--font-serif)'. Variable font → full weight range,
+// includes the italic 900 used for the hero "cash" emphasis.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-fraunces",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.sellyourshelf.com"),
@@ -39,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={fraunces.variable}>
       <body className="antialiased">
         <BasketProvider>
           <ShelfInventoryProvider>

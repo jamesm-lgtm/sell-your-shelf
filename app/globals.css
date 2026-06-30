@@ -12,5 +12,5 @@
   --color-brand-border: #E5E3DF;
   --color-brand-border-light: #F0EDE8;
   
-  --font-serif: 'Fraunces', Georgia, serif;
+  --font-serif: var(--font-fraunces), 'Fraunces', Georgia, serif;
 }
