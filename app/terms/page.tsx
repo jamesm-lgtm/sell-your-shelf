@@ -8,7 +8,7 @@ export default function Terms() {
       <main className="py-16">
       <div className="max-w-2xl mx-auto px-6">
         <h1 className="text-3xl font-bold mb-8">Terms of Service</h1>
-        <p className="text-gray-600 mb-8">Last updated: January 2026</p>
+        <p className="text-gray-600 mb-8">Last updated: August 2026</p>
 
         <div className="space-y-8 text-gray-700">
           <section>
@@ -93,8 +93,7 @@ export default function Terms() {
             <h2 className="text-xl font-semibold mb-3">8. Fees</h2>
             <p className="mb-2">Sell Your Shelf charges sellers the following fees on completed sales:</p>
             <ul className="list-disc pl-6 space-y-1">
-              <li><strong>Books priced £5 and above:</strong> 20% platform fee</li>
-              <li><strong>Books priced under £5:</strong> £1 flat fee</li>
+              <li><strong>20% platform fee</strong> on the sale price, with a <strong>minimum fee of £0.60</strong> per book</li>
             </ul>
             <p className="mt-2">
               Fees are deducted automatically from the sale price before payout to sellers. 
