@@ -18,6 +18,24 @@ function generateSlug(title: string, author: string): string {
     .replace(/^-|-$/g, '')
 }
 
+// Supabase caps every query at 1,000 rows by default. Anything that can
+// exceed that (listings, books, sellers) must be fetched with .range()
+// pages or the sitemap silently truncates — which is exactly what
+// happened when active listings passed 1,000.
+const PAGE_SIZE = 1000;
+async function fetchAllRows<T>(
+  buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < PAGE_SIZE) break;
+  }
+  return all;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
@@ -85,88 +103,107 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
+  // One paged fetch of active listings feeds book pages, listing pages,
+  // and the seller filter below.
+  type ActiveListingRow = {
+    id: number;
+    created_at: string;
+    book_id: number | null;
+    user_id: string | null;
+  };
+  let activeListings: ActiveListingRow[] = [];
+  try {
+    activeListings = await fetchAllRows<ActiveListingRow>((from, to) =>
+      supabase
+        .from('listings')
+        .select('id, created_at, book_id, user_id')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .range(from, to)
+    );
+  } catch (e) {
+    console.error('Sitemap: failed to fetch listings', e);
+  }
+
   // Book aggregation pages — highest SEO value
   let bookPages: MetadataRoute.Sitemap = [];
   try {
-    // Get all book_ids that have active listings
-    const { data: activeListings } = await supabase
-      .from('listings')
-      .select('book_id')
-      .eq('status', 'active')
-      .not('book_id', 'is', null);
+    const bookIds = [...new Set(activeListings.map(l => l.book_id).filter(Boolean))];
 
-    if (activeListings) {
-      const bookIds = [...new Set(activeListings.map(l => l.book_id))];
-
-      // Fetch book data in batches (Supabase max 1000 per query)
-      const batchSize = 500;
-      const allBooks: any[] = [];
-      for (let i = 0; i < bookIds.length; i += batchSize) {
-        const batch = bookIds.slice(i, i + batchSize);
-        const { data: books } = await supabase
-          .from('books')
-          .select('id, title_normalized, author_normalized')
-          .in('id', batch);
-        if (books) allBooks.push(...books);
-      }
-
-      bookPages = allBooks
-        .map((book) => {
-          const slug = generateSlug(
-            book.title_normalized || '',
-            book.author_normalized || ''
-          );
-          if (!slug) return null;
-          return {
-            url: `https://www.sellyourshelf.com/books/${slug}`,
-            lastModified: new Date(),
-            changeFrequency: 'daily' as const,
-            priority: 0.8,
-          };
-        })
-        .filter(Boolean) as MetadataRoute.Sitemap;
+    // Fetch book data in batches (.in() list, not row count, is the limit here)
+    const batchSize = 500;
+    const allBooks: any[] = [];
+    for (let i = 0; i < bookIds.length; i += batchSize) {
+      const batch = bookIds.slice(i, i + batchSize);
+      const { data: books } = await supabase
+        .from('books')
+        .select('id, title_normalized, author_normalized')
+        .in('id', batch);
+      if (books) allBooks.push(...books);
     }
+
+    bookPages = allBooks
+      .map((book) => {
+        const slug = generateSlug(
+          book.title_normalized || '',
+          book.author_normalized || ''
+        );
+        if (!slug) return null;
+        return {
+          url: `https://www.sellyourshelf.com/books/${slug}`,
+          lastModified: new Date(),
+          changeFrequency: 'daily' as const,
+          priority: 0.8,
+        };
+      })
+      .filter(Boolean) as MetadataRoute.Sitemap;
+
+    // Dedupe: distinct books can normalize to the same slug
+    const seen = new Set<string>();
+    bookPages = bookPages.filter((p) => {
+      if (seen.has(p.url)) return false;
+      seen.add(p.url);
+      return true;
+    });
   } catch (e) {
     console.error('Sitemap: failed to fetch books', e);
   }
 
   // Active listings
-  let listingPages: MetadataRoute.Sitemap = [];
-  try {
-    const { data: listings } = await supabase
-      .from('listings')
-      .select('id, created_at')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
+  const listingPages: MetadataRoute.Sitemap = activeListings.map((listing) => ({
+    url: `https://www.sellyourshelf.com/listing/${listing.id}`,
+    lastModified: new Date(listing.created_at),
+    changeFrequency: 'weekly' as const,
+    priority: 0.6,
+  }));
 
-    if (listings) {
-      listingPages = listings.map((listing) => ({
-        url: `https://www.sellyourshelf.com/listing/${listing.id}`,
-        lastModified: new Date(listing.created_at),
-        changeFrequency: 'weekly' as const,
-        priority: 0.6,
-      }));
-    }
-  } catch (e) {
-    console.error('Sitemap: failed to fetch listings', e);
-  }
-
-  // Seller profiles
+  // Seller profiles — only sellers with at least one active listing.
+  // (Previously all users with a username, which both hit the 1,000-row
+  // cap and filled the sitemap with empty shelves.)
   let sellerPages: MetadataRoute.Sitemap = [];
   try {
-    const { data: sellers } = await supabase
-      .from('users')
-      .select('username, created_at')
-      .not('username', 'is', null);
+    const sellerIds = [...new Set(activeListings.map(l => l.user_id).filter(Boolean))];
 
-    if (sellers) {
-      sellerPages = sellers.map((seller) => ({
+    const batchSize = 500;
+    const sellers: Array<{ username: string | null; created_at: string }> = [];
+    for (let i = 0; i < sellerIds.length; i += batchSize) {
+      const batch = sellerIds.slice(i, i + batchSize);
+      const { data } = await supabase
+        .from('users')
+        .select('username, created_at')
+        .in('id', batch)
+        .not('username', 'is', null);
+      if (data) sellers.push(...data);
+    }
+
+    sellerPages = sellers
+      .filter((s) => s.username)
+      .map((seller) => ({
         url: `https://www.sellyourshelf.com/${seller.username}`,
         lastModified: new Date(seller.created_at),
         changeFrequency: 'weekly' as const,
         priority: 0.5,
       }));
-    }
   } catch (e) {
     console.error('Sitemap: failed to fetch sellers', e);
   }
