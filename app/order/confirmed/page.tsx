@@ -3,6 +3,7 @@ import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import AppBadges from '@/app/components/AppBadges'
+import GaPurchase from '@/app/components/GaPurchase'
 
 export const revalidate = 0
 
@@ -68,6 +69,13 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
     : null
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+      {transaction && totalPaid && (
+        <GaPurchase
+          transactionId={paymentIntentParam || String(transaction.id)}
+          value={Number(totalPaid)}
+          items={[{ item_id: String(transaction.id), item_name: book?.title ?? 'Book' }]}
+        />
+      )}
 
       <SiteNav />
 

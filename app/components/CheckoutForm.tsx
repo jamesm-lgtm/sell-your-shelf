@@ -5,6 +5,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { getOrCreateSessionId } from '@/app/lib/session'
 import { track } from '@/app/lib/analytics'
+import { gaEvent } from '@/app/lib/ga'
 import { resolveBookCover } from '@/app/lib/coverUrl'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -148,6 +149,11 @@ export default function CheckoutForm({ listing }: Props) {
     track('checkout_started', { listing_id: listing.id }, {
       source: 'checkout',
       listingId: listing.id,
+    })
+    gaEvent('begin_checkout', {
+      currency: 'GBP',
+      value: Number(listing.asking_price_gbp),
+      items: [{ item_id: String(listing.id), item_name: listing.title, quantity: 1 }],
     })
     // Fire once per checkout form mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
