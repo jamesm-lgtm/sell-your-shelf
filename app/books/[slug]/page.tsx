@@ -5,6 +5,7 @@ import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import AppBadges from '@/app/components/AppBadges'
 import BuyNowLink from '@/app/components/BuyNowLink'
+import BookViewTracker from '@/app/components/BookViewTracker'
 
 export const revalidate = 0
 
@@ -155,6 +156,8 @@ export default async function BookPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      <BookViewTracker bookId={book.id} slug={slug} />
 
       <SiteNav />
 
