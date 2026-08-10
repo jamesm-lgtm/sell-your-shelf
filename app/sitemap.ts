@@ -105,18 +105,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // One paged fetch of active listings feeds book pages, listing pages,
   // and the seller filter below.
+  type BookSlugRef = { slug: string | null };
   type ActiveListingRow = {
     id: number;
     created_at: string;
     book_id: number | null;
     user_id: string | null;
+    // supabase-js types embedded relations as arrays even for many-to-one,
+    // where PostgREST actually returns an object — accept both shapes.
+    books: BookSlugRef | BookSlugRef[] | null;
   };
+  const bookSlugOf = (l: ActiveListingRow): string | null =>
+    (Array.isArray(l.books) ? l.books[0]?.slug : l.books?.slug) ?? null;
   let activeListings: ActiveListingRow[] = [];
   try {
     activeListings = await fetchAllRows<ActiveListingRow>((from, to) =>
       supabase
         .from('listings')
-        .select('id, created_at, book_id, user_id')
+        .select('id, created_at, book_id, user_id, books(slug)')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .range(from, to)
@@ -137,14 +143,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const batch = bookIds.slice(i, i + batchSize);
       const { data: books } = await supabase
         .from('books')
-        .select('id, title_normalized, author_normalized')
+        .select('id, slug, title_normalized, author_normalized')
         .in('id', batch);
       if (books) allBooks.push(...books);
     }
 
     bookPages = allBooks
       .map((book) => {
-        const slug = generateSlug(
+        // Prefer the persisted slug — it's what listing-page canonicals
+        // point at, and the sitemap must submit the same URL Google is
+        // told is canonical. Generated slug is the fallback for books
+        // the enrichment sweep hasn't reached yet.
+        const slug = book.slug || generateSlug(
           book.title_normalized || '',
           book.author_normalized || ''
         );
@@ -169,13 +179,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Sitemap: failed to fetch books', e);
   }
 
-  // Active listings
-  const listingPages: MetadataRoute.Sitemap = activeListings.map((listing) => ({
-    url: `https://www.sellyourshelf.com/listing/${listing.id}`,
-    lastModified: new Date(listing.created_at),
-    changeFrequency: 'weekly' as const,
-    priority: 0.6,
-  }));
+  // Active listings — only those that self-canonicalise. Listings whose
+  // book has a persisted slug canonicalise to the /books/ hub (see
+  // app/listing/[id]/page.tsx generateMetadata); submitting them here
+  // would just generate "Duplicate, submitted URL not selected as
+  // canonical" noise in Search Console. As the enrichment sweep
+  // populates book slugs, listings naturally migrate out of the sitemap
+  // in favour of their hubs.
+  const listingPages: MetadataRoute.Sitemap = activeListings
+    .filter((listing) => !bookSlugOf(listing))
+    .map((listing) => ({
+      url: `https://www.sellyourshelf.com/listing/${listing.id}`,
+      lastModified: new Date(listing.created_at),
+      changeFrequency: 'weekly' as const,
+      priority: 0.6,
+    }));
 
   // Seller profiles — only sellers with at least one active listing.
   // (Previously all users with a username, which both hit the 1,000-row
