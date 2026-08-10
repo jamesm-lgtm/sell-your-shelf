@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { isBotUserAgent } from '@/app/lib/botDetect'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
     utm_medium: utm_medium || null,
     utm_campaign: utm_campaign || null,
     platform: 'web',
+    is_bot: isBotUserAgent(userAgent),
     // user_id stays null on web until cookie-based auth lands.
   })
 
