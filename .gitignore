@@ -48,3 +48,4 @@ SellYourShelf/
 # Worktrees + Deno local artifacts (added 2026-06-10 after an accidental commit)
 .claude/
 deno.lock
+gsc-service-account.json

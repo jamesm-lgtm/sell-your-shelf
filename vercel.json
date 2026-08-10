@@ -6,5 +6,8 @@
         { "key": "Content-Type", "value": "application/json" }
       ]
     }
+  ],
+  "crons": [
+    { "path": "/api/cron/gsc-import", "schedule": "0 6 * * *" }
   ]
 }
