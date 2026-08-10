@@ -14,6 +14,7 @@ type DailyRow = {
   checkout_starts: number
   impressions: number
   clicks: number
+  app_dau: number
   app_sales: number
   app_gmv: number
   ebay_sales: number
@@ -26,6 +27,7 @@ type Dashboard = {
   sources: { source: string; views: number; sessions: number }[]
   top_books: { title: string; author: string | null; views: number }[]
   top_queries: { query: string; impressions: number; clicks: number; position: number }[]
+  seller_funnel: { registered: number; listed: number; payments_enabled: number; made_a_sale: number }
   totals: {
     views: number
     sessions: number
@@ -229,13 +231,7 @@ function MiniBars({ daily, getValue, color, format, label }: {
 // Horizontal funnel: ordinal blue ramp (steps 250→550).
 const FUNNEL_RAMP = ['#86b6ef', '#5598e7', '#2a78d6', '#1c5cab']
 
-function Funnel({ totals }: { totals: Dashboard['totals'] }) {
-  const stages = [
-    { label: 'Page views', value: totals.views },
-    { label: 'Unique sessions', value: totals.sessions },
-    { label: 'Checkout starts', value: totals.checkout_starts },
-    { label: 'Purchases', value: totals.sales },
-  ]
+function Funnel({ stages }: { stages: { label: string; value: number }[] }) {
   const max = Math.max(1, ...stages.map((s) => s.value))
   return (
     <div style={{ display: 'grid', gap: 6 }}>
@@ -452,11 +448,40 @@ export default function AnalyticsPage() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-              <Card title={`Funnel (${prevWindowNote})`}>
-                <Funnel totals={data.totals} />
+              <Card title={`Buyer funnel (${prevWindowNote})`}>
+                <Funnel
+                  stages={[
+                    { label: 'Page views', value: data.totals.views },
+                    { label: 'Unique sessions', value: data.totals.sessions },
+                    { label: 'Checkout starts', value: data.totals.checkout_starts },
+                    { label: 'Purchases', value: data.totals.sales },
+                  ]}
+                />
               </Card>
               <Card title="Traffic sources (landing referrer)">
                 <SourceBars sources={data.sources} />
+              </Card>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
+              <Card title={`Seller activation — signed up in ${prevWindowNote}`}>
+                <Funnel
+                  stages={[
+                    { label: 'Registered', value: data.seller_funnel.registered },
+                    { label: 'Listed a book', value: data.seller_funnel.listed },
+                    { label: 'Payments enabled', value: data.seller_funnel.payments_enabled },
+                    { label: 'Made a sale', value: data.seller_funnel.made_a_sale },
+                  ]}
+                />
+                <div style={{ fontSize: 11, color: INK_MUTED, marginTop: 8 }}>
+                  Cohort funnel: later stages naturally lag sign-up, so short windows understate them.
+                </div>
+              </Card>
+              <Card title="App daily active users">
+                <MiniBars daily={data.daily} getValue={(r) => r.app_dau} color="#1baf7a" format={(n) => `${n} active user${n === 1 ? '' : 's'}`} label="App daily active users" />
+                <div style={{ fontSize: 11, color: INK_MUTED, marginTop: 8 }}>
+                  Counts signed-in users sending app events — populates as the next app release rolls out.
+                </div>
               </Card>
             </div>
 
