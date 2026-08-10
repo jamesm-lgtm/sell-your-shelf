@@ -5,11 +5,10 @@
 // inserts into the `events` table.
 //
 // Developer filter: appending ?debug=1 to any URL on the site sets a flag in
-// sessionStorage that suppresses every track() call for the rest of that tab
-// session. Useful for QA / dogfooding without polluting the events table. The
-// flag clears automatically when the tab closes (sessionStorage scope). To
-// clear it earlier, run `sessionStorage.removeItem('sys_debug_no_track')` in
-// the browser console.
+// localStorage that suppresses every track() call, all three view trackers
+// (book/listing/shelf), and GA page views — for this browser, permanently.
+// Useful for QA / dogfooding without polluting analytics. Clear it with
+// ?debug=0 on any URL (or `localStorage.removeItem('sys_debug_no_track')`).
 
 import { getOrCreateSessionId } from '@/app/lib/session'
 
@@ -112,14 +111,29 @@ function attachPageHideListener() {
   window.addEventListener('pagehide', flush)
 }
 
-function isDebugSuppressed(): boolean {
+// Exported so the view trackers (BookViewTracker etc.) and GaPageViews can
+// honour the same opt-out. ?debug=1 sets the flag, ?debug=0 clears it;
+// between those, the URL no longer matters. localStorage scope: survives
+// tabs and restarts — set it once per browser/device you use.
+export function isDebugSuppressed(): boolean {
   if (typeof window === 'undefined') return false
 
-  // ?debug=1 on the URL sets the flag; afterwards the URL no longer matters.
-  const params = new URLSearchParams(window.location.search)
-  if (params.get('debug') === '1') {
-    sessionStorage.setItem(DEBUG_FLAG_KEY, '1')
-  }
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('debug') === '1') {
+      localStorage.setItem(DEBUG_FLAG_KEY, '1')
+      // Migrate: older sessions used sessionStorage
+      sessionStorage.removeItem(DEBUG_FLAG_KEY)
+    } else if (params.get('debug') === '0') {
+      localStorage.removeItem(DEBUG_FLAG_KEY)
+      sessionStorage.removeItem(DEBUG_FLAG_KEY)
+    }
 
-  return sessionStorage.getItem(DEBUG_FLAG_KEY) === '1'
+    return (
+      localStorage.getItem(DEBUG_FLAG_KEY) === '1' ||
+      sessionStorage.getItem(DEBUG_FLAG_KEY) === '1'
+    )
+  } catch {
+    return false
+  }
 }
