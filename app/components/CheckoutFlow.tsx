@@ -20,6 +20,7 @@ import {
   trackCheckoutInitiated,
   trackCheckoutStaleItemsDetected,
 } from '@/app/lib/basketAnalytics'
+import { gaEvent } from '@/app/lib/ga'
 
 const FOREST = '#2D4A3E'
 const FOREST_DEEP = '#1F3329'
@@ -139,6 +140,16 @@ export default function CheckoutFlow() {
     // "buyer commits" moment, distinct from clicking the basket Checkout
     // button which the /basket page already tracks).
     trackCheckoutInitiated({ basket, isGuest: true, applyWallet: false })
+    gaEvent('begin_checkout', {
+      currency: 'GBP',
+      value: subtotal,
+      items: items.map((it) => ({
+        item_id: String(it.listingId),
+        item_name: it.title,
+        price: it.priceGbp,
+        quantity: 1,
+      })),
+    })
 
     try {
       // Collect unique non-null bundleIds from basket items. Server

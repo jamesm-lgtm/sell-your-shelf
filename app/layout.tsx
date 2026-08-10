@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Fraunces } from "next/font/google";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { BasketProvider } from "./components/BasketProvider";
 import BasketWidget from "./components/BasketWidget";
 import { ShelfInventoryProvider } from "./components/ShelfInventoryProvider";
+import GaPageViews from "./components/GaPageViews";
+import CookieBanner from "./components/CookieBanner";
+import { GA_ID } from "./lib/ga";
 
 // Display/heading typeface. Exposed as the --font-fraunces CSS variable
 // (wired into --font-serif in globals.css) so headings can opt into it
@@ -52,6 +57,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={fraunces.variable}>
+      <head>
+        {/* Consent Mode default MUST run before gtag.js: analytics denied
+            unless a previous visit granted it (localStorage). GA sends
+            cookieless pings while denied; the CookieBanner upgrades
+            consent on accept. */}
+        <Script id="ga-consent-default" strategy="beforeInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+window.gtag = gtag;
+var sysConsent = 'denied';
+try { if (localStorage.getItem('sys_analytics_consent') === 'granted') sysConsent = 'granted'; } catch (e) {}
+gtag('consent', 'default', {
+  analytics_storage: sysConsent,
+  ad_storage: 'denied',
+  ad_user_data: 'denied',
+  ad_personalization: 'denied'
+});
+gtag('js', new Date());
+gtag('config', '${GA_ID}', { send_page_view: false });`}
+        </Script>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+      </head>
       <body className="antialiased">
         <BasketProvider>
           <ShelfInventoryProvider>
@@ -59,6 +89,10 @@ export default function RootLayout({
             <BasketWidget />
           </ShelfInventoryProvider>
         </BasketProvider>
+        <Suspense fallback={null}>
+          <GaPageViews />
+        </Suspense>
+        <CookieBanner />
         <Analytics />
       </body>
     </html>

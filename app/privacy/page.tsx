@@ -115,9 +115,26 @@ export default function Privacy() {
             <section>
               <h2 className="text-xl font-semibold mb-3">8. Cookies and tracking</h2>
               <p>
-                We use localStorage to store a session identifier for analytics purposes. This helps us
-                understand how visitors use the site (e.g. which listings are viewed, whether visitors
-                return). We do not use third-party tracking cookies or advertising pixels.
+                We use localStorage to store a session identifier for our own first-party analytics. This
+                helps us understand how visitors use the site (e.g. which listings are viewed, whether
+                visitors return).
+              </p>
+              <p className="mt-3">
+                With your consent, we also use Google Analytics to understand how visitors find and use
+                the site. Google Analytics sets cookies only if you accept them via the cookie banner;
+                if you decline (or ignore the banner), no analytics cookies are set. You can change your
+                mind at any time by clearing this site&apos;s data in your browser, which will show the
+                banner again. Data collected by Google Analytics is aggregated and is not used for
+                advertising. See{' '}
+                <a
+                  href="https://policies.google.com/privacy"
+                  className="underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Google&apos;s privacy policy
+                </a>{' '}
+                for how Google processes this data. We do not use advertising pixels.
               </p>
             </section>
 

@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import OrderConfirmationClient from '@/app/components/OrderConfirmationClient'
+import GaPurchase from '@/app/components/GaPurchase'
 
 export const revalidate = 0
 export const metadata: Metadata = {
@@ -44,6 +45,17 @@ export default async function OrderConfirmationPage({ params }: Props) {
 
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+      {['paid', 'shipped', 'delivered', 'completed'].includes(order.status as string) && (
+        <GaPurchase
+          transactionId={order.id as string}
+          value={Number(order.total_gbp)}
+          items={items.map((it) => ({
+            item_id: String(it.id),
+            item_name: it.title,
+            price: Number(it.price_gbp),
+          }))}
+        />
+      )}
       <SiteNav />
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 16px 64px' }}>
         <OrderConfirmationClient
