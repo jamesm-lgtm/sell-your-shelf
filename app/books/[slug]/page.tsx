@@ -28,6 +28,32 @@ const CONDITION_COLORS: Record<string, { bg: string; text: string }> = {
   acceptable: { bg: '#F3F4F6', text: '#374151' },
 }
 
+/** schema.org bookFormat from a raw binding string ("Hardcover", "Mass
+ *  Market Paperback", ...). Undefined when unknown — omit rather than guess. */
+function schemaBookFormat(binding: string | null | undefined): string | undefined {
+  if (!binding) return undefined
+  const b = binding.toLowerCase()
+  if (b.includes('hardcover') || b.includes('hardback')) return 'https://schema.org/Hardcover'
+  if (b.includes('paperback') || b.includes('softcover') || b.includes('mass market')) return 'https://schema.org/Paperback'
+  if (b.includes('audio')) return 'https://schema.org/AudiobookFormat'
+  return undefined
+}
+
+/** Render a description as paragraphs. Descriptions arrive with \n breaks
+ *  from the cleanup pipeline; single blob fallback if none. */
+function DescriptionParagraphs({ text, fontSize = 14 }: { text: string; fontSize?: number }) {
+  const paragraphs = text.split(/\n{2,}|\n/).map(p => p.trim()).filter(p => p.length > 0)
+  return (
+    <>
+      {paragraphs.map((p, i) => (
+        <p key={i} style={{ fontSize, color: '#444', lineHeight: 1.7, marginBottom: i === paragraphs.length - 1 ? 0 : 10 }}>
+          {p}
+        </p>
+      ))}
+    </>
+  )
+}
+
 function generateSlug(title: string, author: string): string {
   return `${title}-${author}`
     .toLowerCase()
@@ -106,12 +132,26 @@ export async function generateMetadata({ params }: Props) {
   const lowestPrice = Math.min(...listings.map(l => Number(l.asking_price_gbp))).toFixed(2)
   const listingCount = listings.length
 
+  // Meta description: availability + a hook from the real synopsis reads far
+  // better in a SERP than boilerplate alone, and dedupes pages from Google's
+  // point of view.
+  const descHook = book.description
+    ? ` ${String(book.description).replace(/\s+/g, ' ').slice(0, 110).trim()}…`
+    : ' Free shipping.'
+  const title = `Buy ${book.title} by ${book.author} | Used from £${lowestPrice}`
+  const description = `${listingCount} used cop${listingCount === 1 ? 'y' : 'ies'} from £${lowestPrice} on Sell Your Shelf.${descHook}`
+
   return {
-    title: `Buy ${book.title} by ${book.author} | Sell Your Shelf`,
-    description: `${listingCount} used cop${listingCount === 1 ? 'y' : 'ies'} of ${book.title} from £${lowestPrice}. Free shipping.`,
+    title,
+    description,
+    alternates: { canonical: `/books/${slug}` },
     openGraph: {
+      title,
+      description,
+      type: 'website',
       images: [book.cover_url_hosted || book.cover_url || '/og-default.png'],
     },
+    twitter: { card: 'summary_large_image' },
   }
 }
 
@@ -134,19 +174,60 @@ export default async function BookPage({ params }: Props) {
   const lowestPrice = Number(listings[0].asking_price_gbp).toFixed(2)
   const highestPrice = Number(listings[listings.length - 1].asking_price_gbp).toFixed(2)
 
+  // Edition facts from the ISBNdb enrichment pipeline (book_metadata):
+  // binding/pages/publisher/year/language. Prefer the seller-selected
+  // edition row, fall back to any enriched row.
+  const { data: editionMeta } = await supabase
+    .from('book_metadata')
+    .select('binding, page_count, publisher, published_date, language, isbn_13')
+    .eq('book_id', book.id)
+    .order('is_selected', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const cover = book.cover_url_hosted || book.cover_url
+  const isbn13 = editionMeta?.isbn_13 || book.isbn || null
+  const publishedYear = editionMeta?.published_date?.match(/\d{4}/)?.[0] ?? null
+  const bookFormat = schemaBookFormat(editionMeta?.binding)
+  const canonicalUrl = `https://www.sellyourshelf.com/books/${slug}`
+
+  // Rich Book entity: image/description/edition facts are what qualify the
+  // page for book + price rich results on the specific-title searches that
+  // convert. Every field is omitted (not nulled) when unknown.
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Book',
     name: book.title,
     author: { '@type': 'Person', name: book.author },
-    ...(book.isbn ? { isbn: book.isbn } : {}),
+    url: canonicalUrl,
+    ...(cover ? { image: cover } : {}),
+    ...(book.description ? { description: String(book.description).slice(0, 5000) } : {}),
+    ...(isbn13 ? { isbn: isbn13 } : {}),
+    ...(bookFormat ? { bookFormat } : {}),
+    ...(editionMeta?.page_count ? { numberOfPages: editionMeta.page_count } : {}),
+    ...(editionMeta?.publisher ? { publisher: { '@type': 'Organization', name: editionMeta.publisher } } : {}),
+    ...(publishedYear ? { datePublished: publishedYear } : {}),
+    ...(editionMeta?.language ? { inLanguage: editionMeta.language } : {}),
     offers: {
       '@type': 'AggregateOffer',
       lowPrice: lowestPrice,
       highPrice: highestPrice,
       priceCurrency: 'GBP',
       offerCount: String(listings.length),
+      availability: 'https://schema.org/InStock',
+      itemCondition: 'https://schema.org/UsedCondition',
+      url: canonicalUrl,
     },
+  }
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.sellyourshelf.com' },
+      { '@type': 'ListItem', position: 2, name: 'Browse', item: 'https://www.sellyourshelf.com/new' },
+      { '@type': 'ListItem', position: 3, name: book.title, item: canonicalUrl },
+    ],
   }
 
   return (
@@ -155,6 +236,10 @@ export default async function BookPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <BookViewTracker bookId={book.id} slug={slug} />
@@ -196,15 +281,34 @@ export default async function BookPage({ params }: Props) {
               {book.title}
             </h1>
             {book.author && (
-              <p style={{ fontSize: 15, color: '#666', marginBottom: 16 }}>
+              <p style={{ fontSize: 15, color: '#666', marginBottom: 12 }}>
                 {book.author}
               </p>
             )}
 
-            {book.description && (
-              <p style={{ fontSize: 13, color: '#444', lineHeight: 1.6, marginBottom: 16 }}>
-                {book.description.length > 300 ? book.description.slice(0, 300) + '...' : book.description}
-              </p>
+            {(editionMeta?.binding || editionMeta?.page_count || editionMeta?.publisher || publishedYear || isbn13) && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                {editionMeta?.binding && (
+                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                    {editionMeta.binding}
+                  </span>
+                )}
+                {editionMeta?.page_count && (
+                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                    {editionMeta.page_count} pages
+                  </span>
+                )}
+                {editionMeta?.publisher && (
+                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                    {editionMeta.publisher}{publishedYear ? `, ${publishedYear}` : ''}
+                  </span>
+                )}
+                {isbn13 && (
+                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
+                    ISBN: {isbn13}
+                  </span>
+                )}
+              </div>
             )}
 
             <p style={{ fontSize: 14, color: '#666' }}>
@@ -212,6 +316,17 @@ export default async function BookPage({ params }: Props) {
             </p>
           </div>
         </div>
+
+        {/* Full description — rendered complete (no truncation) so both
+            readers and crawlers get the whole synopsis, in paragraphs. */}
+        {book.description && (
+          <div style={{ marginBottom: 40 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#1A1A1A', marginBottom: 12, borderBottom: '0.5px solid #E5E3DF', paddingBottom: 12 }}>
+              About this book
+            </h2>
+            <DescriptionParagraphs text={String(book.description)} fontSize={14} />
+          </div>
+        )}
 
         {/* Available copies */}
         <div style={{ marginBottom: 40 }}>

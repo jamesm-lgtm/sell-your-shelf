@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props) {
 
   const { data } = await supabase
     .from('marketplace_listings')
-    .select('title, author, asking_price_gbp, edition_cover, work_cover, edition_cover_hosted, work_cover_hosted')
+    .select('title, author, asking_price_gbp, condition, book_id, edition_cover, work_cover, edition_cover_hosted, work_cover_hosted')
     .eq('id', id)
     .single()
 
@@ -41,12 +41,28 @@ export async function generateMetadata({ params }: Props) {
 
   const cover = data.edition_cover_hosted || data.edition_cover || data.work_cover_hosted || data.work_cover
 
+  // Canonical: copies of the same book are near-duplicate pages. Pointing
+  // them at the book hub concentrates ranking signal on one URL per title —
+  // the page that shows every copy — instead of splitting it across
+  // per-copy pages that die when the copy sells.
+  const { data: bookRow } = data.book_id
+    ? await supabase.from('books').select('slug').eq('id', data.book_id).single()
+    : { data: null }
+  const canonical = bookRow?.slug ? `/books/${bookRow.slug}` : `/listing/${id}`
+
+  const condition = CONDITIONS[data.condition as string] ?? null
+  const description =
+    `${data.author ? `by ${data.author} — ` : ''}` +
+    `${condition ? `${condition} condition, ` : ''}` +
+    `£${Number(data.asking_price_gbp).toFixed(2)} on Sell Your Shelf`
+
   return {
     title: `${data.title} — Sell Your Shelf`,
-    description: `${data.author ? `by ${data.author} — ` : ''}£${Number(data.asking_price_gbp).toFixed(2)} on Sell Your Shelf`,
+    description,
+    alternates: { canonical },
     openGraph: {
       title: `${data.title} on Sell Your Shelf`,
-      description: `${data.author ? `by ${data.author} — ` : ''}£${Number(data.asking_price_gbp).toFixed(2)}`,
+      description,
       images: cover ? [{ url: cover }] : [],
     },
     twitter: { card: 'summary_large_image' },
@@ -205,8 +221,39 @@ export default async function ListingPage({ params }: Props) {
     })
   }
 
+  // Product entity with a concrete Offer — price, availability and condition
+  // are what qualify the page for price-annotated results. The seller's own
+  // photo (if any) leads the image array: it is the actual item.
+  const listingUrl = `https://www.sellyourshelf.com/listing/${id}`
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: listing.title,
+    ...(listing.author ? { brand: { '@type': 'Person', name: listing.author } } : {}),
+    ...(cover ? { image: [listing.seller_cover_url, cover].filter(Boolean) } : {}),
+    ...(description ? { description: String(description).replace(/\s+/g, ' ').slice(0, 500) } : {}),
+    sku: String(id),
+    ...(listing.isbn && String(listing.isbn).replace(/[^0-9]/g, '').length === 13
+      ? { gtin13: String(listing.isbn).replace(/[^0-9]/g, '') }
+      : {}),
+    offers: {
+      '@type': 'Offer',
+      url: listingUrl,
+      price: Number(listing.asking_price_gbp).toFixed(2),
+      priceCurrency: 'GBP',
+      availability: 'https://schema.org/InStock',
+      itemCondition: 'https://schema.org/UsedCondition',
+      ...(username ? { seller: { '@type': 'Person', name: `@${username}` } } : {}),
+    },
+  }
+
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
       <ListingDeepLink listingId={id} />
 
@@ -322,9 +369,13 @@ export default async function ListingPage({ params }: Props) {
         {description && (
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 13, color: '#999', fontWeight: 500, marginBottom: 8 }}>About this book</p>
-            <p style={{ fontSize: 14, color: '#444', lineHeight: 1.7 }}>
-              {description.length > 400 ? description.slice(0, 400) + '...' : description}
-            </p>
+            {/* Full text, split into paragraphs — no truncation. Crawlers
+                index the whole synopsis; readers get real paragraphs. */}
+            {String(description).split(/\n{2,}|\n/).map(p => p.trim()).filter(Boolean).map((p, i, arr) => (
+              <p key={i} style={{ fontSize: 14, color: '#444', lineHeight: 1.7, marginBottom: i === arr.length - 1 ? 0 : 10 }}>
+                {p}
+              </p>
+            ))}
           </div>
         )}
 
