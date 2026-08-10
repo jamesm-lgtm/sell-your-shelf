@@ -12,6 +12,8 @@ type DailyRow = {
   listing_views: number
   shelf_visits: number
   checkout_starts: number
+  impressions: number
+  clicks: number
   app_sales: number
   app_gmv: number
   ebay_sales: number
@@ -23,7 +25,16 @@ type Dashboard = {
   daily: DailyRow[]
   sources: { source: string; views: number; sessions: number }[]
   top_books: { title: string; author: string | null; views: number }[]
-  totals: { views: number; sessions: number; checkout_starts: number; sales: number; gmv: number }
+  top_queries: { query: string; impressions: number; clicks: number; position: number }[]
+  totals: {
+    views: number
+    sessions: number
+    checkout_starts: number
+    sales: number
+    gmv: number
+    impressions: number
+    clicks: number
+  }
   gsc_rows: number
 }
 
@@ -374,7 +385,9 @@ export default function AnalyticsPage() {
         {data && (
           <div style={{ display: 'grid', gap: 14 }}>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <StatTile label={`Page views (${prevWindowNote})`} value={data.totals.views.toLocaleString()} />
+              <StatTile label={`Impressions (${prevWindowNote})`} value={data.totals.impressions.toLocaleString()} sub="Google Search" />
+              <StatTile label="Clicks" value={data.totals.clicks.toLocaleString()} sub="Google Search" />
+              <StatTile label="Page views" value={data.totals.views.toLocaleString()} />
               <StatTile label="Unique sessions" value={data.totals.sessions.toLocaleString()} />
               <StatTile label="Checkout starts" value={data.totals.checkout_starts.toLocaleString()} />
               <StatTile label="Purchases" value={data.totals.sales.toLocaleString()} />
@@ -421,6 +434,15 @@ export default function AnalyticsPage() {
             </Card>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+              <Card title="Daily search impressions">
+                <MiniBars daily={data.daily} getValue={(r) => r.impressions} color="#2a78d6" format={(n) => `${n.toLocaleString()} impressions`} label="Daily search impressions" />
+              </Card>
+              <Card title="Daily search clicks">
+                <MiniBars daily={data.daily} getValue={(r) => r.clicks} color="#eb6834" format={(n) => `${n} click${n === 1 ? '' : 's'}`} label="Daily search clicks" />
+              </Card>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
               <Card title="Daily purchases (app + eBay)">
                 <MiniBars daily={data.daily} getValue={(r) => r.app_sales + r.ebay_sales} color="#2a78d6" format={(n) => `${n} sale${n === 1 ? '' : 's'}`} label="Daily purchases" />
               </Card>
@@ -437,6 +459,33 @@ export default function AnalyticsPage() {
                 <SourceBars sources={data.sources} />
               </Card>
             </div>
+
+            <Card title={`Top search queries (${prevWindowNote})`}>
+              {data.top_queries.length === 0 ? (
+                <div style={{ fontSize: 13, color: INK_MUTED }}>No query data in this window.</div>
+              ) : (
+                <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
+                  <thead>
+                    <tr style={{ color: INK_MUTED, fontSize: 12 }}>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 400 }}>Query</th>
+                      <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Impressions</th>
+                      <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Clicks</th>
+                      <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Avg pos</th>
+                    </tr>
+                  </thead>
+                  <tbody style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {data.top_queries.map((q) => (
+                      <tr key={q.query} style={{ borderTop: `1px solid ${GRID}` }}>
+                        <td style={{ padding: '6px 8px' }}>{q.query}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{q.impressions.toLocaleString()}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{q.clicks}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{q.position}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
 
             <Card title="Most-viewed book pages (last 7 days)">
               {data.top_books.length === 0 ? (
