@@ -9,6 +9,7 @@
 import { useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { GA_ID, gaEvent } from '@/app/lib/ga'
+import { isDebugSuppressed } from '@/app/lib/analytics'
 
 export default function GaPageViews() {
   const pathname = usePathname()
@@ -16,6 +17,7 @@ export default function GaPageViews() {
 
   useEffect(() => {
     if (!pathname || pathname.startsWith('/admin')) return
+    if (isDebugSuppressed()) return
     const query = searchParams.toString()
     gaEvent('page_view', {
       page_path: query ? `${pathname}?${query}` : pathname,

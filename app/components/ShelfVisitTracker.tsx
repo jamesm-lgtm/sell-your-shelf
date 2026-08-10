@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react'
 import { getOrCreateSessionId, getLandingReferrer, getLandingUtm } from '@/app/lib/session'
+import { isDebugSuppressed } from '@/app/lib/analytics'
 
 export default function ShelfVisitTracker({ username }: { username: string }) {
   useEffect(() => {
+    if (isDebugSuppressed()) return
     const sessionId = getOrCreateSessionId()
     const referrer = getLandingReferrer()
     const utm = getLandingUtm()
