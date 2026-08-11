@@ -6,6 +6,7 @@ import Footer from '@/app/components/Footer'
 import AppBadges from '@/app/components/AppBadges'
 import BuyNowLink from '@/app/components/BuyNowLink'
 import BookViewTracker from '@/app/components/BookViewTracker'
+import { offerShippingDetails, merchantReturnPolicy } from '@/app/lib/offerSchema'
 
 export const revalidate = 0
 
@@ -216,6 +217,8 @@ export default async function BookPage({ params }: Props) {
       offerCount: String(listings.length),
       availability: 'https://schema.org/InStock',
       itemCondition: 'https://schema.org/UsedCondition',
+      shippingDetails: offerShippingDetails(Number(lowestPrice)),
+      hasMerchantReturnPolicy: merchantReturnPolicy,
       url: canonicalUrl,
     },
   }
