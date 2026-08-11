@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
+import { offerShippingDetails, merchantReturnPolicy } from '@/app/lib/offerSchema'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
@@ -229,7 +230,7 @@ export default async function ListingPage({ params }: Props) {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: listing.title,
-    ...(listing.author ? { brand: { '@type': 'Person', name: listing.author } } : {}),
+    ...(listing.author ? { brand: { '@type': 'Brand', name: listing.author } } : {}),
     ...(cover ? { image: [listing.seller_cover_url, cover].filter(Boolean) } : {}),
     ...(description ? { description: String(description).replace(/\s+/g, ' ').slice(0, 500) } : {}),
     sku: String(id),
@@ -243,6 +244,8 @@ export default async function ListingPage({ params }: Props) {
       priceCurrency: 'GBP',
       availability: 'https://schema.org/InStock',
       itemCondition: 'https://schema.org/UsedCondition',
+      shippingDetails: offerShippingDetails(Number(listing.asking_price_gbp)),
+      hasMerchantReturnPolicy: merchantReturnPolicy,
       ...(username ? { seller: { '@type': 'Person', name: `@${username}` } } : {}),
     },
   }
