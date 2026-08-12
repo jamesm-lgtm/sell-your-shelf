@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { offerShippingDetails, merchantReturnPolicy } from '@/app/lib/offerSchema'
 import Link from 'next/link'
@@ -79,7 +79,26 @@ export default async function ListingPage({ params }: Props) {
     .eq('id', id)
     .single()
 
-  if (error || !listing) return notFound()
+  // Sold/removed copies must not 404 — that throws away every backlink and
+  // ranking signal the page earned. Send them to the durable book hub with
+  // a permanent redirect; only drafts and unknown ids 404.
+  async function redirectGoneListing(): Promise<never> {
+    const { data: gone } = await supabase
+      .from('listings')
+      .select('status, books(slug)')
+      .eq('id', id)
+      .maybeSingle()
+    const bookRef = gone?.books as { slug: string | null } | { slug: string | null }[] | null
+    const slug = (Array.isArray(bookRef) ? bookRef[0]?.slug : bookRef?.slug) ?? null
+    if (gone && ['sold', 'removed'].includes(gone.status) && slug) {
+      permanentRedirect(`/books/${slug}`)
+    }
+    notFound()
+  }
+
+  if (error || !listing) {
+    return await redirectGoneListing()
+  }
 
   // Check listing is still active (marketplace_listings is a view, double-check status)
   const { data: rawListing } = await supabase
@@ -88,7 +107,9 @@ export default async function ListingPage({ params }: Props) {
     .eq('id', id)
     .single()
 
-  if (!rawListing || rawListing.status !== 'active') return notFound()
+  if (!rawListing || rawListing.status !== 'active') {
+    return await redirectGoneListing()
+  }
 
   // Use edition cover if available, fallback to work cover — prefer hosted URLs
   const cover = listing.edition_cover_hosted || listing.edition_cover || listing.work_cover_hosted || listing.work_cover
