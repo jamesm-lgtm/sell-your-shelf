@@ -128,19 +128,25 @@ export async function generateMetadata({ params }: Props) {
     .eq('book_id', book.id)
     .eq('status', 'active')
 
-  if (!listings || listings.length === 0) return { title: 'Book not found — Sell Your Shelf' }
-
-  const lowestPrice = Math.min(...listings.map(l => Number(l.asking_price_gbp))).toFixed(2)
-  const listingCount = listings.length
+  const listingCount = listings?.length ?? 0
 
   // Meta description: availability + a hook from the real synopsis reads far
   // better in a SERP than boilerplate alone, and dedupes pages from Google's
-  // point of view.
+  // point of view. Out-of-stock pages stay live (and indexed) — sold copies
+  // shouldn't erase the page's accumulated ranking; a restock revives it
+  // instantly.
   const descHook = book.description
     ? ` ${String(book.description).replace(/\s+/g, ' ').slice(0, 110).trim()}…`
     : ' Free shipping.'
-  const title = `Buy ${book.title} by ${book.author} | Used from £${lowestPrice}`
-  const description = `${listingCount} used cop${listingCount === 1 ? 'y' : 'ies'} from £${lowestPrice} on Sell Your Shelf.${descHook}`
+  const lowestPrice = listingCount > 0
+    ? Math.min(...listings!.map(l => Number(l.asking_price_gbp))).toFixed(2)
+    : null
+  const title = lowestPrice
+    ? `Buy ${book.title} by ${book.author} | Used from £${lowestPrice}`
+    : `${book.title} by ${book.author} | Sell Your Shelf`
+  const description = lowestPrice
+    ? `${listingCount} used cop${listingCount === 1 ? 'y' : 'ies'} from £${lowestPrice} on Sell Your Shelf.${descHook}`
+    : `Currently out of stock — sellers list new copies daily. Have this book? Sell it on Sell Your Shelf.${descHook}`
 
   return {
     title,
@@ -162,7 +168,7 @@ export default async function BookPage({ params }: Props) {
 
   if (!book) return notFound()
 
-  const { data: listings } = await supabase
+  const { data: listingRows } = await supabase
     .from('listings')
     .select('id, user_id, asking_price_gbp, condition, notes, users!inner(username, location, deleted_at)')
     .eq('book_id', book.id)
@@ -170,10 +176,15 @@ export default async function BookPage({ params }: Props) {
     .is('users.deleted_at', null)
     .order('asking_price_gbp', { ascending: true })
 
-  if (!listings || listings.length === 0) return notFound()
+  // Out-of-stock pages stay live: 404ing a book the moment its last copy
+  // sells discards the page's search equity — the exact pages that rank
+  // well enough to sell are the ones that vanish. With no copies we render
+  // an out-of-stock state and drop the offers schema instead.
+  const listings = listingRows ?? []
+  const inStock = listings.length > 0
 
-  const lowestPrice = Number(listings[0].asking_price_gbp).toFixed(2)
-  const highestPrice = Number(listings[listings.length - 1].asking_price_gbp).toFixed(2)
+  const lowestPrice = inStock ? Number(listings[0].asking_price_gbp).toFixed(2) : null
+  const highestPrice = inStock ? Number(listings[listings.length - 1].asking_price_gbp).toFixed(2) : null
 
   // Edition facts from the ISBNdb enrichment pipeline (book_metadata):
   // binding/pages/publisher/year/language. Prefer the seller-selected
@@ -209,18 +220,22 @@ export default async function BookPage({ params }: Props) {
     ...(editionMeta?.publisher ? { publisher: { '@type': 'Organization', name: editionMeta.publisher } } : {}),
     ...(publishedYear ? { datePublished: publishedYear } : {}),
     ...(editionMeta?.language ? { inLanguage: editionMeta.language } : {}),
-    offers: {
-      '@type': 'AggregateOffer',
-      lowPrice: lowestPrice,
-      highPrice: highestPrice,
-      priceCurrency: 'GBP',
-      offerCount: String(listings.length),
-      availability: 'https://schema.org/InStock',
-      itemCondition: 'https://schema.org/UsedCondition',
-      shippingDetails: offerShippingDetails(Number(lowestPrice)),
-      hasMerchantReturnPolicy: merchantReturnPolicy,
-      url: canonicalUrl,
-    },
+    ...(inStock
+      ? {
+          offers: {
+            '@type': 'AggregateOffer',
+            lowPrice: lowestPrice,
+            highPrice: highestPrice,
+            priceCurrency: 'GBP',
+            offerCount: String(listings.length),
+            availability: 'https://schema.org/InStock',
+            itemCondition: 'https://schema.org/UsedCondition',
+            shippingDetails: offerShippingDetails(Number(lowestPrice)),
+            hasMerchantReturnPolicy: merchantReturnPolicy,
+            url: canonicalUrl,
+          },
+        }
+      : {}),
   }
 
   const breadcrumbJsonLd = {
@@ -315,7 +330,9 @@ export default async function BookPage({ params }: Props) {
             )}
 
             <p style={{ fontSize: 14, color: '#666' }}>
-              {listings.length} {listings.length === 1 ? 'copy' : 'copies'} available
+              {inStock
+                ? `${listings.length} ${listings.length === 1 ? 'copy' : 'copies'} available`
+                : 'Currently out of stock'}
             </p>
           </div>
         </div>
@@ -336,6 +353,28 @@ export default async function BookPage({ params }: Props) {
           <h2 style={{ fontSize: 16, fontWeight: 600, color: '#1A1A1A', marginBottom: 16, borderBottom: '0.5px solid #E5E3DF', paddingBottom: 12 }}>
             Available Copies
           </h2>
+
+          {!inStock && (
+            <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '24px 20px', textAlign: 'center' }}>
+              <p style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A', marginBottom: 6 }}>
+                No copies available right now
+              </p>
+              <p style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>
+                Sellers list new books every day — check back soon. Or if you have a copy,
+                scan it with the app and it could be listed in 90 seconds.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <Link href="/new" style={{ display: 'inline-block', background: '#254B3C', color: '#fff', borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                  Browse available books
+                </Link>
+                {book.category && (
+                  <Link href={`/category/${String(book.category).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} style={{ display: 'inline-block', background: '#fff', color: '#254B3C', border: '1px solid #254B3C', borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                    More {book.category}
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {listings.map((listing: any) => {

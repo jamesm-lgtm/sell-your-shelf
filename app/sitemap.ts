@@ -131,10 +131,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Sitemap: failed to fetch listings', e);
   }
 
-  // Book aggregation pages — highest SEO value
+  // Book aggregation pages — highest SEO value. Includes books whose
+  // copies have ALL sold (the pages render an out-of-stock state and stay
+  // live): dropping a page the moment it sells discards its accumulated
+  // ranking. Draft-only books are excluded — those pages never earned
+  // search presence and would just be thin OOS pages.
   let bookPages: MetadataRoute.Sitemap = [];
   try {
-    const bookIds = [...new Set(activeListings.map(l => l.book_id).filter(Boolean))];
+    type BookIdRow = { book_id: number | null };
+    const everListedRows = await fetchAllRows<BookIdRow>((from, to) =>
+      supabase
+        .from('listings')
+        .select('book_id')
+        .in('status', ['active', 'sold', 'removed'])
+        .not('book_id', 'is', null)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
+    const activeBookIds = new Set(activeListings.map(l => l.book_id).filter(Boolean));
+    const bookIds = [...new Set(everListedRows.map(r => r.book_id).filter(Boolean))];
 
     // Fetch book data in batches (.in() list, not row count, is the limit here)
     const batchSize = 500;
@@ -159,11 +174,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           book.author_normalized || ''
         );
         if (!slug) return null;
+        const hasStock = activeBookIds.has(book.id);
         return {
           url: `https://www.sellyourshelf.com/books/${slug}`,
           lastModified: new Date(),
-          changeFrequency: 'daily' as const,
-          priority: 0.8,
+          changeFrequency: hasStock ? ('daily' as const) : ('weekly' as const),
+          priority: hasStock ? 0.8 : 0.5,
         };
       })
       .filter(Boolean) as MetadataRoute.Sitemap;
