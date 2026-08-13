@@ -8,6 +8,7 @@
     }
   ],
   "crons": [
-    { "path": "/api/cron/gsc-import", "schedule": "0 6 * * *" }
+    { "path": "/api/cron/gsc-import", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/scan-health", "schedule": "0 7 * * *" }
   ]
 }
