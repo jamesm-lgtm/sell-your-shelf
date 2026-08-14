@@ -13,10 +13,12 @@ import { NextRequest, NextResponse } from 'next/server'
 //
 // Two independent checks, because each catches what the other misses:
 //
-//   1. SYNTHETIC PROBE (primary). Calls analyze-books with fixed OCR text and
-//      asserts real books come back. Catches a broken pipeline within a day
-//      regardless of how much user traffic there is — this is the check that
-//      would have caught the model retirement on day one.
+//   1. SYNTHETIC PROBES (primary). Exercise both legs of the pipeline the way
+//      the app does — ocr with NO auth header, analyze-books with bearer+apikey.
+//      Catches a broken pipeline within a day regardless of user traffic.
+//      Mirroring the client's headers is the whole point: an authenticated probe
+//      stayed green on 2026-08-13 while every real scan 401'd, because the anon
+//      key satisfied a JWT gate the app never sends a token for.
 //
 //   2. SCAN VOLUME (secondary). Zero scan_history rows in ZERO_SCAN_ALERT_DAYS
 //      means users aren't completing scans even if the probe passes. The
@@ -50,14 +52,62 @@ const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SECRET_KEY!)
 
 type Check = { name: string; ok: boolean; detail: string }
 
+// A 1x1 PNG. Vision finds no text in it, which is fine — this probe exists to
+// assert reachability and the AUTH GATE, not OCR quality.
+const TINY_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+// Deliberately sends NO Authorization header, because
+// components/Scanner/utils/ocrClient.ts sends none either. That means `ocr`
+// must be deployed with --no-verify-jwt.
+//
+// This probe exists because of a real regression: redeploying `ocr` without
+// that flag on 2026-08-13 flipped verify_jwt to true and 401'd every shelf scan
+// from the app. It was invisible to testing with an anon key, since a valid JWT
+// satisfies the gate — so a probe that authenticates would have stayed green
+// while every real user was broken. Mirror the client exactly or don't bother.
+async function probeOcrUnauthenticated(): Promise<Check> {
+  const name = 'ocr_probe_no_auth'
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/ocr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ frames: [{ base64: TINY_PNG, timestamp: 0 }] }),
+      signal: AbortSignal.timeout(60_000),
+    })
+
+    if (res.status === 401) {
+      return {
+        name,
+        ok: false,
+        detail: 'HTTP 401 — ocr is rejecting unauthenticated calls. It was almost ' +
+          'certainly redeployed without --no-verify-jwt; the app sends no auth header.',
+      }
+    }
+    if (!res.ok) return { name, ok: false, detail: `HTTP ${res.status}` }
+
+    const raw = await res.json().catch(() => null)
+    if (!Array.isArray(raw?.frames)) {
+      return { name, ok: false, detail: `200 but no frames[] in response: ${JSON.stringify(raw)?.slice(0, 200)}` }
+    }
+
+    return { name, ok: true, detail: 'reachable without auth, frames[] returned' }
+  } catch (err) {
+    return { name, ok: false, detail: err instanceof Error ? err.message : 'unknown error' }
+  }
+}
+
 async function probeAnalyzeBooks(): Promise<Check> {
   const name = 'analyze_books_probe'
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/analyze-books`, {
       method: 'POST',
+      // Mirrors analysisClient.ts, which sends both the bearer and apikey
+      // headers (falling back to the anon key when there is no user session).
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       },
       body: JSON.stringify({
         ocrFrames: [0, 1, 2].map((i) => ({ frameIndex: i, timestamp: i, text: PROBE_OCR_TEXT })),
@@ -167,7 +217,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const checks = await Promise.all([probeAnalyzeBooks(), checkScanVolume()])
+  const checks = await Promise.all([
+    probeOcrUnauthenticated(),
+    probeAnalyzeBooks(),
+    checkScanVolume(),
+  ])
   const failed = checks.filter((c) => !c.ok)
 
   if (failed.length > 0) {
