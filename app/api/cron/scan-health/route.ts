@@ -39,14 +39,32 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
 const ZERO_SCAN_ALERT_DAYS = 14
 
-// Three unambiguous, well-known titles. Kept deliberately boring: the probe is
-// asserting that the pipeline runs and returns structured books, not grading
-// the model's recall on hard input.
-const PROBE_OCR_TEXT = [
-  'THE THURSDAY MURDER CLUB RICHARD OSMAN',
-  'NORMAL PEOPLE SALLY ROONEY',
-  'SAPIENS YUVAL NOAH HARARI',
-].join('\n')
+// Ten overlapping frames of noisy spine text, ~1.2k chars — deliberately shaped
+// like real shelf OCR (repetition across frames, publisher noise, ISBNs).
+//
+// It is this size ON PURPOSE. The original probe was three clean lines, and it
+// passed while every real scan failed: short input didn't trigger the model's
+// adaptive thinking, so the answer sat in content[0] where the parser looked,
+// whereas a real 1.8k-char shelf put a thinking block there instead and the
+// parse silently produced zero books. A probe smaller than production input
+// tests a different code path than the one users hit.
+const PROBE_FRAMES = [
+  'PENGUIN THE THURSDAY MURDER CLUB RICHARD OSMAN 9780241988268 VIKING BOOKS LONDON',
+  'THE THURSDAY MURDER CLUB OSMAN VIKING | NORMAL PEOPLE SALLY ROONEY FABER 9780571334650',
+  'NORMAL PEOPLE ROONEY faber | SAPIENS A BRIEF HISTORY OF HUMANKIND YUVAL NOAH HARARI VINTAGE',
+  'SAPIENS HARARI vintage 9780099590088 | KLARA AND THE SUN KAZUO ISHIGURO faber & faber',
+  'KLARA AND THE SUN ISHIGURO | THE MIDNIGHT LIBRARY MATT HAIG CANONGATE 9781786892737',
+  'MIDNIGHT LIBRARY MATT HAIG canongate | EDUCATED A MEMOIR TARA WESTOVER HUTCHINSON london',
+  'EDUCATED TARA WESTOVER | WHERE THE CRAWDADS SING DELIA OWENS CORSAIR 9781472154668',
+  'WHERE THE CRAWDADS SING OWENS corsair | THE SALT PATH RAYNOR WINN PENGUIN 9781405937184',
+  'THE SALT PATH RAYNOR WINN penguin | LESSONS IN CHEMISTRY BONNIE GARMUS DOUBLEDAY transworld',
+  'LESSONS IN CHEMISTRY GARMUS doubleday | PIRANESI SUSANNA CLARKE BLOOMSBURY PUBLISHING 2020',
+]
+
+// Ten unambiguous titles are present, so anything below this means degraded
+// identification, not just a hard shelf. A bare `> 0` would have gone green on
+// a response containing a single lucky match.
+const MIN_EXPECTED_BOOKS = 5
 
 const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SECRET_KEY!)
 
@@ -110,7 +128,7 @@ async function probeAnalyzeBooks(): Promise<Check> {
         apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       },
       body: JSON.stringify({
-        ocrFrames: [0, 1, 2].map((i) => ({ frameIndex: i, timestamp: i, text: PROBE_OCR_TEXT })),
+        ocrFrames: PROBE_FRAMES.map((text, i) => ({ frameIndex: i, timestamp: i, text })),
       }),
       signal: AbortSignal.timeout(120_000),
     })
@@ -130,8 +148,17 @@ async function probeAnalyzeBooks(): Promise<Check> {
       (Array.isArray(raw?.high_confidence) ? raw.high_confidence.length : 0) +
       (Array.isArray(raw?.needs_confirmation) ? raw.needs_confirmation.length : 0)
 
-    if (found === 0) {
-      return { name, ok: false, detail: `200 but identified 0 books: ${JSON.stringify(raw)?.slice(0, 300)}` }
+    if (found < MIN_EXPECTED_BOOKS) {
+      // Zero here is the signature of the 2026-08-14 failure: HTTP 200, an
+      // `error` field the app ignores, and no books — which users saw as the
+      // generic "no books found".
+      return {
+        name,
+        ok: false,
+        detail:
+          `200 but identified only ${found} of ${PROBE_FRAMES.length} unambiguous titles ` +
+          `(expected >= ${MIN_EXPECTED_BOOKS}). Response: ${JSON.stringify(raw)?.slice(0, 300)}`,
+      }
     }
 
     return { name, ok: true, detail: `identified ${found} books` }
