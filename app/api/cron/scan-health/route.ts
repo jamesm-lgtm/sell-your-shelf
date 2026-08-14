@@ -24,9 +24,14 @@ import { NextRequest, NextResponse } from 'next/server'
 //      the table's history was 10 days (Jan 2026, low traffic), so anything at
 //      or below that would false-fire.
 //
-// Alerting: an unhealthy result returns HTTP 500 so Vercel's cron failure
-// notifications fire. There is no email dependency to configure or rotate.
-// (Vercel Dashboard → Project → Settings → Notifications → Cron Job Failures.)
+// Alerting: an unhealthy result emails ALERT_EMAIL_TO via Resend, and also
+// returns HTTP 500 so the failure is visible on the Cron Jobs page.
+//
+// The email is the part that matters. Vercel does NOT notify on cron failure
+// unless you're on Enterprise/Pro with the Observability Plus add-on — its own
+// docs say "Vercel will not retry an invocation if a cron job fails" and point
+// at manually clicking View Log. A 500 nobody is watching is exactly the
+// failure mode that let the June outage run for two months.
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
@@ -104,6 +109,59 @@ async function checkScanVolume(): Promise<Check> {
   }
 }
 
+// Returns a human-readable note about what happened, so the route's own
+// response says whether the alert actually went anywhere. A misconfigured
+// alerter that fails quietly is the bug we're fixing, not an acceptable
+// degradation — so a missing key is reported, never swallowed.
+async function sendAlertEmail(failed: Check[]): Promise<string> {
+  const apiKey = process.env.RESEND_API_KEY
+  const to = process.env.ALERT_EMAIL_TO
+
+  if (!apiKey || !to) {
+    const missing = [!apiKey && 'RESEND_API_KEY', !to && 'ALERT_EMAIL_TO'].filter(Boolean).join(', ')
+    console.error(`🚨 scan-health is unhealthy but cannot alert: ${missing} not set on this project`)
+    return `NOT SENT — ${missing} not configured`
+  }
+
+  const lines = failed.map((c) => `- ${c.name}: ${c.detail}`).join('\n')
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        from: 'Sell Your Shelf <noreply@sellyourshelf.com>',
+        to: [to],
+        subject: '🚨 Shelf scanning looks broken',
+        text:
+          `The daily scan-health check failed:\n\n${lines}\n\n` +
+          `What to check, in order:\n` +
+          `1. POST ${SUPABASE_URL}/functions/v1/analyze-books with a few ocrFrames — ` +
+          `a "Claude API error: 404" means the hardcoded model has been retired again.\n` +
+          `2. Supabase → Edge Functions → analyze-books / ocr logs.\n` +
+          `3. Google Vision key/billing (ocr logs the error body and reports ocr_failed_frames).\n\n` +
+          `Context: this exact check exists because shelf scanning died silently on ` +
+          `2026-06-15 when claude-sonnet-4-20250514 hit its retirement date, and stayed ` +
+          `broken for ~2 months (est. 1,000-1,800 lost listings). The app shows users ` +
+          `"no books found" rather than an error, so there is no complaint signal.`,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    })
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '<unreadable>')
+      console.error(`🚨 alert email failed: HTTP ${res.status} ${body.slice(0, 300)}`)
+      return `NOT SENT — Resend returned ${res.status}`
+    }
+
+    return `sent to ${to}`
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : 'unknown error'
+    console.error(`🚨 alert email threw: ${detail}`)
+    return `NOT SENT — ${detail}`
+  }
+}
+
 export async function GET(req: NextRequest) {
   if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
@@ -113,10 +171,9 @@ export async function GET(req: NextRequest) {
   const failed = checks.filter((c) => !c.ok)
 
   if (failed.length > 0) {
-    // Logged as an error so it is greppable in Vercel logs, and returned as a
-    // 500 so the cron itself is marked failed and notifications fire.
     console.error('🚨 scan-health FAILED:', JSON.stringify(failed))
-    return NextResponse.json({ ok: false, checks }, { status: 500 })
+    const alert = await sendAlertEmail(failed)
+    return NextResponse.json({ ok: false, checks, alert }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, checks })
