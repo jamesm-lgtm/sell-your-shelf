@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
@@ -6,6 +7,14 @@ import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 
 export const revalidate = 0
+
+// Never index a checkout: it can't rank, and CheckoutForm fires a
+// checkout_started event on mount, so every crawl manufactured a phantom
+// checkout start in the funnel. Matches /checkout and /basket, which were
+// already noindex.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
