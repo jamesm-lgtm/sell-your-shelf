@@ -54,7 +54,11 @@ async function gscAccessToken(): Promise<string> {
 }
 
 export async function GET(req: NextRequest) {
-  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail closed when CRON_SECRET is unset — otherwise the comparison is against
+  // the literal "Bearer undefined" and anyone sending that string gets in. This
+  // route writes to gsc_daily, so the bypass is worse here than on scan-health.
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret || req.headers.get('authorization') !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 

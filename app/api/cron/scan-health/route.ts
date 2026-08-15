@@ -240,7 +240,15 @@ async function sendAlertEmail(failed: Check[]): Promise<string> {
 }
 
 export async function GET(req: NextRequest) {
-  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail closed when CRON_SECRET is unset. Without the first check, an unset
+  // secret interpolates to the literal "Bearer undefined", and anyone sending
+  // exactly that string authenticates. Observed live: this project is deployed
+  // twice on Vercel, and on the copy with no env vars
+  // (sell-your-shelf.vercel.app) `Bearer undefined` returned 200 and a full
+  // health report. This route calls Claude on every invocation, so that is a
+  // billable, publicly triggerable endpoint.
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret || req.headers.get('authorization') !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
