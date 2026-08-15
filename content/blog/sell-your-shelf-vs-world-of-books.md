@@ -27,7 +27,7 @@ Sell Your Shelf is a marketplace, not a trade-in service. Instead of selling you
 
 You film your bookshelf with your phone camera. The AI reads the spines, identifies each book, checks what it's actually selling for on the secondhand market, and creates your listings. About 30 books in 90 seconds. When someone buys a book, you print a £2.69 shipping label and drop it at a ParcelShop.
 
-The platform takes a 20% fee on books over £5 and a flat £1 on books under £5. The rest goes to you.
+The platform takes a 20% fee on the sale price, with a minimum of 60p per book. The rest goes to you.
 
 ## Head-to-head comparison
 

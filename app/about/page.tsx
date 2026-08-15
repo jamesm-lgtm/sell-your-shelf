@@ -47,8 +47,8 @@ export default function About() {
               It's free to list books. We only charge when a sale completes:
             </p>
             <ul className="list-disc pl-6 space-y-1">
-              <li><strong>Books £5 and above:</strong> 20% platform fee</li>
-              <li><strong>Books under £5:</strong> £1 flat fee</li>
+              <li><strong>20% platform fee</strong> on the sale price</li>
+              <li><strong>Minimum fee of £0.60</strong> per book</li>
             </ul>
             <p>
               Shipping costs £2.50 and is paid by the buyer. There are no hidden charges.

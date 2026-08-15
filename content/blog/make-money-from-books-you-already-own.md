@@ -57,7 +57,7 @@ Let's be specific. Say you've got a typical shelf of 30 books in decent conditio
 **The new way (AI scanning):**
 - Time to list: 90 seconds
 - Average sale price: £4-6
-- Platform fees: 20% on books over £5, £1 flat on books under £5
+- Platform fees: 20% of the sale price, minimum 60p per book
 - Shipping label: £2.50, paid by the buyer
 - Net return if everything sells: roughly £100-140
 - Realistic sell-through: similar, maybe 60%, so £60-85

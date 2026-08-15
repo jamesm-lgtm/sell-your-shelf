@@ -38,8 +38,8 @@ export default function Support() {
               <h3 className="font-semibold text-lg mb-2">What are your fees?</h3>
               <p className="text-gray-700">
                 We charge a platform fee on completed sales:<br />
-                • <strong>Books £5 and above:</strong> 20% of the sale price<br />
-                • <strong>Books under £5:</strong> £1 flat fee<br /><br />
+                • <strong>20%</strong> of the sale price<br />
+                • With a <strong>minimum fee of £0.60</strong> per book<br /><br />
                 Fees are deducted automatically before payout.
               </p>
             </div>
