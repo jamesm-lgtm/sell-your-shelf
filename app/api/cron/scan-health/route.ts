@@ -190,17 +190,19 @@ async function checkScanVolume(): Promise<Check> {
 // response says whether the alert actually went anywhere. A misconfigured
 // alerter that fails quietly is the bug we're fixing, not an acceptable
 // degradation — so a missing key is reported, never swallowed.
-async function sendAlertEmail(failed: Check[]): Promise<string> {
+async function sendAlertEmail(failed: Check[], isTest = false): Promise<string> {
   const apiKey = process.env.RESEND_API_KEY
   const to = process.env.ALERT_EMAIL_TO
 
   if (!apiKey || !to) {
     const missing = [!apiKey && 'RESEND_API_KEY', !to && 'ALERT_EMAIL_TO'].filter(Boolean).join(', ')
-    console.error(`🚨 scan-health is unhealthy but cannot alert: ${missing} not set on this project`)
+    console.error(`🚨 scan-health cannot alert: ${missing} not set on this project`)
     return `NOT SENT — ${missing} not configured`
   }
 
-  const lines = failed.map((c) => `- ${c.name}: ${c.detail}`).join('\n')
+  const lines = failed.length
+    ? failed.map((c) => `- ${c.name}: ${c.detail}`).join('\n')
+    : '- (none — every check passed)'
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -209,9 +211,17 @@ async function sendAlertEmail(failed: Check[]): Promise<string> {
       body: JSON.stringify({
         from: 'Sell Your Shelf <noreply@sellyourshelf.com>',
         to: [to],
-        subject: '🚨 Shelf scanning looks broken',
+        subject: isTest
+          ? '✅ [TEST] scan-health alert — delivery check, nothing is broken'
+          : '🚨 Shelf scanning looks broken',
         text:
-          `The daily scan-health check failed:\n\n${lines}\n\n` +
+          (isTest
+            ? `THIS IS A TEST, triggered deliberately with ?test=1. Nothing is wrong.\n\n` +
+              `It exists to prove this email actually reaches you, because the real alert ` +
+              `only fires on failure and would otherwise be unverified until the day it ` +
+              `matters. Check state at the time of sending:\n\n`
+            : `The daily scan-health check failed:\n\n`) +
+          `${lines}\n\n` +
           `What to check, in order:\n` +
           `1. POST ${SUPABASE_URL}/functions/v1/analyze-books with a few ocrFrames — ` +
           `a "Claude API error: 404" means the hardcoded model has been retired again.\n` +
@@ -252,6 +262,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
+  // ?test=1 forces the alert email even when everything is healthy. The real
+  // alert only fires on failure, so without this the delivery path stays
+  // unproven until the day it matters — and an alert nobody has ever seen
+  // arrive is not an alert. Sits behind the CRON_SECRET check above, so it is
+  // not publicly triggerable.
+  const isTest = req.nextUrl.searchParams.get('test') === '1'
+
   const checks = await Promise.all([
     probeOcrUnauthenticated(),
     probeAnalyzeBooks(),
@@ -263,6 +280,14 @@ export async function GET(req: NextRequest) {
     console.error('🚨 scan-health FAILED:', JSON.stringify(failed))
     const alert = await sendAlertEmail(failed)
     return NextResponse.json({ ok: false, checks, alert }, { status: 500 })
+  }
+
+  if (isTest) {
+    // Deliberately still a 200: a manual delivery check should not show up as a
+    // failed cron run in Vercel's history.
+    const alert = await sendAlertEmail([], true)
+    console.log('scan-health TEST email:', alert)
+    return NextResponse.json({ ok: true, test: true, checks, alert })
   }
 
   return NextResponse.json({ ok: true, checks })
