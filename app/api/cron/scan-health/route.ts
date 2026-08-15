@@ -1,0 +1,264 @@
+import { createClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server'
+
+// Daily health check for the mobile app's shelf-scanning pipeline
+// (app → /api/ocr → Google Vision → /api/analyze-books → Claude).
+//
+// Why this exists: on 2026-06-15 the Anthropic model hardcoded in the
+// analyze-books edge function (claude-sonnet-4-20250514) reached its
+// retirement date and started returning 404. Shelf scanning produced zero
+// results for ~2 months and nobody noticed, because the app degrades to
+// "no books found" rather than surfacing an error, and users silently fell
+// back to barcode scanning. Roughly 1,000-1,800 listings were lost.
+//
+// Two independent checks, because each catches what the other misses:
+//
+//   1. SYNTHETIC PROBES (primary). Exercise both legs of the pipeline the way
+//      the app does — ocr with NO auth header, analyze-books with bearer+apikey.
+//      Catches a broken pipeline within a day regardless of user traffic.
+//      Mirroring the client's headers is the whole point: an authenticated probe
+//      stayed green on 2026-08-13 while every real scan 401'd, because the anon
+//      key satisfied a JWT gate the app never sends a token for.
+//
+//   2. SCAN VOLUME (secondary). Zero scan_history rows in ZERO_SCAN_ALERT_DAYS
+//      means users aren't completing scans even if the probe passes. The
+//      threshold is deliberately loose: the longest natural zero-scan gap in
+//      the table's history was 10 days (Jan 2026, low traffic), so anything at
+//      or below that would false-fire.
+//
+// Alerting: an unhealthy result emails ALERT_EMAIL_TO via Resend, and also
+// returns HTTP 500 so the failure is visible on the Cron Jobs page.
+//
+// The email is the part that matters. Vercel does NOT notify on cron failure
+// unless you're on Enterprise/Pro with the Observability Plus add-on — its own
+// docs say "Vercel will not retry an invocation if a cron job fails" and point
+// at manually clicking View Log. A 500 nobody is watching is exactly the
+// failure mode that let the June outage run for two months.
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+
+const ZERO_SCAN_ALERT_DAYS = 14
+
+// Ten overlapping frames of noisy spine text, ~1.2k chars — deliberately shaped
+// like real shelf OCR (repetition across frames, publisher noise, ISBNs).
+//
+// It is this size ON PURPOSE. The original probe was three clean lines, and it
+// passed while every real scan failed: short input didn't trigger the model's
+// adaptive thinking, so the answer sat in content[0] where the parser looked,
+// whereas a real 1.8k-char shelf put a thinking block there instead and the
+// parse silently produced zero books. A probe smaller than production input
+// tests a different code path than the one users hit.
+const PROBE_FRAMES = [
+  'PENGUIN THE THURSDAY MURDER CLUB RICHARD OSMAN 9780241988268 VIKING BOOKS LONDON',
+  'THE THURSDAY MURDER CLUB OSMAN VIKING | NORMAL PEOPLE SALLY ROONEY FABER 9780571334650',
+  'NORMAL PEOPLE ROONEY faber | SAPIENS A BRIEF HISTORY OF HUMANKIND YUVAL NOAH HARARI VINTAGE',
+  'SAPIENS HARARI vintage 9780099590088 | KLARA AND THE SUN KAZUO ISHIGURO faber & faber',
+  'KLARA AND THE SUN ISHIGURO | THE MIDNIGHT LIBRARY MATT HAIG CANONGATE 9781786892737',
+  'MIDNIGHT LIBRARY MATT HAIG canongate | EDUCATED A MEMOIR TARA WESTOVER HUTCHINSON london',
+  'EDUCATED TARA WESTOVER | WHERE THE CRAWDADS SING DELIA OWENS CORSAIR 9781472154668',
+  'WHERE THE CRAWDADS SING OWENS corsair | THE SALT PATH RAYNOR WINN PENGUIN 9781405937184',
+  'THE SALT PATH RAYNOR WINN penguin | LESSONS IN CHEMISTRY BONNIE GARMUS DOUBLEDAY transworld',
+  'LESSONS IN CHEMISTRY GARMUS doubleday | PIRANESI SUSANNA CLARKE BLOOMSBURY PUBLISHING 2020',
+]
+
+// Ten unambiguous titles are present, so anything below this means degraded
+// identification, not just a hard shelf. A bare `> 0` would have gone green on
+// a response containing a single lucky match.
+const MIN_EXPECTED_BOOKS = 5
+
+const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SECRET_KEY!)
+
+type Check = { name: string; ok: boolean; detail: string }
+
+// A 1x1 PNG. Vision finds no text in it, which is fine — this probe exists to
+// assert reachability and the AUTH GATE, not OCR quality.
+const TINY_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+// Deliberately sends NO Authorization header, because
+// components/Scanner/utils/ocrClient.ts sends none either. That means `ocr`
+// must be deployed with --no-verify-jwt.
+//
+// This probe exists because of a real regression: redeploying `ocr` without
+// that flag on 2026-08-13 flipped verify_jwt to true and 401'd every shelf scan
+// from the app. It was invisible to testing with an anon key, since a valid JWT
+// satisfies the gate — so a probe that authenticates would have stayed green
+// while every real user was broken. Mirror the client exactly or don't bother.
+async function probeOcrUnauthenticated(): Promise<Check> {
+  const name = 'ocr_probe_no_auth'
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/ocr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ frames: [{ base64: TINY_PNG, timestamp: 0 }] }),
+      signal: AbortSignal.timeout(60_000),
+    })
+
+    if (res.status === 401) {
+      return {
+        name,
+        ok: false,
+        detail: 'HTTP 401 — ocr is rejecting unauthenticated calls. It was almost ' +
+          'certainly redeployed without --no-verify-jwt; the app sends no auth header.',
+      }
+    }
+    if (!res.ok) return { name, ok: false, detail: `HTTP ${res.status}` }
+
+    const raw = await res.json().catch(() => null)
+    if (!Array.isArray(raw?.frames)) {
+      return { name, ok: false, detail: `200 but no frames[] in response: ${JSON.stringify(raw)?.slice(0, 200)}` }
+    }
+
+    return { name, ok: true, detail: 'reachable without auth, frames[] returned' }
+  } catch (err) {
+    return { name, ok: false, detail: err instanceof Error ? err.message : 'unknown error' }
+  }
+}
+
+async function probeAnalyzeBooks(): Promise<Check> {
+  const name = 'analyze_books_probe'
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/analyze-books`, {
+      method: 'POST',
+      // Mirrors analysisClient.ts, which sends both the bearer and apikey
+      // headers (falling back to the anon key when there is no user session).
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      },
+      body: JSON.stringify({
+        ocrFrames: PROBE_FRAMES.map((text, i) => ({ frameIndex: i, timestamp: i, text })),
+      }),
+      signal: AbortSignal.timeout(120_000),
+    })
+
+    const raw = await res.json().catch(() => null)
+
+    if (!res.ok) {
+      // The 2026-06-15 failure looked exactly like this: 500 wrapping
+      // "Claude API error: 404".
+      return { name, ok: false, detail: `HTTP ${res.status}: ${JSON.stringify(raw)?.slice(0, 300)}` }
+    }
+
+    // analyze-books returns { high_confidence: [], needs_confirmation: [] }.
+    // An empty result on this input means the pipeline runs but is not
+    // identifying anything — still broken, just more quietly.
+    const found =
+      (Array.isArray(raw?.high_confidence) ? raw.high_confidence.length : 0) +
+      (Array.isArray(raw?.needs_confirmation) ? raw.needs_confirmation.length : 0)
+
+    if (found < MIN_EXPECTED_BOOKS) {
+      // Zero here is the signature of the 2026-08-14 failure: HTTP 200, an
+      // `error` field the app ignores, and no books — which users saw as the
+      // generic "no books found".
+      return {
+        name,
+        ok: false,
+        detail:
+          `200 but identified only ${found} of ${PROBE_FRAMES.length} unambiguous titles ` +
+          `(expected >= ${MIN_EXPECTED_BOOKS}). Response: ${JSON.stringify(raw)?.slice(0, 300)}`,
+      }
+    }
+
+    return { name, ok: true, detail: `identified ${found} books` }
+  } catch (err) {
+    return { name, ok: false, detail: err instanceof Error ? err.message : 'unknown error' }
+  }
+}
+
+async function checkScanVolume(): Promise<Check> {
+  const name = 'scan_volume'
+  const since = new Date(Date.now() - ZERO_SCAN_ALERT_DAYS * 86_400_000).toISOString()
+
+  const { count, error } = await supabase
+    .from('scan_history')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', since)
+
+  if (error) return { name, ok: false, detail: `query failed: ${error.message}` }
+
+  const n = count ?? 0
+  return {
+    name,
+    ok: n > 0,
+    detail: `${n} scans in the last ${ZERO_SCAN_ALERT_DAYS} days`,
+  }
+}
+
+// Returns a human-readable note about what happened, so the route's own
+// response says whether the alert actually went anywhere. A misconfigured
+// alerter that fails quietly is the bug we're fixing, not an acceptable
+// degradation — so a missing key is reported, never swallowed.
+async function sendAlertEmail(failed: Check[]): Promise<string> {
+  const apiKey = process.env.RESEND_API_KEY
+  const to = process.env.ALERT_EMAIL_TO
+
+  if (!apiKey || !to) {
+    const missing = [!apiKey && 'RESEND_API_KEY', !to && 'ALERT_EMAIL_TO'].filter(Boolean).join(', ')
+    console.error(`🚨 scan-health is unhealthy but cannot alert: ${missing} not set on this project`)
+    return `NOT SENT — ${missing} not configured`
+  }
+
+  const lines = failed.map((c) => `- ${c.name}: ${c.detail}`).join('\n')
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        from: 'Sell Your Shelf <noreply@sellyourshelf.com>',
+        to: [to],
+        subject: '🚨 Shelf scanning looks broken',
+        text:
+          `The daily scan-health check failed:\n\n${lines}\n\n` +
+          `What to check, in order:\n` +
+          `1. POST ${SUPABASE_URL}/functions/v1/analyze-books with a few ocrFrames — ` +
+          `a "Claude API error: 404" means the hardcoded model has been retired again.\n` +
+          `2. Supabase → Edge Functions → analyze-books / ocr logs.\n` +
+          `3. Google Vision key/billing (ocr logs the error body and reports ocr_failed_frames).\n\n` +
+          `Context: this exact check exists because shelf scanning died silently on ` +
+          `2026-06-15 when claude-sonnet-4-20250514 hit its retirement date, and stayed ` +
+          `broken for ~2 months (est. 1,000-1,800 lost listings). The app shows users ` +
+          `"no books found" rather than an error, so there is no complaint signal.`,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    })
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '<unreadable>')
+      console.error(`🚨 alert email failed: HTTP ${res.status} ${body.slice(0, 300)}`)
+      return `NOT SENT — Resend returned ${res.status}`
+    }
+
+    return `sent to ${to}`
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : 'unknown error'
+    console.error(`🚨 alert email threw: ${detail}`)
+    return `NOT SENT — ${detail}`
+  }
+}
+
+export async function GET(req: NextRequest) {
+  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
+  const checks = await Promise.all([
+    probeOcrUnauthenticated(),
+    probeAnalyzeBooks(),
+    checkScanVolume(),
+  ])
+  const failed = checks.filter((c) => !c.ok)
+
+  if (failed.length > 0) {
+    console.error('🚨 scan-health FAILED:', JSON.stringify(failed))
+    const alert = await sendAlertEmail(failed)
+    return NextResponse.json({ ok: false, checks, alert }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true, checks })
+}
+
+// The probe waits on a Claude call; give it room.
+export const maxDuration = 300

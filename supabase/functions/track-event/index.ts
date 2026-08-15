@@ -169,7 +169,20 @@ serve(async (req) => {
     return new Response(null, { status: 204, headers })
   }
 
-  if (!isAllowedOrigin(origin)) {
+  // Native iOS/Android apps send no Origin header at all — only browsers do —
+  // so the allowlist was silently 403ing every event the mobile app emitted.
+  // That cost us the entire scan funnel: the app has always sent scan_started
+  // and scan_failed (see components/Scanner/hooks/useVideoProcessor.ts), and
+  // every one was discarded. During the 2026-06-15 scanner outage that left no
+  // record whatsoever of who tried to scan and why it failed — the single most
+  // useful thing we could have had.
+  //
+  // Absent Origin is therefore allowed. It is not a security downgrade worth
+  // worrying about: an Origin header is trivially forged by any non-browser
+  // client, so it was never an authentication control. The real defences are
+  // unchanged — per-IP rate limiting, batch cap, per-row schema validation,
+  // test-account filtering and bot detection.
+  if (origin !== null && !isAllowedOrigin(origin)) {
     return new Response('forbidden', { status: 403, headers })
   }
 
