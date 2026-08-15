@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
@@ -6,6 +7,12 @@ import AppBadges from '@/app/components/AppBadges'
 import GaPurchase from '@/app/components/GaPurchase'
 
 export const revalidate = 0
+
+// A buyer's order confirmation — private, and it fires the GA purchase
+// event on mount. Mirrors /orders/[id]/confirmation, already noindex.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
