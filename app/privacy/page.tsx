@@ -73,7 +73,7 @@ export default function Privacy() {
               <p className="mb-2">We share data with the following third parties, only as necessary to provide our service:</p>
               <ul className="list-disc pl-6 space-y-1">
                 <li><strong>Stripe:</strong> payment processing and seller identity verification</li>
-                <li><strong>Yodel:</strong> shipping and delivery (name and address for shipping labels)</li>
+                <li><strong>InPost (incl. Yodel):</strong> shipping and delivery (name and address for shipping labels)</li>
                 <li><strong>Supabase:</strong> database hosting (EU-based servers)</li>
                 <li><strong>Vercel:</strong> website hosting</li>
                 <li><strong>Resend:</strong> transactional email delivery</li>

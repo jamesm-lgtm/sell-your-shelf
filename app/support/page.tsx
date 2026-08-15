@@ -57,7 +57,7 @@ export default function Support() {
               <h3 className="font-semibold text-lg mb-2">How does shipping work?</h3>
               <p className="text-gray-700">
                 When you sell a book, go to My Orders → Sales to generate a shipping label.
-                You&apos;ll get a QR code to show at any Yodel drop-off point — no printing required.
+                You&apos;ll get a QR code to show at any InPost or Yodel drop-off point — no printing required.
                 Shipping costs £2.50 and is paid by the buyer.
               </p>
             </div>

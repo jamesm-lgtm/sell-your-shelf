@@ -116,7 +116,7 @@ export default function Terms() {
           <section>
             <h2 className="text-xl font-semibold mb-3">10. Shipping</h2>
             <p>
-              Sellers must use our integrated shipping service (currently Yodel) and ship within 3 business days 
+              Sellers must use our integrated shipping service (currently InPost, including Yodel drop-off points) and ship within 3 business days 
               of sale. Shipping labels are generated through the App. Sellers are responsible for packaging books 
               securely. We are not liable for items lost or damaged in transit, though buyers may raise disputes.
             </p>

@@ -28,7 +28,7 @@ export default function About() {
               Accept our recommendations or adjust them yourself, then publish your listings with one tap.
             </p>
             <p>
-              When a book sells, we generate a shipping label. Drop the parcel at any Yodel drop-off point —
+              When a book sells, we generate a shipping label. Drop the parcel at any InPost or Yodel drop-off point —
               no printing required, just show the QR code. Payment lands in your account once delivered.
             </p>
 

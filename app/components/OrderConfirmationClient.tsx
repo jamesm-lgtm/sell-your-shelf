@@ -181,7 +181,7 @@ export default function OrderConfirmationClient(props: Props) {
           <li>
             <strong>@{props.sellerUsername ?? 'The seller'}</strong> is notified and will pack your order.
           </li>
-          <li>They'll generate a Yodel shipping label and drop the parcel at a Yodel Point.</li>
+          <li>They'll generate a shipping label and drop the parcel at an InPost/Yodel point.</li>
           <li>We'll email you tracking when it ships — usually within 1–2 working days.</li>
           <li>Expect delivery within 2–3 working days after dispatch.</li>
         </ol>

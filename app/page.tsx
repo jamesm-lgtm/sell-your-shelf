@@ -285,7 +285,7 @@ export default async function Home() {
           {[
             { n: '01', t: 'Scan your shelf', d: 'Pan your camera across the spines. Our AI reads every title in real time — about 30 books in 90 seconds.' },
             { n: '02', t: 'Review & price', d: 'We check live market data and suggest a fair price for each book. Accept it, or set your own — you’re in control.' },
-            { n: '03', t: 'Ship & get paid', d: 'Drop it at any Yodel point with the £2.50 label — no printer needed. Cash lands once it’s delivered.' },
+            { n: '03', t: 'Ship & get paid', d: 'Drop it at any InPost/Yodel point with the £2.50 label — no printer needed. Cash lands once it’s delivered.' },
           ].map((s) => (
             <div key={s.n} className="syss-step">
               <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 52, lineHeight: 1, color: 'transparent', WebkitTextStroke: '1.5px #2D4A3E' }}>{s.n}</div>
