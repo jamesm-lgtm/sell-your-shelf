@@ -17,6 +17,8 @@ type DailyRow = {
   impressions: number
   clicks: number
   app_dau: number
+  new_active_listings: number
+  new_draft_listings: number
   app_sales: number
   app_gmv: number
   ebay_sales: number
@@ -30,6 +32,13 @@ type Dashboard = {
   top_books: { title: string; author: string | null; views: number }[]
   top_queries: { query: string; impressions: number; clicks: number; position: number }[]
   seller_funnel: { registered: number; listed: number; payments_enabled: number; made_a_sale: number }
+  listing_inventory: {
+    active: number; draft: number; sold: number; removed: number
+    sellers_with_active: number; sellers_with_draft: number
+    avg_active_price: number; active_inventory_value: number
+    cross_listed: number; draft_value: number
+  }
+  top_sellers: { username: string; active_listings: number; inventory_value: number }[]
   totals: {
     views: number
     sessions: number
@@ -283,6 +292,7 @@ export default function AnalyticsPage() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [days, setDays] = useState<7 | 30 | 90>(30)
+  const [section, setSection] = useState<'search' | 'funnel' | 'views' | 'listings'>('search')
   const [data, setData] = useState<Dashboard | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -393,23 +403,139 @@ export default function AnalyticsPage() {
 
         {data && (
           <div style={{ display: 'grid', gap: 14 }}>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <StatTile label={`Impressions (${prevWindowNote})`} value={data.totals.impressions.toLocaleString()} sub="Google Search" />
-              <StatTile label="Clicks" value={data.totals.clicks.toLocaleString()} sub="Google Search" />
-              <StatTile label="Page views" value={data.totals.views.toLocaleString()} />
-              <StatTile label="Unique sessions" value={data.totals.sessions.toLocaleString()} />
-              <StatTile label="Checkout starts" value={data.totals.checkout_starts.toLocaleString()} />
-              <StatTile label="Purchases" value={data.totals.sales.toLocaleString()} />
-              <StatTile label="GMV" value={gbp(data.totals.gmv)} />
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {([
+                ['search', 'Search & traffic'],
+                ['funnel', 'Funnel'],
+                ['views', 'Views'],
+                ['listings', 'Listings'],
+              ] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setSection(key)}
+                  style={{
+                    padding: '7px 14px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                    border: '1px solid rgba(11,11,11,0.10)',
+                    background: section === key ? '#254B3C' : SURFACE,
+                    color: section === key ? '#fff' : INK_SECONDARY,
+                    fontWeight: section === key ? 600 : 400,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
-            {data.gsc_rows === 0 && (
-              <div style={{ background: '#FEF9C3', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#854D0E' }}>
-                ⚠ Google Search Console import not running yet — impressions, clicks and query data will appear here once the GSC service account is connected.
+            {section === 'search' && (
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <StatTile label={`Impressions (${prevWindowNote})`} value={data.totals.impressions.toLocaleString()} sub="Google Search" />
+                  <StatTile label="Clicks" value={data.totals.clicks.toLocaleString()} sub="Google Search" />
+                  <StatTile
+                    label="CTR"
+                    value={data.totals.impressions > 0 ? `${((data.totals.clicks / data.totals.impressions) * 100).toFixed(2)}%` : '—'}
+                    sub="clicks ÷ impressions"
+                  />
+                </div>
+                {data.gsc_rows === 0 && (
+                  <div style={{ background: '#FEF9C3', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#854D0E' }}>
+                    ⚠ Google Search Console import not running yet — impressions, clicks and query data will appear here once the GSC service account is connected.
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+<Card title="Daily search impressions">
+                <MiniBars daily={data.daily} getValue={(r) => r.impressions} color="#2a78d6" format={(n) => `${n.toLocaleString()} impressions`} label="Daily search impressions" />
+              </Card>
+<Card title="Daily search clicks">
+                <MiniBars daily={data.daily} getValue={(r) => r.clicks} color="#eb6834" format={(n) => `${n} click${n === 1 ? '' : 's'}`} label="Daily search clicks" />
+              </Card>
+                </div>
+<Card title="Traffic sources (landing referrer)">
+                <SourceBars sources={data.sources} />
+              </Card>
+<Card title={`Top search queries (${prevWindowNote})`}>
+              {data.top_queries.length === 0 ? (
+                <div style={{ fontSize: 13, color: INK_MUTED }}>No query data in this window.</div>
+              ) : (
+                <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
+                  <thead>
+                    <tr style={{ color: INK_MUTED, fontSize: 12 }}>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 400 }}>Query</th>
+                      <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Impressions</th>
+                      <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Clicks</th>
+                      <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Avg pos</th>
+                    </tr>
+                  </thead>
+                  <tbody style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {data.top_queries.map((q) => (
+                      <tr key={q.query} style={{ borderTop: `1px solid ${GRID}` }}>
+                        <td style={{ padding: '6px 8px' }}>{q.query}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{q.impressions.toLocaleString()}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{q.clicks}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{q.position}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
               </div>
             )}
 
-            <Card title="Daily page views by page type">
+            {section === 'funnel' && (
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <StatTile label="Checkout starts" value={data.totals.checkout_starts.toLocaleString()} />
+                  <StatTile label="Purchases" value={data.totals.sales.toLocaleString()} />
+                  <StatTile label="GMV" value={gbp(data.totals.gmv)} />
+                  <StatTile
+                    label="Views → purchase"
+                    value={data.totals.views > 0 ? `${((data.totals.sales / data.totals.views) * 100).toFixed(1)}%` : '—'}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+<Card title={`Buyer funnel (${prevWindowNote})`}>
+                <Funnel
+                  stages={[
+                    { label: 'Page views', value: data.totals.views },
+                    { label: 'Unique sessions', value: data.totals.sessions },
+                    { label: 'Checkout starts', value: data.totals.checkout_starts },
+                    { label: 'Purchases', value: data.totals.sales },
+                  ]}
+                />
+              </Card>
+<Card title={`Seller activation — signed up in ${prevWindowNote}`}>
+                <Funnel
+                  stages={[
+                    { label: 'Registered', value: data.seller_funnel.registered },
+                    { label: 'Listed a book', value: data.seller_funnel.listed },
+                    { label: 'Payments enabled', value: data.seller_funnel.payments_enabled },
+                    { label: 'Made a sale', value: data.seller_funnel.made_a_sale },
+                  ]}
+                />
+                <div style={{ fontSize: 11, color: INK_MUTED, marginTop: 8 }}>
+                  Cohort funnel: later stages naturally lag sign-up, so short windows understate them.
+                </div>
+              </Card>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+<Card title="Daily purchases (app + eBay)">
+                <MiniBars daily={data.daily} getValue={(r) => r.app_sales + r.ebay_sales} color="#2a78d6" format={(n) => `${n} sale${n === 1 ? '' : 's'}`} label="Daily purchases" />
+              </Card>
+<Card title="Daily GMV">
+                <MiniBars daily={data.daily} getValue={(r) => r.app_gmv + r.ebay_gmv} color="#eb6834" format={gbp} label="Daily GMV" />
+              </Card>
+                </div>
+              </div>
+            )}
+
+            {section === 'views' && (
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <StatTile label={`Page views (${prevWindowNote})`} value={data.totals.views.toLocaleString()} />
+                  <StatTile label="Unique sessions" value={data.totals.sessions.toLocaleString()} />
+                </div>
+<Card title="Daily page views by page type">
               <ViewsChart daily={data.daily} />
               <details style={{ marginTop: 10 }}>
                 <summary style={{ fontSize: 12, color: INK_MUTED, cursor: 'pointer' }}>Data table</summary>
@@ -441,91 +567,8 @@ export default function AnalyticsPage() {
                 </table>
               </details>
             </Card>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-              <Card title="Daily search impressions">
-                <MiniBars daily={data.daily} getValue={(r) => r.impressions} color="#2a78d6" format={(n) => `${n.toLocaleString()} impressions`} label="Daily search impressions" />
-              </Card>
-              <Card title="Daily search clicks">
-                <MiniBars daily={data.daily} getValue={(r) => r.clicks} color="#eb6834" format={(n) => `${n} click${n === 1 ? '' : 's'}`} label="Daily search clicks" />
-              </Card>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-              <Card title="Daily purchases (app + eBay)">
-                <MiniBars daily={data.daily} getValue={(r) => r.app_sales + r.ebay_sales} color="#2a78d6" format={(n) => `${n} sale${n === 1 ? '' : 's'}`} label="Daily purchases" />
-              </Card>
-              <Card title="Daily GMV">
-                <MiniBars daily={data.daily} getValue={(r) => r.app_gmv + r.ebay_gmv} color="#eb6834" format={gbp} label="Daily GMV" />
-              </Card>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-              <Card title={`Buyer funnel (${prevWindowNote})`}>
-                <Funnel
-                  stages={[
-                    { label: 'Page views', value: data.totals.views },
-                    { label: 'Unique sessions', value: data.totals.sessions },
-                    { label: 'Checkout starts', value: data.totals.checkout_starts },
-                    { label: 'Purchases', value: data.totals.sales },
-                  ]}
-                />
-              </Card>
-              <Card title="Traffic sources (landing referrer)">
-                <SourceBars sources={data.sources} />
-              </Card>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-              <Card title={`Seller activation — signed up in ${prevWindowNote}`}>
-                <Funnel
-                  stages={[
-                    { label: 'Registered', value: data.seller_funnel.registered },
-                    { label: 'Listed a book', value: data.seller_funnel.listed },
-                    { label: 'Payments enabled', value: data.seller_funnel.payments_enabled },
-                    { label: 'Made a sale', value: data.seller_funnel.made_a_sale },
-                  ]}
-                />
-                <div style={{ fontSize: 11, color: INK_MUTED, marginTop: 8 }}>
-                  Cohort funnel: later stages naturally lag sign-up, so short windows understate them.
-                </div>
-              </Card>
-              <Card title="App daily active users">
-                <MiniBars daily={data.daily} getValue={(r) => r.app_dau} color="#1baf7a" format={(n) => `${n} active user${n === 1 ? '' : 's'}`} label="App daily active users" />
-                <div style={{ fontSize: 11, color: INK_MUTED, marginTop: 8 }}>
-                  Counts signed-in users sending app events — populates as the next app release rolls out.
-                </div>
-              </Card>
-            </div>
-
-            <Card title={`Top search queries (${prevWindowNote})`}>
-              {data.top_queries.length === 0 ? (
-                <div style={{ fontSize: 13, color: INK_MUTED }}>No query data in this window.</div>
-              ) : (
-                <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
-                  <thead>
-                    <tr style={{ color: INK_MUTED, fontSize: 12 }}>
-                      <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 400 }}>Query</th>
-                      <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Impressions</th>
-                      <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Clicks</th>
-                      <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Avg pos</th>
-                    </tr>
-                  </thead>
-                  <tbody style={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {data.top_queries.map((q) => (
-                      <tr key={q.query} style={{ borderTop: `1px solid ${GRID}` }}>
-                        <td style={{ padding: '6px 8px' }}>{q.query}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{q.impressions.toLocaleString()}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{q.clicks}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{q.position}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Card>
-
-            <Card title="Most-viewed book pages (last 7 days)">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+<Card title="Most-viewed book pages (last 7 days)">
               {data.top_books.length === 0 ? (
                 <div style={{ fontSize: 13, color: INK_MUTED }}>
                   No book-page views recorded yet — the tracker only went live recently.
@@ -545,6 +588,72 @@ export default function AnalyticsPage() {
                 </table>
               )}
             </Card>
+<Card title="App daily active users">
+                <MiniBars daily={data.daily} getValue={(r) => r.app_dau} color="#1baf7a" format={(n) => `${n} active user${n === 1 ? '' : 's'}`} label="App daily active users" />
+                <div style={{ fontSize: 11, color: INK_MUTED, marginTop: 8 }}>
+                  Counts signed-in users sending app events — populates as the next app release rolls out.
+                </div>
+              </Card>
+                </div>
+              </div>
+            )}
+
+            {section === 'listings' && (
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <StatTile label="Active listings" value={data.listing_inventory.active.toLocaleString()} sub={`${data.listing_inventory.sellers_with_active} sellers`} />
+                  <StatTile label="Live inventory" value={gbp(data.listing_inventory.active_inventory_value)} sub={`avg ${gbp(data.listing_inventory.avg_active_price)}`} />
+                  <StatTile label="Drafts" value={data.listing_inventory.draft.toLocaleString()} sub={`${gbp(data.listing_inventory.draft_value)} unpublished`} />
+                  <StatTile label="Cross-listed on eBay" value={data.listing_inventory.cross_listed.toLocaleString()} />
+                  <StatTile label="Sold all-time" value={data.listing_inventory.sold.toLocaleString()} />
+                </div>
+
+                <div style={{ background: '#FEF7E0', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#8A6100' }}>
+                  {data.listing_inventory.draft.toLocaleString()} drafts across {data.listing_inventory.sellers_with_draft} sellers
+                  ({gbp(data.listing_inventory.draft_value)}) are scanned but never published — the largest recoverable supply pool.
+                </div>
+
+                <Card title="New listings per day">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: INK_MUTED, marginBottom: 4 }}>Published (active)</div>
+                      <MiniBars daily={data.daily} getValue={(r) => r.new_active_listings} color="#1baf7a" format={(n) => `${n} listed`} label="New active listings per day" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: INK_MUTED, marginBottom: 4 }}>Drafted only</div>
+                      <MiniBars daily={data.daily} getValue={(r) => r.new_draft_listings} color="#eda100" format={(n) => `${n} drafted`} label="New draft listings per day" />
+                    </div>
+                  </div>
+                </Card>
+
+                <Card title="Biggest live shelves">
+                  {data.top_sellers.length === 0 ? (
+                    <div style={{ fontSize: 13, color: INK_MUTED }}>No active listings.</div>
+                  ) : (
+                    <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
+                      <thead>
+                        <tr style={{ color: INK_MUTED, fontSize: 12 }}>
+                          <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 400 }}>Seller</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Active</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Inventory</th>
+                        </tr>
+                      </thead>
+                      <tbody style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {data.top_sellers.map((s) => (
+                          <tr key={s.username} style={{ borderTop: `1px solid ${GRID}` }}>
+                            <td style={{ padding: '6px 8px' }}>
+                              <a href={`https://www.sellyourshelf.com/${s.username}`} target="_blank" rel="noopener noreferrer" style={{ color: '#254B3C' }}>@{s.username}</a>
+                            </td>
+                            <td style={{ padding: '6px 8px', textAlign: 'right' }}>{s.active_listings}</td>
+                            <td style={{ padding: '6px 8px', textAlign: 'right' }}>{gbp(s.inventory_value)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </Card>
+              </div>
+            )}
           </div>
         )}
       </div>
