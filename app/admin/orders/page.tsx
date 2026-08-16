@@ -6,6 +6,7 @@
 // how to reach them.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import AdminNav from '@/app/components/AdminNav'
 
 type Order = {
   id: string
@@ -275,6 +276,7 @@ export default function OrdersPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f9f9f7', fontFamily: 'system-ui, sans-serif', color: INK }}>
       <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 20px 60px' }}>
+        <AdminNav />
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Order tracking</h1>
           <div style={{ display: 'flex', gap: 6 }}>
