@@ -38,6 +38,7 @@ type Order = {
   days_since_paid: number | null
   days_since_shipped: number | null
   days_to_ship: number | null
+  delivery_status: 'delivered' | 'tracked' | 'untracked' | 'not_shipped'
   severity: 'critical' | 'warning' | 'ok'
   attention_reason: string | null
 }
@@ -51,6 +52,8 @@ type Board = {
     critical: number
     warning: number
     in_transit: number
+    shipped_untracked: number
+    delivery_confirmed: number
     gmv_gbp: number
   }
   orders: Order[]
@@ -125,6 +128,15 @@ function OrderCard({ o }: { o: Order }) {
             {o.shipped_at ? ` · shipped ${daysAgo(o.shipped_at)}` : ''}
             {o.days_to_ship !== null ? ` (${o.days_to_ship}d to ship)` : ''}
           </div>
+          {o.shipped_at && (
+            <div style={{ color: o.delivery_status === 'delivered' ? SEVERITY.ok.fg : INK_MUTED }}>
+              {o.delivery_status === 'delivered'
+                ? 'delivery confirmed'
+                : o.delivery_status === 'tracked'
+                  ? 'delivery not confirmed · tracked'
+                  : 'delivery not confirmed · no tracking'}
+            </div>
+          )}
         </div>
 
         <div>
@@ -293,7 +305,7 @@ export default function OrdersPage() {
               <Tile label="Awaiting dispatch" value={String(data.summary.awaiting_dispatch)} tone={data.summary.awaiting_dispatch > 0 ? 'warning' : undefined} />
               <Tile label="Critical (7d+)" value={String(data.summary.critical)} tone={data.summary.critical > 0 ? 'critical' : undefined} />
               <Tile label="Needs attention" value={String(data.summary.critical + data.summary.warning)} />
-              <Tile label="In transit" value={String(data.summary.in_transit)} />
+              <Tile label="Shipped, unconfirmed" value={String(data.summary.in_transit)} />
               <Tile label="Orders" value={String(data.summary.total)} />
               <Tile label="GMV" value={gbp(data.summary.gmv_gbp)} />
             </div>
