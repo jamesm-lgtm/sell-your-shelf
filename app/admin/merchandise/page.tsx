@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import AdminNav from '@/app/components/AdminNav'
+import { getAdminPassword, setAdminPassword, clearAdminPassword } from '@/app/lib/adminAuth'
 
 type Tag = {
   id: number
@@ -75,8 +77,9 @@ export default function MerchandisePage() {
   const [searching, setSearching] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
-    if (token) setAuthed(true)
+    // Shared with /admin/orders and /admin/analytics so moving between
+    // admin sections doesn't re-prompt.
+    if (getAdminPassword() || localStorage.getItem('admin_token')) setAuthed(true)
   }, [])
 
   const handleLogin = async () => {
@@ -87,8 +90,8 @@ export default function MerchandisePage() {
       body: JSON.stringify({ password }),
     })
     if (res.ok) {
-      const { token } = await res.json()
-      localStorage.setItem('admin_token', token)
+      await res.json()
+      setAdminPassword(password)
       setAuthed(true)
     } else {
       setAuthError('Invalid password')
@@ -313,11 +316,15 @@ export default function MerchandisePage() {
       <div style={{ background: '#fff', borderBottom: '0.5px solid #E5E3DF', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ fontSize: 18, fontWeight: 500, color: '#1A1A1A', margin: 0 }}>Editorial Merchandising</h1>
         <button
-          onClick={() => { localStorage.removeItem('admin_token'); setAuthed(false) }}
+          onClick={() => { clearAdminPassword(); setAuthed(false) }}
           style={{ fontSize: 13, color: '#666', background: 'none', border: 'none', cursor: 'pointer' }}
         >
           Sign out
         </button>
+      </div>
+
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px 0' }}>
+        <AdminNav />
       </div>
 
       <div style={{ display: 'flex', maxWidth: 1200, margin: '0 auto', padding: 24, gap: 24 }}>

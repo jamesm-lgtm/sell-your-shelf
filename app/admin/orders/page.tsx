@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import AdminNav from '@/app/components/AdminNav'
+import { getAdminPassword, setAdminPassword } from '@/app/lib/adminAuth'
 
 type Order = {
   id: string
@@ -193,6 +194,8 @@ function OrderCard({ o }: { o: Order }) {
 
 export default function OrdersPage() {
   const [authed, setAuthed] = useState(false)
+  // Avoids flashing the login form while the stored password is restored.
+  const [restoring, setRestoring] = useState(true)
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [days, setDays] = useState<30 | 90 | 365>(90)
@@ -228,16 +231,18 @@ export default function OrdersPage() {
   }, [])
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('sys_admin_pw')
+    const stored = getAdminPassword()
     if (stored) {
       setPassword(stored)
-      load(stored, days)
+      load(stored, days).finally(() => setRestoring(false))
+    } else {
+      setRestoring(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleAuth = async () => {
-    sessionStorage.setItem('sys_admin_pw', password)
+    setAdminPassword(password)
     await load(password, days)
   }
 
@@ -250,6 +255,12 @@ export default function OrdersPage() {
       return true
     })
   }, [data, filter, channel])
+
+  if (restoring) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f9f9f7' }} />
+    )
+  }
 
   if (!authed) {
     return (

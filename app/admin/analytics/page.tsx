@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import AdminNav from '@/app/components/AdminNav'
+import { getAdminPassword, setAdminPassword } from '@/app/lib/adminAuth'
 
 type DailyRow = {
   date: string
@@ -277,6 +278,8 @@ function SourceBars({ sources }: { sources: Dashboard['sources'] }) {
 
 export default function AnalyticsPage() {
   const [authed, setAuthed] = useState(false)
+  // Avoids flashing the login form while the stored password is restored.
+  const [restoring, setRestoring] = useState(true)
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [days, setDays] = useState<7 | 30 | 90>(30)
@@ -310,16 +313,18 @@ export default function AnalyticsPage() {
   }, [])
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('sys_admin_pw')
+    const stored = getAdminPassword()
     if (stored) {
       setPassword(stored)
-      load(stored, days)
+      load(stored, days).finally(() => setRestoring(false))
+    } else {
+      setRestoring(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleAuth = async () => {
-    sessionStorage.setItem('sys_admin_pw', password)
+    setAdminPassword(password)
     await load(password, days)
   }
 
@@ -329,6 +334,12 @@ export default function AnalyticsPage() {
   }
 
   const prevWindowNote = useMemo(() => (data ? `last ${data.days} days` : ''), [data])
+
+  if (restoring) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f9f9f7' }} />
+    )
+  }
 
   if (!authed) {
     return (
