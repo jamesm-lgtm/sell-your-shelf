@@ -35,7 +35,8 @@ type LiveWallets = {
   rows: {
     user_id: string; username: string | null; email: string | null
     stripe_account_status: string | null
-    earned_gbp: number; ebay_owed_gbp: number; stripe_earned_gbp: number; spent_gbp: number
+    earned_gbp: number; ebay_owed_gbp: number; ebay_paid_gbp: number
+    ebay_outstanding_gbp: number; stripe_earned_gbp: number; spent_gbp: number
     available_gbp: number | null; pending_gbp: number | null
     stripe_error: string | null; last_sale_at: string | null
   }[]
@@ -324,6 +325,8 @@ export default function AnalyticsPage() {
   // load lazily when the tab is opened rather than on every dashboard fetch.
   const [wallets, setWallets] = useState<LiveWallets | null>(null)
   const [walletsLoading, setWalletsLoading] = useState(false)
+  const [markingId, setMarkingId] = useState<string | null>(null)
+  const [markError, setMarkError] = useState('')
   const [data, setData] = useState<Dashboard | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -387,6 +390,30 @@ export default function AnalyticsPage() {
       .catch(() => setWallets(null))
       .finally(() => setWalletsLoading(false))
   }, [section, wallets, walletsLoading, password])
+
+  const markEbayPaid = async (userId: string, username: string | null, outstanding: number) => {
+    // Records a transfer you've already made — it does not send money.
+    if (!confirm(
+      `Record £${outstanding.toFixed(2)} as PAID to @${username ?? 'seller'}?\n\n` +
+      `This only writes a ledger entry — make sure you have actually sent the money first.`
+    )) return
+    setMarkingId(userId)
+    setMarkError('')
+    try {
+      const res = await fetch('/api/admin/wallets/mark-paid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, userId, amountGbp: outstanding, method: 'bank transfer' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'failed')
+      setWallets(null) // force a refetch so the row reflects the new balance
+    } catch (e) {
+      setMarkError(e instanceof Error ? e.message : 'Failed to record payment')
+    } finally {
+      setMarkingId(null)
+    }
+  }
 
   const prevWindowNote = useMemo(() => (data ? `last ${data.days} days` : ''), [data])
 
@@ -677,9 +704,10 @@ export default function AnalyticsPage() {
                             <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 400 }}>Seller</th>
                             <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>In Stripe</th>
                             <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Pending</th>
-                            <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>eBay owed</th>
+                            <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>eBay outstanding</th>
                             <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Earned all-time</th>
                             <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 400 }}>Last sale</th>
+                            <th style={{ padding: '4px 8px' }} />
                           </tr>
                         </thead>
                         <tbody style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -700,18 +728,40 @@ export default function AnalyticsPage() {
                               <td style={{ padding: '6px 8px', textAlign: 'right', color: INK_MUTED }}>
                                 {w.pending_gbp === null ? '?' : w.pending_gbp > 0 ? gbp(w.pending_gbp) : '—'}
                               </td>
-                              <td style={{ padding: '6px 8px', textAlign: 'right', color: Number(w.ebay_owed_gbp) > 0 ? '#B3261E' : INK_MUTED, fontWeight: Number(w.ebay_owed_gbp) > 0 ? 700 : 400 }}>
-                                {Number(w.ebay_owed_gbp) > 0 ? gbp(Number(w.ebay_owed_gbp)) : '—'}
+                              <td style={{ padding: '6px 8px', textAlign: 'right', color: Number(w.ebay_outstanding_gbp) > 0 ? '#B3261E' : INK_MUTED, fontWeight: Number(w.ebay_outstanding_gbp) > 0 ? 700 : 400 }}>
+                                {Number(w.ebay_outstanding_gbp) > 0 ? gbp(Number(w.ebay_outstanding_gbp)) : '—'}
+                                {Number(w.ebay_paid_gbp) > 0 && (
+                                  <div style={{ fontSize: 11, color: '#1B5E20', fontWeight: 400 }}>
+                                    {gbp(Number(w.ebay_paid_gbp))} paid
+                                  </div>
+                                )}
                               </td>
                               <td style={{ padding: '6px 8px', textAlign: 'right', color: INK_SECONDARY }}>{gbp(Number(w.earned_gbp))}</td>
                               <td style={{ padding: '6px 8px', color: INK_SECONDARY }}>
                                 {w.last_sale_at ? new Date(w.last_sale_at).toLocaleDateString('en-GB') : '—'}
                               </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                                {Number(w.ebay_outstanding_gbp) > 0 && (
+                                  <button
+                                    onClick={() => markEbayPaid(w.user_id, w.username, Number(w.ebay_outstanding_gbp))}
+                                    disabled={markingId === w.user_id}
+                                    style={{
+                                      padding: '5px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+                                      border: '1px solid rgba(11,11,11,0.15)', background: SURFACE, color: INK_SECONDARY,
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {markingId === w.user_id ? 'Recording…' : 'Mark paid'}
+                                  </button>
+                                )}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      {markError && <div style={{ color: '#B3261E', fontSize: 12, marginTop: 8 }}>{markError}</div>}
                       <div style={{ fontSize: 11, color: INK_MUTED, marginTop: 10 }}>
+                        &ldquo;Mark paid&rdquo; records a transfer you have already made — it does not send money.
                         Balances read live from Stripe via the same function the app uses, so this always matches what the
                         seller sees. Cached <code>user_wallets</code> columns are 0 for everyone and are not used.
                       </div>
