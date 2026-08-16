@@ -25,6 +25,22 @@ type DailyRow = {
   ebay_gmv: number
 }
 
+type LiveWallets = {
+  generated_at: string
+  total_available_gbp: number
+  total_pending_gbp: number
+  total_ebay_owed_gbp: number
+  spendable_gbp: number
+  unreachable: number
+  rows: {
+    user_id: string; username: string | null; email: string | null
+    stripe_account_status: string | null
+    earned_gbp: number; ebay_owed_gbp: number; stripe_earned_gbp: number; spent_gbp: number
+    available_gbp: number | null; pending_gbp: number | null
+    stripe_error: string | null; last_sale_at: string | null
+  }[]
+}
+
 type Dashboard = {
   days: number
   daily: DailyRow[]
@@ -39,6 +55,17 @@ type Dashboard = {
     cross_listed: number; draft_value: number
   }
   top_sellers: { username: string; active_listings: number; inventory_value: number }[]
+  wallets: {
+    total_gbp: number
+    holders: number
+    spendable_gbp: number
+    blocked_gbp: number
+    rows: {
+      id: string; username: string | null; email: string | null
+      earned_gbp: number; spent_gbp: number; balance_gbp: number
+      stripe_account_status: string | null; last_sale_at: string | null
+    }[]
+  }
   totals: {
     views: number
     sessions: number
@@ -292,7 +319,11 @@ export default function AnalyticsPage() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [days, setDays] = useState<7 | 30 | 90>(30)
-  const [section, setSection] = useState<'search' | 'funnel' | 'views' | 'listings'>('search')
+  const [section, setSection] = useState<'search' | 'funnel' | 'views' | 'listings' | 'wallets'>('search')
+  // Wallet balances come live from Stripe (see /api/admin/wallets), so they
+  // load lazily when the tab is opened rather than on every dashboard fetch.
+  const [wallets, setWallets] = useState<LiveWallets | null>(null)
+  const [walletsLoading, setWalletsLoading] = useState(false)
   const [data, setData] = useState<Dashboard | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -342,6 +373,20 @@ export default function AnalyticsPage() {
     setDays(d)
     load(password, d)
   }
+
+  useEffect(() => {
+    if (section !== 'wallets' || wallets || walletsLoading || !password) return
+    setWalletsLoading(true)
+    fetch('/api/admin/wallets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('wallets failed'))))
+      .then(setWallets)
+      .catch(() => setWallets(null))
+      .finally(() => setWalletsLoading(false))
+  }, [section, wallets, walletsLoading, password])
 
   const prevWindowNote = useMemo(() => (data ? `last ${data.days} days` : ''), [data])
 
@@ -409,6 +454,7 @@ export default function AnalyticsPage() {
                 ['funnel', 'Funnel'],
                 ['views', 'Views'],
                 ['listings', 'Listings'],
+                ['wallets', 'Wallets'],
               ] as const).map(([key, label]) => (
                 <button
                   key={key}
@@ -595,6 +641,83 @@ export default function AnalyticsPage() {
                 </div>
               </Card>
                 </div>
+              </div>
+            )}
+
+            {section === 'wallets' && (
+              <div style={{ display: 'grid', gap: 14 }}>
+                {walletsLoading && <div style={{ fontSize: 13, color: INK_MUTED }}>Fetching live balances from Stripe…</div>}
+                {!walletsLoading && !wallets && <div style={{ fontSize: 13, color: '#B3261E' }}>Could not load balances.</div>}
+                {wallets && (
+                  <>
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      <StatTile label="In Stripe (available)" value={gbp(wallets.total_available_gbp)} sub="sellers can spend or withdraw" />
+                      <StatTile label="Stripe pending" value={gbp(wallets.total_pending_gbp)} sub="settling, ~7 days" />
+                      <StatTile label="Owed for eBay sales" value={gbp(wallets.total_ebay_owed_gbp)} sub="you pay manually" />
+                    </div>
+
+                    {wallets.total_ebay_owed_gbp > 0 && (
+                      <div style={{ background: '#FDECEC', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#B3261E' }}>
+                        <strong>{gbp(wallets.total_ebay_owed_gbp)} owed outside Stripe.</strong> eBay cross-list sales settle
+                        into the platform&apos;s eBay account, never the seller&apos;s Stripe Connect account — so this money
+                        appears in no balance and has to be paid by hand.
+                      </div>
+                    )}
+
+                    {wallets.unreachable > 0 && (
+                      <div style={{ background: '#FEF7E0', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#8A6100' }}>
+                        {wallets.unreachable} account(s) could not be reached at Stripe — shown as “?”, not zero.
+                      </div>
+                    )}
+
+                    <Card title="Seller balances">
+                      <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
+                        <thead>
+                          <tr style={{ color: INK_MUTED, fontSize: 12 }}>
+                            <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 400 }}>Seller</th>
+                            <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>In Stripe</th>
+                            <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Pending</th>
+                            <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>eBay owed</th>
+                            <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 400 }}>Earned all-time</th>
+                            <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 400 }}>Last sale</th>
+                          </tr>
+                        </thead>
+                        <tbody style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {wallets.rows.map((w) => (
+                            <tr key={w.user_id} style={{ borderTop: `1px solid ${GRID}` }}>
+                              <td style={{ padding: '6px 8px' }}>
+                                <div>
+                                  @{w.username ?? '—'}
+                                  {w.stripe_account_status !== 'enabled' && (
+                                    <span style={{ color: '#8A6100', fontSize: 11 }}> · {w.stripe_account_status ?? 'no wallet'}</span>
+                                  )}
+                                </div>
+                                {w.email && <a href={`mailto:${w.email}`} style={{ fontSize: 11, color: INK_MUTED }}>{w.email}</a>}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>
+                                {w.available_gbp === null ? <span title={w.stripe_error ?? ''}>?</span> : gbp(w.available_gbp)}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', color: INK_MUTED }}>
+                                {w.pending_gbp === null ? '?' : w.pending_gbp > 0 ? gbp(w.pending_gbp) : '—'}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', color: Number(w.ebay_owed_gbp) > 0 ? '#B3261E' : INK_MUTED, fontWeight: Number(w.ebay_owed_gbp) > 0 ? 700 : 400 }}>
+                                {Number(w.ebay_owed_gbp) > 0 ? gbp(Number(w.ebay_owed_gbp)) : '—'}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', color: INK_SECONDARY }}>{gbp(Number(w.earned_gbp))}</td>
+                              <td style={{ padding: '6px 8px', color: INK_SECONDARY }}>
+                                {w.last_sale_at ? new Date(w.last_sale_at).toLocaleDateString('en-GB') : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div style={{ fontSize: 11, color: INK_MUTED, marginTop: 10 }}>
+                        Balances read live from Stripe via the same function the app uses, so this always matches what the
+                        seller sees. Cached <code>user_wallets</code> columns are 0 for everyone and are not used.
+                      </div>
+                    </Card>
+                  </>
+                )}
               </div>
             )}
 
