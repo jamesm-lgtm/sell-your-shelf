@@ -108,17 +108,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return { title: 'Bundle not found — Sell Your Shelf' }
   }
   const seller = Array.isArray(bundle.seller) ? bundle.seller[0] : bundle.seller
-  // Use the first member's cover as the share-card image. Falls back
-  // to the platform's default OG image if none.
-  let firstCover: string | null = null
-  for (const it of bundle.bundle_items) {
-    const l = Array.isArray(it.listing) ? it.listing[0] : it.listing
-    const cover = l?.books?.cover_url_hosted || l?.books?.cover_url || null
-    if (cover) {
-      firstCover = cover
-      break
-    }
-  }
   return {
     title: `${bundle.name} — bundle from @${seller?.username} — Sell Your Shelf`,
     description:
@@ -129,8 +118,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       description:
         bundle.description ??
         `${bundle.bundle_items.length} books bundled together. One shipment, one discount.`,
-      images: firstCover ? [{ url: firstCover }] : [],
-      url: `https://sellyourshelf.com/bundle/${bundle.id}`,
+      // `images` omitted so the opengraph-image route supplies the card
+      // (cover stack + saving, sized 1200×630 for share clients).
+      url: `https://www.sellyourshelf.com/bundle/${bundle.id}`,
     },
     twitter: { card: 'summary_large_image' },
   }
