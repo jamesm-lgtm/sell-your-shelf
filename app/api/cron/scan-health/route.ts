@@ -48,23 +48,38 @@ const ZERO_SCAN_ALERT_DAYS = 14
 // whereas a real 1.8k-char shelf put a thinking block there instead and the
 // parse silently produced zero books. A probe smaller than production input
 // tests a different code path than the one users hit.
+// Do not trim these. An earlier, leaner version of this array (1041 chars as
+// the function saw it, vs 1201 here) sat close enough to the model's decision
+// boundary that it returned EMPTY arrays on roughly a third of first attempts —
+// same input, 0 books then 10 books thirteen seconds apart. That is what paged
+// at 07:00 on 2026-08-17. This fuller payload has never produced a short result
+// across every run recorded so far.
+//
+// The extra words per line are not padding: publisher imprints, cities and
+// blurb fragments are what real shelf OCR actually returns, so a probe carrying
+// them exercises the same conditions users do.
 const PROBE_FRAMES = [
-  'PENGUIN THE THURSDAY MURDER CLUB RICHARD OSMAN 9780241988268 VIKING BOOKS LONDON',
-  'THE THURSDAY MURDER CLUB OSMAN VIKING | NORMAL PEOPLE SALLY ROONEY FABER 9780571334650',
-  'NORMAL PEOPLE ROONEY faber | SAPIENS A BRIEF HISTORY OF HUMANKIND YUVAL NOAH HARARI VINTAGE',
-  'SAPIENS HARARI vintage 9780099590088 | KLARA AND THE SUN KAZUO ISHIGURO faber & faber',
-  'KLARA AND THE SUN ISHIGURO | THE MIDNIGHT LIBRARY MATT HAIG CANONGATE 9781786892737',
-  'MIDNIGHT LIBRARY MATT HAIG canongate | EDUCATED A MEMOIR TARA WESTOVER HUTCHINSON london',
-  'EDUCATED TARA WESTOVER | WHERE THE CRAWDADS SING DELIA OWENS CORSAIR 9781472154668',
-  'WHERE THE CRAWDADS SING OWENS corsair | THE SALT PATH RAYNOR WINN PENGUIN 9781405937184',
-  'THE SALT PATH RAYNOR WINN penguin | LESSONS IN CHEMISTRY BONNIE GARMUS DOUBLEDAY transworld',
-  'LESSONS IN CHEMISTRY GARMUS doubleday | PIRANESI SUSANNA CLARKE BLOOMSBURY PUBLISHING 2020',
+  'PENGUIN THE THURSDAY MURDER CLUB RICHARD OSMAN 9780241988268 VIKING BOOKS LONDON printed in great britain',
+  'THE THURSDAY MURDER CLUB OSMAN VIKING | NORMAL PEOPLE SALLY ROONEY FABER & FABER 9780571334650 london',
+  'NORMAL PEOPLE ROONEY faber | SAPIENS A BRIEF HISTORY OF HUMANKIND YUVAL NOAH HARARI VINTAGE BOOKS',
+  'SAPIENS HARARI vintage 9780099590088 | KLARA AND THE SUN KAZUO ISHIGURO faber & faber nobel prize winner',
+  'KLARA AND THE SUN ISHIGURO | THE MIDNIGHT LIBRARY MATT HAIG CANONGATE sunday times bestseller 9781786892737',
+  'MIDNIGHT LIBRARY MATT HAIG canongate | EDUCATED A MEMOIR TARA WESTOVER HUTCHINSON london new york',
+  'EDUCATED TARA WESTOVER | WHERE THE CRAWDADS SING DELIA OWENS CORSAIR 9781472154668 over 10 million copies',
+  'WHERE THE CRAWDADS SING OWENS corsair | THE SALT PATH RAYNOR WINN PENGUIN michael joseph 9781405937184',
+  'THE SALT PATH RAYNOR WINN penguin | LESSONS IN CHEMISTRY BONNIE GARMUS DOUBLEDAY transworld publishers',
+  'LESSONS IN CHEMISTRY GARMUS doubleday | PIRANESI SUSANNA CLARKE BLOOMSBURY PUBLISHING 2020 womens prize',
 ]
 
 // Ten unambiguous titles are present, so anything below this means degraded
 // identification, not just a hard shelf. A bare `> 0` would have gone green on
 // a response containing a single lucky match.
 const MIN_EXPECTED_BOOKS = 5
+
+// Gap between the two analyze-books attempts. Long enough that a transient
+// upstream blip has passed, short enough to stay well inside maxDuration
+// alongside two 120s-timeout Claude calls.
+const RETRY_DELAY_MS = 5_000
 
 const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SECRET_KEY!)
 
@@ -115,8 +130,9 @@ async function probeOcrUnauthenticated(): Promise<Check> {
   }
 }
 
-async function probeAnalyzeBooks(): Promise<Check> {
-  const name = 'analyze_books_probe'
+// One attempt. Returns ok:false with a reason; the caller decides whether a
+// single failure is worth paging over.
+async function attemptAnalyzeBooks(): Promise<{ ok: boolean; detail: string }> {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/analyze-books`, {
       method: 'POST',
@@ -138,7 +154,7 @@ async function probeAnalyzeBooks(): Promise<Check> {
     if (!res.ok) {
       // The 2026-06-15 failure looked exactly like this: 500 wrapping
       // "Claude API error: 404".
-      return { name, ok: false, detail: `HTTP ${res.status}: ${JSON.stringify(raw)?.slice(0, 300)}` }
+      return { ok: false, detail: `HTTP ${res.status}: ${JSON.stringify(raw)?.slice(0, 300)}` }
     }
 
     // analyze-books returns { high_confidence: [], needs_confirmation: [] }.
@@ -153,7 +169,6 @@ async function probeAnalyzeBooks(): Promise<Check> {
       // `error` field the app ignores, and no books — which users saw as the
       // generic "no books found".
       return {
-        name,
         ok: false,
         detail:
           `200 but identified only ${found} of ${PROBE_FRAMES.length} unambiguous titles ` +
@@ -161,9 +176,47 @@ async function probeAnalyzeBooks(): Promise<Check> {
       }
     }
 
-    return { name, ok: true, detail: `identified ${found} books` }
+    return { ok: true, detail: `identified ${found} books` }
   } catch (err) {
-    return { name, ok: false, detail: err instanceof Error ? err.message : 'unknown error' }
+    return { ok: false, detail: err instanceof Error ? err.message : 'unknown error' }
+  }
+}
+
+// Retries once before failing, because a single attempt conflates two very
+// different things.
+//
+// A real outage is deterministic: a retired model 404s every time, a flipped
+// auth gate 401s every time, a dead Vision key fails every time. Both attempts
+// fail and the alert still fires within the same run.
+//
+// Model output is not deterministic. On 2026-08-17 the 07:00 check paged
+// because Claude called record_books with empty arrays — one bad roll of the
+// dice on input that had worked the day before and worked again on the very
+// next call. Paging a human for that is how an alert earns a filter rule, and
+// this one exists precisely because nobody was watching the last outage.
+async function probeAnalyzeBooks(): Promise<Check> {
+  const name = 'analyze_books_probe'
+
+  const first = await attemptAnalyzeBooks()
+  if (first.ok) return { name, ok: true, detail: first.detail }
+
+  await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
+  const second = await attemptAnalyzeBooks()
+
+  if (second.ok) {
+    // Deliberately still ok — but say so, so a rising rate of flaky first
+    // attempts is visible in the cron logs before it becomes a real failure.
+    return {
+      name,
+      ok: true,
+      detail: `${second.detail} (first attempt failed, retry succeeded — first: ${first.detail.slice(0, 120)})`,
+    }
+  }
+
+  return {
+    name,
+    ok: false,
+    detail: `failed twice, ${RETRY_DELAY_MS / 1000}s apart.\n  attempt 1: ${first.detail}\n  attempt 2: ${second.detail}`,
   }
 }
 
