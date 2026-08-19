@@ -315,6 +315,54 @@
   box-shadow: 0 14px 28px rgba(26, 29, 27, 0.16);
   border-color: var(--color-ink-faint) !important;
 }
+
+/* A bundle in a grid. Like the book card it carries no frame: the covers
+   are the object.
+   Overlapping them was tried and rejected — each cover sits behind the one
+   before it, so all you see of the ones behind is a right-hand strip, and a
+   cover's title starts on the left. Three shown whole, at the size covers
+   get everywhere else, says "a set of books" without cropping any of them.
+   The true count is in the line below, so showing three of six is a
+   summary, not a claim. */
+.sy-bundle-tile { display: block; text-decoration: none; color: inherit; }
+.sy-bundle-stack {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px; margin-bottom: 14px;
+}
+/* A two-book bundle shows two covers at the same size as its neighbours'
+   rather than stretching them across the row: the grid keeps the column
+   width, the empty cell just stays empty. */
+.sy-bundle-stack .sy-cover { width: 100%; }
+.sy-bundle-tile:hover .sy-cover {
+  box-shadow: 0 14px 26px rgba(26, 29, 27, 0.22);
+}
+.sy-bundle-tile:hover .sy-bundle-name { color: var(--color-action); }
+.sy-bundle-name {
+  font-size: 15px; font-weight: 600; color: var(--color-ink);
+  line-height: 1.34; margin-bottom: 6px;
+  transition: color .14s ease;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Count on the left, sort options on the right — until there isn't room,
+   at which point they stack rather than each breaking mid-phrase. */
+.sy-sortbar {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px; color: var(--color-ink-soft);
+}
+.sy-sortbar-options {
+  display: flex; align-items: center; gap: 10px;
+  margin-left: auto; flex-wrap: wrap;
+}
+@media (max-width: 640px) {
+  .sy-sortbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .sy-sortbar-options { margin-left: 0; }
+}
+
+.sy-bundle-meta {
+  font-size: 13px; color: var(--color-ink-faint);
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+}
 .sy-bundle-go {
   font-family: var(--font-body);
   font-size: 13px;
