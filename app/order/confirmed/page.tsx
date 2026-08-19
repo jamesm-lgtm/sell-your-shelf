@@ -75,7 +75,7 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
     ? (Number(transaction.sale_price_gbp) + Number(transaction.shipping_cost_gbp)).toFixed(2)
     : null
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
       {transaction && totalPaid && (
         <GaPurchase
           transactionId={paymentIntentParam || String(transaction.id)}
@@ -89,53 +89,53 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '48px 24px', textAlign: 'center' }}>
 
         <div style={{ fontSize: 48, marginBottom: 16 }}>&#x2705;</div>
-        <h1 style={{ fontSize: 24, fontWeight: 600, color: '#1A1A1A', marginBottom: 8 }}>
+        <h1 className="sy-h2" style={{ marginBottom: 8 }}>
           Order confirmed!
         </h1>
-        <p style={{ fontSize: 14, color: '#666', marginBottom: 32 }}>
+        <p style={{ fontSize: 14, color: 'var(--color-ink-soft)', marginBottom: 32 }}>
           Thank you for your purchase{totalPaid ? ` of \u00A3${totalPaid}` : ''}.
         </p>
 
         {transaction ? (
-          <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '24px', marginBottom: 32, textAlign: 'left' }}>
+          <div style={{ background: '#fff', border: '1px solid var(--color-rule)', borderRadius: 'var(--radius-md)', padding: '24px', marginBottom: 32, textAlign: 'left' }}>
             <div style={{ display: 'flex', gap: 16, alignItems: 'start' }}>
               {cover && (
-                <div style={{ width: 80, borderRadius: 8, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3', flexShrink: 0 }}>
+                <div style={{ width: 80, borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--color-ground)', aspectRatio: '2/3', flexShrink: 0 }}>
                   <img src={cover} alt={book?.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </div>
               )}
               <div>
-                <p style={{ fontSize: 16, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>
+                <p style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-ink)', marginBottom: 4 }}>
                   {book?.title}
                 </p>
                 {book?.author && (
-                  <p style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
+                  <p style={{ fontSize: 14, color: 'var(--color-ink-soft)', marginBottom: 8 }}>
                     by {book.author}
                   </p>
                 )}
                 {seller?.username && (
-                  <p style={{ fontSize: 13, color: '#999' }}>
+                  <p style={{ fontSize: 13, color: 'var(--color-ink-faint)' }}>
                     Sold by @{seller.username}
                   </p>
                 )}
               </div>
             </div>
 
-            <p style={{ fontSize: 14, color: '#666', marginTop: 20, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--color-ink-soft)', marginTop: 20, lineHeight: 1.6 }}>
               Your order is on its way to the seller. You&apos;ll get an email when it ships.
             </p>
           </div>
         ) : (
-          <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '24px', marginBottom: 32 }}>
-            <p style={{ fontSize: 14, color: '#666', lineHeight: 1.6 }}>
+          <div style={{ background: '#fff', border: '1px solid var(--color-rule)', borderRadius: 'var(--radius-md)', padding: '24px', marginBottom: 32 }}>
+            <p style={{ fontSize: 14, color: 'var(--color-ink-soft)', lineHeight: 1.6 }}>
               Your payment has been received. We&apos;re setting up your order now &mdash; you&apos;ll receive a confirmation email shortly.
             </p>
           </div>
         )}
 
         {/* App badges */}
-        <div style={{ background: '#2D4A3E', borderRadius: 12, padding: '24px', marginBottom: 32 }}>
-          <p style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
+        <div style={{ background: 'var(--color-ground)', borderRadius: 'var(--radius-md)', padding: '24px', marginBottom: 32 }}>
+          <p style={{ color: 'var(--color-paper)', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
             Download the app to track your order
           </p>
           <p style={{ color: 'rgba(250,248,245,0.7)', fontSize: 13, marginBottom: 20 }}>
@@ -151,7 +151,7 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
           </div>
         </div>
 
-        <Link href="/new" style={{ fontSize: 14, color: '#2D4A3E', textDecoration: 'none', fontWeight: 500 }}>
+        <Link href="/new" style={{ fontSize: 14, color: 'var(--color-ground)', textDecoration: 'none', fontWeight: 500 }}>
           Continue browsing →
         </Link>
 

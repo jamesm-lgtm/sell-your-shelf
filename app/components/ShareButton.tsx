@@ -1,7 +1,15 @@
 'use client'
 
 /**
- * BundleShareButton — appears in the hero card on /bundle/[id].
+ * ShareButton — the one share affordance, used on bundles, shelves,
+ * listings and book pages.
+ *
+ * Placement rule: share is page *utility*, not page action. It sits at
+ * the right edge of the page's top identity row (breadcrumbs on a
+ * listing or book page, the @username row on a shelf) — never stacked
+ * into the buy column, where a third identically-shaped pill would
+ * dilute Add to basket. The bundle hero is the one exception: it has no
+ * utility row, so share stays full-size in the card.
  *
  * Uses the Web Share API when available (iOS Safari, Android Chrome,
  * most modern browsers) so the native share sheet pops up. Falls
@@ -12,16 +20,17 @@
 
 import { useState } from 'react'
 
-const FOREST = '#2D4A3E'
-const GOLD = '#C9A961'
-
 interface Props {
   url: string
   title: string
   description?: string | null
+  /** What is being shared, for the label and the fallback share text. */
+  kind?: 'bundle' | 'shelf' | 'book'
+  /** Utility-row size: sits beside breadcrumbs without outweighing them. */
+  compact?: boolean
 }
 
-export default function BundleShareButton({ url, title, description }: Props) {
+export default function ShareButton({ url, title, description, kind = 'bundle', compact = false }: Props) {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState(false)
 
@@ -33,7 +42,11 @@ export default function BundleShareButton({ url, title, description }: Props) {
       // The body of the share — most apps display title prominently
       // and text underneath. Description gives recipients a clue
       // what the bundle is.
-      text: description ?? `Check out this bundle on Sell Your Shelf: ${title}`,
+      text:
+        description ??
+        (kind === 'shelf'
+          ? `Have a look at ${title} on Sell Your Shelf`
+          : `Check out ${title} on Sell Your Shelf`),
     }
     try {
       // Prefer native share sheet when available — gives the buyer
@@ -62,25 +75,24 @@ export default function BundleShareButton({ url, title, description }: Props) {
       type="button"
       onClick={handleShare}
       aria-label={`Share ${title}`}
-      style={{
-        background: copied ? FOREST : '#FFFDF6',
-        color: copied ? '#FAF8F5' : FOREST,
-        border: `1px solid ${GOLD}`,
-        borderRadius: 8,
-        padding: '10px 16px',
-        fontSize: 13,
-        fontWeight: 600,
-        cursor: 'pointer',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        transition: 'background 0.15s, color 0.15s',
-      }}
+      className="sy-cta sy-cta-quiet sy-share"
+      style={compact ? { fontSize: 13, padding: '7px 14px', gap: 7 } : { fontSize: 14, padding: '11px 20px' }}
     >
-      <span aria-hidden style={{ fontSize: 14 }}>
-        {copied ? '✓' : error ? '⚠️' : '🔗'}
+      {/* Drawn, not an emoji — craft-floor bans glyphs standing in for icons. */}
+      <svg width={compact ? 13 : 15} height={compact ? 13 : 15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        {copied ? (
+          <path d="M20 6L9 17l-5-5" />
+        ) : (
+          <>
+            <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" />
+            <path d="M16 6l-4-4-4 4" />
+            <path d="M12 2v13" />
+          </>
+        )}
+      </svg>
+      <span className="sy-share-label">
+        {copied ? 'Link copied' : error ? 'Try again' : `Share ${kind}`}
       </span>
-      {copied ? 'Link copied' : error ? 'Try again' : 'Share bundle'}
     </button>
   )
 }

@@ -9,19 +9,19 @@ export const metadata = {
 
 export default function About() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+    <div className="sy-page">
       <SiteNav />
       <main className="py-16">
         <div className="max-w-2xl mx-auto px-6">
-          <h1 className="text-3xl font-bold mb-8">About Sell Your Shelf</h1>
+          <h1 className="sy-h2" style={{ marginBottom: 28 }}>About Sell Your Shelf</h1>
 
-          <div className="space-y-6 text-gray-700 leading-relaxed">
+          <div className="space-y-6 sy-prose">
             <p>
               Sell Your Shelf is a UK marketplace for secondhand books. We make it simple to buy and sell
               pre-loved books — no listing fees, no fuss.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 pt-4">How it works for sellers</h2>
+            <h2 className="sy-h3" style={{ paddingTop: 22 }}>How it works for sellers</h2>
             <p>
               Point your phone camera at your bookshelf and our AI identifies every spine in real time —
               typically 30 books in under 90 seconds. We suggest fair prices based on live market data.
@@ -32,7 +32,7 @@ export default function About() {
               no printing required, just show the QR code. Payment lands in your account once delivered.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 pt-4">How it works for buyers</h2>
+            <h2 className="sy-h3" style={{ paddingTop: 22 }}>How it works for buyers</h2>
             <p>
               Browse thousands of secondhand books from sellers across the UK. Every listing shows the book's
               condition, price, and seller location. Buy with confidence — all payments are processed securely
@@ -42,7 +42,7 @@ export default function About() {
               If a book arrives not as described, contact us within 14 days and we'll make it right.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 pt-4">Our fees</h2>
+            <h2 className="sy-h3" style={{ paddingTop: 22 }}>Our fees</h2>
             <p>
               It's free to list books. We only charge when a sale completes:
             </p>
@@ -54,7 +54,7 @@ export default function About() {
               Shipping costs £2.50 and is paid by the buyer. There are no hidden charges.
             </p>
 
-            <h2 className="text-xl font-semibold text-gray-900 pt-4">The company</h2>
+            <h2 className="sy-h3" style={{ paddingTop: 22 }}>The company</h2>
             <p>
               Sell Your Shelf Limited is registered in England and Wales (Company Number 16895246).
               We're based in London and committed to giving secondhand books a second life.

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useBasket } from './BasketProvider'
 import type { BasketItem } from '@/app/lib/basket'
+import { BookCard, BookGrid } from '@/app/components/ui'
 import { resolveBookCover, type ListingImageRow } from '@/app/lib/coverUrl'
 
 type Listing = {
@@ -43,8 +44,8 @@ const CONDITION_ORDER: Record<string, number> = {
   acceptable: 3,
 }
 
-const FOREST = '#2D4A3E'
-const CREAM = '#FAF8F5'
+const FOREST = 'var(--color-ground)'
+const CREAM = 'var(--color-paper)'
 
 function listingToBasketItem(l: Listing): BasketItem {
   return {
@@ -92,28 +93,16 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
     <div>
       {/* Controls */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            onClick={() => handleFilterChange('all')}
-            style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, border: '0.5px solid', cursor: 'pointer', background: condition === 'all' ? '#2D4A3E' : '#fff', color: condition === 'all' ? '#FAF8F5' : '#666', borderColor: condition === 'all' ? '#2D4A3E' : '#E5E3DF' }}
-          >
-            All
-          </button>
-          {activeConditions.map(c => (
-            <button
-              key={c}
-              onClick={() => handleFilterChange(c)}
-              style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, border: '0.5px solid', cursor: 'pointer', background: condition === c ? '#2D4A3E' : '#fff', color: condition === c ? '#FAF8F5' : '#666', borderColor: condition === c ? '#2D4A3E' : '#E5E3DF' }}
-            >
-              {CONDITIONS[c] ?? c}
-            </button>
-          ))}
-        </div>
+        {/* Condition chips removed: 92% of live stock is Very Good or better,
+            so the filter's options were effectively 92%/8% — it filtered
+            almost nothing while taking the most prominent row on the shelf.
+            Condition still shows per card and on the listing page. */}
+        <div />
 
         <select
           value={sort}
           onChange={e => setSort(e.target.value as any)}
-          style={{ fontSize: 13, padding: '6px 12px', borderRadius: 6, border: '0.5px solid #E5E3DF', background: '#fff', color: '#1A1A1A', cursor: 'pointer' }}
+          className="sy-select"
         >
           <option value="newest">Newest first</option>
           <option value="price_asc">Price: low to high</option>
@@ -122,135 +111,56 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
       </div>
 
       {/* Results count */}
-      <p style={{ fontSize: 13, color: '#999', marginBottom: 16 }}>
+      <p style={{ fontSize: 13, color: 'var(--color-ink-faint)', marginBottom: 16 }}>
         {filtered.length} {filtered.length === 1 ? 'book' : 'books'}
         {condition !== 'all' ? ` in ${CONDITIONS[condition]}` : ''}
       </p>
 
       {filtered.length === 0 ? (
-        <p style={{ color: '#999', fontSize: 15, textAlign: 'center', paddingTop: 48 }}>
+        <p style={{ color: 'var(--color-ink-faint)', fontSize: 15, textAlign: 'center', paddingTop: 48 }}>
           No books match this filter.
         </p>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 16 }}>
+          <BookGrid>
             {visible.map((listing) => {
               const inBasket = hasItem(listing.id)
-              const coverUrl = resolveBookCover(listing.books, listing.listing_images)
               return (
-                <div key={listing.id} style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ aspectRatio: '2/3', background: '#2D4A3E', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-                    {coverUrl ? (
-                      <img
-                        src={coverUrl}
-                        alt={listing.title}
-                        style={{ height: '100%', width: '100%', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, padding: 8, textAlign: 'center' }}>
-                        {listing.title}
-                      </span>
-                    )}
-                    {listing.has_bundles && (
-                      <div
-                        title="Available as part of a bundle"
-                        style={{
-                          position: 'absolute',
-                          top: 6,
-                          left: 6,
-                          background: '#C9A961',
-                          borderRadius: 4,
-                          padding: '3px 8px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: '#1F3329',
-                          letterSpacing: 0.3,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                        }}
-                      >
-                        <span aria-hidden style={{ fontSize: 11 }}>📚</span>
-                        BUNDLE
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 3 }}>
-                      {listing.title}
-                    </div>
-                    {listing.author && (
-                      <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
-                        {listing.author}
-                      </div>
-                    )}
-                    {showSeller && listing.users?.username && (
-                      <Link
-                        href={`/${listing.users.username}`}
-                        style={{ fontSize: 11, color: '#2D4A3E', textDecoration: 'none', display: 'block', marginBottom: 8 }}
-                      >
-                        @{listing.users.username}
-                      </Link>
-                    )}
-                    <div style={{ marginTop: 'auto' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <span style={{ fontSize: 15, fontWeight: 500, color: '#2D4A3E' }}>
-                          £{Number(listing.asking_price_gbp).toFixed(2)}
-                        </span>
-                        <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                          {CONDITIONS[listing.condition] ?? listing.condition}
-                        </span>
-                      </div>
-
-                      {sellerRef ? (
-                        inBasket ? (
-                          <button
-                            onClick={() => removeItem(listing.id, 'card_toggle')}
-                            style={addedButtonStyle}
-                          >
-                            <span aria-hidden style={{ marginRight: 6 }}>✓</span>
-                            Added — Remove?
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => addItem(sellerRef, listingToBasketItem(listing), 'shelf_card')}
-                            style={primaryButtonStyle}
-                          >
-                            Add to basket
-                          </button>
-                        )
+                <BookCard
+                  key={listing.id}
+                  href={`/listing/${listing.id}`}
+                  book={{
+                    id: listing.id,
+                    title: listing.title,
+                    author: listing.author,
+                    price: Number(listing.asking_price_gbp),
+                    condition: listing.condition,
+                    cover: resolveBookCover(listing.books, listing.listing_images),
+                    inBundle: listing.has_bundles,
+                  }}
+                  action={
+                    sellerRef ? (
+                      inBasket ? (
+                        <button
+                          onClick={() => removeItem(listing.id, 'card_toggle')}
+                          style={addedButtonStyle}
+                        >
+                          <span aria-hidden>✓</span> In basket · Remove
+                        </button>
                       ) : (
-                        // No seller context — fall back to original CTA
-                        <Link
-                          href={`/listing/${listing.id}`}
-                          style={{ display: 'block', textAlign: 'center', background: FOREST, color: CREAM, fontSize: 13, fontWeight: 500, padding: '9px 0', borderRadius: 6, textDecoration: 'none' }}
+                        <button
+                          onClick={() => addItem(sellerRef, listingToBasketItem(listing), 'shelf_card')}
+                          style={primaryButtonStyle}
                         >
-                          View listing
-                        </Link>
-                      )}
-
-                      {sellerRef && (
-                        <Link
-                          href={`/listing/${listing.id}`}
-                          style={{
-                            display: 'block',
-                            textAlign: 'center',
-                            color: '#666',
-                            fontSize: 12,
-                            textDecoration: 'underline',
-                            marginTop: 8,
-                          }}
-                        >
-                          View listing
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                          Add to basket
+                        </button>
+                      )
+                    ) : undefined
+                  }
+                />
               )
             })}
-          </div>
+          </BookGrid>
 
           {hasMore && (
             <div style={{ textAlign: 'center', marginTop: 32 }}>
@@ -259,7 +169,7 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
                 style={{
                   background: '#fff',
                   border: '1px solid #2D4A3E',
-                  color: '#2D4A3E',
+                  color: 'var(--color-ground)',
                   fontSize: 14,
                   fontWeight: 500,
                   padding: '12px 40px',
@@ -281,38 +191,39 @@ export default function ShelfGrid({ listings, showSeller = false, pageSize = 24,
 // toggling never shifts surrounding cards in the grid row.
 const BUTTON_MIN_HEIGHT = 52
 
-const primaryButtonStyle: React.CSSProperties = {
+// Both states share geometry so the grid never shifts when one flips.
+const buttonBase: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  gap: 6,
   width: '100%',
   minHeight: BUTTON_MIN_HEIGHT,
   textAlign: 'center',
-  background: FOREST,
-  color: CREAM,
-  fontSize: 13,
-  fontWeight: 500,
-  padding: '6px 8px',
-  borderRadius: 6,
-  border: 'none',
+  fontFamily: 'var(--font-body)',
+  fontSize: 14,
+  fontWeight: 600,
+  padding: '10px 12px',
+  borderRadius: 999,
   cursor: 'pointer',
   lineHeight: 1.25,
 }
 
+const primaryButtonStyle: React.CSSProperties = {
+  ...buttonBase,
+  background: 'var(--color-action)',
+  color: '#fff',
+  border: '1px solid var(--color-action)',
+}
+
+// A settled state, not a second primary action: quiet fill, hairline
+// border, ink text. It should recede once the job is done.
 const addedButtonStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '100%',
-  minHeight: BUTTON_MIN_HEIGHT,
-  textAlign: 'center',
-  background: '#fff',
-  color: FOREST,
-  fontSize: 13,
+  ...buttonBase,
+  background: 'var(--color-paper-warm)',
+  color: 'var(--color-ink)',
+  // ink-faint, not rule: --color-rule is 1.35:1 against the paper ground,
+  // so the button had no legible boundary. This is 4.73:1.
+  border: '1px solid var(--color-ink-faint)',
   fontWeight: 500,
-  padding: '6px 8px',
-  borderRadius: 6,
-  border: `1px solid ${FOREST}`,
-  cursor: 'pointer',
-  lineHeight: 1.25,
 }

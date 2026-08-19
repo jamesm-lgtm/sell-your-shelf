@@ -53,9 +53,9 @@ export default function CookieBanner() {
         fontFamily: 'system-ui, sans-serif',
       }}
     >
-      <span style={{ fontSize: 13, color: '#3F3F3A', flex: '1 1 260px' }}>
+      <span style={{ fontSize: 13, color: 'var(--color-ink)', flex: '1 1 260px' }}>
         We use analytics cookies to understand how readers find books.{' '}
-        <Link href="/privacy" style={{ color: '#254B3C', textDecoration: 'underline' }}>
+        <Link href="/privacy" style={{ color: 'var(--color-ground)', textDecoration: 'underline' }}>
           Privacy policy
         </Link>
       </span>
@@ -67,7 +67,7 @@ export default function CookieBanner() {
             borderRadius: 8,
             border: '1px solid rgba(11,11,11,0.15)',
             background: '#fff',
-            color: '#3F3F3A',
+            color: 'var(--color-ink)',
             fontSize: 13,
             cursor: 'pointer',
           }}
@@ -80,7 +80,7 @@ export default function CookieBanner() {
             padding: '8px 14px',
             borderRadius: 8,
             border: 'none',
-            background: '#254B3C',
+            background: 'var(--color-action)',
             color: '#fff',
             fontSize: 13,
             fontWeight: 600,

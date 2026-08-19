@@ -31,8 +31,8 @@ export default function AuthCallback() {
       gap: '16px'
     }}>
       <p>Opening Sell Your Shelf...</p>
-      <p style={{ fontSize: '14px', color: '#666' }}>
-        If the app doesn&apos;t open, <a href="sellyourshelf://auth/callback" style={{ color: '#059669' }}>tap here</a>
+      <p style={{ fontSize: '14px', color: 'var(--color-ink-soft)' }}>
+        If the app doesn&apos;t open, <a href="sellyourshelf://auth/callback" style={{ color: 'var(--color-cond-like-new)' }}>tap here</a>
       </p>
     </div>
   )

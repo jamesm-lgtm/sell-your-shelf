@@ -12,10 +12,10 @@ import { useBasket } from './BasketProvider'
 const POLL_INTERVAL_MS = 2_000
 const POLL_MAX_MS = 40_000
 
-const FOREST = '#2D4A3E'
-const FOREST_DEEP = '#1F3329'
-const CREAM = '#FAF8F5'
-const GOLD = '#C9A961'
+const FOREST = 'var(--color-ground)'
+const FOREST_DEEP = 'var(--color-ground-deep)'
+const CREAM = 'var(--color-paper)'
+const GOLD = 'var(--color-accent)'
 
 type Props = {
   orderId: string
@@ -75,22 +75,22 @@ export default function OrderConfirmationClient(props: Props) {
   if (props.status === 'cancelled') {
     return (
       <div style={{ padding: '48px 0', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 22, color: FOREST_DEEP, fontWeight: 600, marginBottom: 8 }}>
+        <h1 className="sy-h3" style={{ marginBottom: 8 }}>
           Payment didn't go through
         </h1>
-        <p style={{ color: '#666', fontSize: 14, marginBottom: 16 }}>
+        <p style={{ color: 'var(--color-ink-soft)', fontSize: 14, marginBottom: 16 }}>
           We weren't able to take payment for this order. Nothing has been charged.
         </p>
         <Link
           href="/"
           style={{
             display: 'inline-block',
-            background: FOREST,
+            background: 'var(--color-action)',
             color: CREAM,
             fontSize: 14,
             fontWeight: 500,
             padding: '11px 22px',
-            borderRadius: 8,
+            borderRadius: 'var(--radius-pill)',
             textDecoration: 'none',
           }}
         >
@@ -103,15 +103,15 @@ export default function OrderConfirmationClient(props: Props) {
   if (!isPaid) {
     return (
       <div style={{ padding: '48px 0', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 22, color: FOREST_DEEP, fontWeight: 600, marginBottom: 8 }}>
+        <h1 className="sy-h3" style={{ marginBottom: 8 }}>
           {givingUp ? 'Still waiting on payment confirmation…' : 'Confirming your payment…'}
         </h1>
-        <p style={{ color: '#666', fontSize: 14, marginBottom: 4 }}>
+        <p style={{ color: 'var(--color-ink-soft)', fontSize: 14, marginBottom: 4 }}>
           {givingUp
             ? "It's taking longer than usual. Your payment is being processed — feel free to close this tab and we'll email you when it lands."
             : "We're waiting for Stripe to confirm. This usually takes a few seconds."}
         </p>
-        <p style={{ color: '#999', fontSize: 12, marginTop: 12 }}>
+        <p style={{ color: 'var(--color-ink-faint)', fontSize: 12, marginTop: 12 }}>
           Order id <code>{props.orderId.slice(0, 8)}</code>
           {givingUp && (
             <>
@@ -139,7 +139,7 @@ export default function OrderConfirmationClient(props: Props) {
         style={{
           background: '#fff',
           border: `1px solid ${GOLD}`,
-          borderRadius: 12,
+          borderRadius: 'var(--radius-md)',
           padding: '28px 24px',
           textAlign: 'center',
           marginBottom: 24,
@@ -162,22 +162,22 @@ export default function OrderConfirmationClient(props: Props) {
         >
           ✓
         </div>
-        <h1 style={{ fontSize: 24, color: FOREST_DEEP, fontWeight: 700, margin: '0 0 6px' }}>
+        <h1 className="sy-h2" style={{ margin: '0 0 6px' }}>
           Order confirmed
         </h1>
-        <p style={{ fontSize: 14, color: '#666', margin: 0 }}>
+        <p style={{ fontSize: 14, color: 'var(--color-ink-soft)', margin: 0 }}>
           {itemCount} {itemCount === 1 ? 'book' : 'books'}
           {props.sellerUsername ? ` from @${props.sellerUsername}` : ''} — total £{props.totalGbp.toFixed(2)}
         </p>
         {props.buyerEmail && (
-          <p style={{ fontSize: 12, color: '#999', margin: '10px 0 0' }}>
+          <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', margin: '10px 0 0' }}>
             A confirmation email is on its way to {props.buyerEmail}.
           </p>
         )}
       </div>
 
       <SectionCard title="What happens next">
-        <ol style={{ margin: 0, padding: '0 0 0 20px', fontSize: 14, color: '#333', lineHeight: 1.7 }}>
+        <ol style={{ margin: 0, padding: '0 0 0 20px', fontSize: 14, color: 'var(--color-ink)', lineHeight: 1.7 }}>
           <li>
             <strong>@{props.sellerUsername ?? 'The seller'}</strong> is notified and will pack your order.
           </li>
@@ -192,17 +192,17 @@ export default function OrderConfirmationClient(props: Props) {
           {props.items.map((it) => (
             <li
               key={it.id}
-              style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#333' }}
+              style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--color-ink)' }}
             >
               <span style={{ flex: 1, paddingRight: 8 }}>
                 {it.title}
                 {it.author ? ` · ${it.author}` : ''}
               </span>
-              <span style={{ color: '#1A1A1A' }}>£{Number(it.price_gbp).toFixed(2)}</span>
+              <span style={{ color: 'var(--color-ink)' }}>£{Number(it.price_gbp).toFixed(2)}</span>
             </li>
           ))}
         </ul>
-        <div style={{ borderTop: '0.5px solid #E5E3DF', marginTop: 12, paddingTop: 12 }}>
+        <div style={{ borderTop: '1px solid var(--color-rule)', marginTop: 12, paddingTop: 12 }}>
           <Row label="Subtotal" value={`£${props.subtotalGbp.toFixed(2)}`} />
           <Row
             label="Shipping"
@@ -212,10 +212,10 @@ export default function OrderConfirmationClient(props: Props) {
           {props.walletAppliedGbp > 0 && (
             <Row label="Wallet applied" value={`−£${props.walletAppliedGbp.toFixed(2)}`} />
           )}
-          <div style={{ borderTop: '0.5px solid #E5E3DF', marginTop: 10, paddingTop: 10 }}>
+          <div style={{ borderTop: '1px solid var(--color-rule)', marginTop: 10, paddingTop: 10 }}>
             <Row label={<strong>Total</strong>} value={<strong>£{props.totalGbp.toFixed(2)}</strong>} />
             {props.cardChargedGbp > 0 && (
-              <p style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+              <p style={{ fontSize: 11, color: 'var(--color-ink-faint)', marginTop: 4 }}>
                 Charged to your card: £{props.cardChargedGbp.toFixed(2)}
               </p>
             )}
@@ -224,7 +224,7 @@ export default function OrderConfirmationClient(props: Props) {
       </SectionCard>
 
       <SectionCard title="Shipping to">
-        <p style={{ fontSize: 14, color: '#1A1A1A', margin: 0, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 14, color: 'var(--color-ink)', margin: 0, lineHeight: 1.5 }}>
           <strong>{addrName}</strong>
           <br />
           {addrLine1}
@@ -253,7 +253,7 @@ export default function OrderConfirmationClient(props: Props) {
           fontSize: 14,
           fontWeight: 500,
           padding: '11px 0',
-          borderRadius: 8,
+          borderRadius: 'var(--radius-pill)',
           textDecoration: 'none',
           marginTop: 8,
         }}
@@ -269,8 +269,8 @@ function SectionCard({ title, children }: { title: string; children: React.React
     <div
       style={{
         background: '#fff',
-        border: '0.5px solid #E5E3DF',
-        borderRadius: 10,
+        border: '1px solid var(--color-rule)',
+        borderRadius: 'var(--radius-md)',
         padding: 16,
         marginBottom: 16,
       }}
@@ -294,8 +294,8 @@ function Row({
 }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-      <span style={{ fontSize: 14, color: '#333' }}>{label}</span>
-      <span style={{ fontSize: 14, color: highlight ? GOLD : '#1A1A1A', fontWeight: highlight ? 600 : 400 }}>
+      <span style={{ fontSize: 14, color: 'var(--color-ink)' }}>{label}</span>
+      <span style={{ fontSize: 14, color: highlight ? GOLD : 'var(--color-ink)', fontWeight: highlight ? 600 : 400 }}>
         {value}
       </span>
     </div>

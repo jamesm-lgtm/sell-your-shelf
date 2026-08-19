@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { formatCount } from '@/app/components/ui'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import ShelfGrid from '@/app/components/ShelfGrid'
@@ -117,36 +118,36 @@ export default async function CategoryPage({ params }: Props) {
   const categoryEntries = Object.entries(CATEGORIES)
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
 
       <SiteNav current="browse" />
 
-      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '32px 24px 24px' }}>
+      <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '32px 24px 24px' }}>
         <div style={{ maxWidth: 840, margin: '0 auto' }}>
-          <div style={{ fontSize: 12, color: '#999', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
-            <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
-            <span style={{ color: '#ccc' }}>/</span>
-            <Link href="/new" style={{ color: '#999', textDecoration: 'none' }}>Browse</Link>
-            <span style={{ color: '#ccc' }}>/</span>
-            <span style={{ color: '#666' }}>{displayName}</span>
+          <div style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
+            <Link href="/" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Home</Link>
+            <span style={{ color: 'var(--color-rule)' }}>/</span>
+            <Link href="/new" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Browse</Link>
+            <span style={{ color: 'var(--color-rule)' }}>/</span>
+            <span style={{ color: 'var(--color-ink-soft)' }}>{displayName}</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>
+          <div style={{ fontSize: 24, fontWeight: 500, color: 'var(--color-ink)', marginBottom: 4 }}>
             {displayName} Books
           </div>
-          <div style={{ fontSize: 14, color: '#666' }}>
-            {safeListings.length} {safeListings.length === 1 ? 'book' : 'books'} available
+          <div style={{ fontSize: 14, color: 'var(--color-ink-soft)' }}>
+            {formatCount(safeListings.length)} {safeListings.length === 1 ? 'book' : 'books'} available
           </div>
         </div>
       </div>
 
       {/* Category pills */}
-      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '12px 24px', overflow: 'auto' }}>
+      <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '12px 24px', overflow: 'auto' }}>
         <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', gap: 8, flexWrap: 'nowrap' }}>
           <Link
             href="/new"
             style={{
               fontSize: 12, padding: '6px 14px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap',
-              background: '#fff', color: '#666', border: '0.5px solid #E5E3DF',
+              background: '#fff', color: 'var(--color-ink-soft)', border: '1px solid var(--color-rule)',
             }}
           >
             All
@@ -157,9 +158,9 @@ export default async function CategoryPage({ params }: Props) {
               href={`/category/${slug}`}
               style={{
                 fontSize: 12, padding: '6px 14px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap',
-                background: slug === category ? '#2D4A3E' : '#fff',
-                color: slug === category ? '#FAF8F5' : '#666',
-                border: `0.5px solid ${slug === category ? '#2D4A3E' : '#E5E3DF'}`,
+                background: slug === category ? 'var(--color-ground)' : '#fff',
+                color: slug === category ? 'var(--color-paper)' : 'var(--color-ink-soft)',
+                border: `0.5px solid ${slug === category ? 'var(--color-ground)' : 'var(--color-rule)'}`,
               }}
             >
               {name}

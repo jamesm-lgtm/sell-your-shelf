@@ -100,28 +100,28 @@ export default async function BrowseTagPage({ params }: Props) {
   if (safeListings.length === 0) return notFound()
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
 
       <SiteNav current="browse" />
 
-      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '32px 24px 24px' }}>
+      <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '32px 24px 24px' }}>
         <div style={{ maxWidth: 840, margin: '0 auto' }}>
-          <div style={{ fontSize: 12, color: '#999', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
-            <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
-            <span style={{ color: '#ccc' }}>/</span>
-            <Link href="/new" style={{ color: '#999', textDecoration: 'none' }}>Browse</Link>
-            <span style={{ color: '#ccc' }}>/</span>
-            <span style={{ color: '#666' }}>{tag.label}</span>
+          <div style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
+            <Link href="/" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Home</Link>
+            <span style={{ color: 'var(--color-rule)' }}>/</span>
+            <Link href="/new" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Browse</Link>
+            <span style={{ color: 'var(--color-rule)' }}>/</span>
+            <span style={{ color: 'var(--color-ink-soft)' }}>{tag.label}</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>
+          <div style={{ fontSize: 24, fontWeight: 500, color: 'var(--color-ink)', marginBottom: 4 }}>
             {tag.label}
           </div>
           {tag.description && (
-            <div style={{ fontSize: 14, color: '#666', marginBottom: 4, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 14, color: 'var(--color-ink-soft)', marginBottom: 4, lineHeight: 1.4 }}>
               {tag.description}
             </div>
           )}
-          <div style={{ fontSize: 14, color: '#666' }}>
+          <div style={{ fontSize: 14, color: 'var(--color-ink-soft)' }}>
             {safeListings.length} {safeListings.length === 1 ? 'book' : 'books'} available
           </div>
         </div>

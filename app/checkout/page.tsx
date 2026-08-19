@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function CheckoutPage() {
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
       <SiteNav />
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 16px 64px' }}>
         <CheckoutFlow />

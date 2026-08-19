@@ -77,7 +77,7 @@ export default async function CheckoutPage({ params }: Props) {
   }
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
 
       <SiteNav />
 

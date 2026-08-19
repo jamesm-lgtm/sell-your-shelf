@@ -15,10 +15,10 @@ import {
   trackCheckoutCtaClicked,
 } from '@/app/lib/basketAnalytics'
 
-const FOREST = '#2D4A3E'
-const FOREST_DEEP = '#1F3329'
-const CREAM = '#FAF8F5'
-const GOLD = '#C9A961'
+const FOREST = 'var(--color-ground)'
+const FOREST_DEEP = 'var(--color-ground-deep)'
+const CREAM = 'var(--color-paper)'
+const GOLD = 'var(--color-accent)'
 
 // Browser-safe client (anon key) — only used to check live listing status.
 const supabase =
@@ -76,7 +76,7 @@ export default function BasketPageClient() {
 
   // Show a quiet hydrate state to avoid SSR/CSR flicker.
   if (!hydrated) {
-    return <div style={{ color: '#999', fontSize: 14, padding: 24 }}>Loading basket…</div>
+    return <div style={{ color: 'var(--color-ink-faint)', fontSize: 14, padding: 24 }}>Loading basket…</div>
   }
 
   if (!basket || basket.items.length === 0) {
@@ -85,19 +85,19 @@ export default function BasketPageClient() {
         <h1 style={{ fontSize: 22, color: FOREST_DEEP, fontWeight: 600, marginBottom: 8 }}>
           Your basket is empty
         </h1>
-        <p style={{ color: '#666', fontSize: 14, marginBottom: 24 }}>
+        <p style={{ color: 'var(--color-ink-soft)', fontSize: 14, marginBottom: 24 }}>
           Browse shelves and add books to get started.
         </p>
         <Link
           href="/browse"
           style={{
             display: 'inline-block',
-            background: FOREST,
-            color: CREAM,
+            background: 'var(--color-action)',
+            color: '#fff',
             fontSize: 14,
             fontWeight: 500,
             padding: '11px 22px',
-            borderRadius: 8,
+            borderRadius: 'var(--radius-pill)',
             textDecoration: 'none',
           }}
         >
@@ -145,7 +145,7 @@ export default function BasketPageClient() {
         <h1 style={{ fontSize: 22, color: FOREST_DEEP, fontWeight: 600, margin: 0 }}>
           Your basket
         </h1>
-        <p style={{ fontSize: 13, color: '#666', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 13, color: 'var(--color-ink-soft)', margin: '4px 0 0' }}>
           From{' '}
           <Link href={`/${basket.sellerUsername}`} style={{ color: FOREST, textDecoration: 'underline' }}>
             @{basket.sellerUsername}
@@ -157,12 +157,12 @@ export default function BasketPageClient() {
       {staleCount > 0 && (
         <div
           style={{
-            background: '#FFF7E6',
-            border: '1px solid #E8C97A',
-            borderRadius: 8,
+            background: 'var(--color-notice-bg)',
+            border: '1px solid var(--color-notice-line)',
+            borderRadius: 'var(--radius-md)',
             padding: '10px 12px',
             fontSize: 13,
-            color: '#6A4F0E',
+            color: 'var(--color-notice-ink)',
             marginBottom: 16,
           }}
         >
@@ -181,8 +181,8 @@ export default function BasketPageClient() {
               key={it.listingId}
               style={{
                 background: '#fff',
-                border: '0.5px solid #E5E3DF',
-                borderRadius: 10,
+                border: '1px solid var(--color-rule)',
+                borderRadius: 'var(--radius-md)',
                 padding: 12,
                 display: 'flex',
                 gap: 12,
@@ -195,7 +195,7 @@ export default function BasketPageClient() {
                   width: 50,
                   height: 75,
                   background: FOREST,
-                  borderRadius: 4,
+                  borderRadius: 'var(--radius-sm)',
                   overflow: 'hidden',
                   flexShrink: 0,
                 }}
@@ -205,14 +205,14 @@ export default function BasketPageClient() {
                 ) : null}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-ink)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {it.title}
                 </div>
                 {it.author && (
-                  <div style={{ fontSize: 12, color: '#999' }}>{it.author}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>{it.author}</div>
                 )}
                 {stale ? (
-                  <div style={{ fontSize: 12, color: '#B85C00', marginTop: 4, fontWeight: 500 }}>
+                  <div style={{ fontSize: 12, color: 'var(--color-notice-strong)', marginTop: 4, fontWeight: 500 }}>
                     No longer available
                   </div>
                 ) : isItemDiscountActive(it) && Number(it.bundleDiscountGbp ?? 0) > 0 && it.originalPriceGbp != null ? (
@@ -225,11 +225,11 @@ export default function BasketPageClient() {
                       <span style={{ fontSize: 13, color: FOREST, fontWeight: 600 }}>
                         £{Number(it.priceGbp).toFixed(2)}
                       </span>
-                      <span style={{ fontSize: 12, color: '#999', textDecoration: 'line-through' }}>
+                      <span style={{ fontSize: 12, color: 'var(--color-ink-faint)', textDecoration: 'line-through' }}>
                         £{Number(it.originalPriceGbp).toFixed(2)}
                       </span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--color-ink-faint)', marginTop: 2 }}>
                       −£{Number(it.bundleDiscountGbp).toFixed(2)} bundle
                     </div>
                   </div>
@@ -248,7 +248,7 @@ export default function BasketPageClient() {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#999',
+                  color: 'var(--color-ink-faint)',
                   fontSize: 13,
                   textDecoration: 'underline',
                   cursor: 'pointer',
@@ -266,8 +266,8 @@ export default function BasketPageClient() {
         style={{
           marginTop: 24,
           background: '#fff',
-          border: '0.5px solid #E5E3DF',
-          borderRadius: 10,
+          border: '1px solid var(--color-rule)',
+          borderRadius: 'var(--radius-md)',
           padding: 16,
         }}
       >
@@ -303,7 +303,7 @@ export default function BasketPageClient() {
           }
           highlight={state.kind === 'unlocked'}
         />
-        <div style={{ borderTop: '0.5px solid #E5E3DF', marginTop: 12, paddingTop: 12 }}>
+        <div style={{ borderTop: '1px solid var(--color-rule)', marginTop: 12, paddingTop: 12 }}>
           <Row label={<strong>Total</strong>} value={<strong>£{totalGbp.toFixed(2)}</strong>} />
         </div>
       </div>
@@ -314,13 +314,13 @@ export default function BasketPageClient() {
           <button
             disabled
             style={{
-              background: '#B8B8B8',
+              background: 'var(--color-ink-faint)',
               color: CREAM,
               border: 'none',
               fontSize: 15,
               fontWeight: 600,
               padding: '13px 0',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-pill)',
               cursor: 'not-allowed',
             }}
           >
@@ -333,13 +333,13 @@ export default function BasketPageClient() {
             href="/checkout"
             onClick={() => trackCheckoutCtaClicked({ basket })}
             style={{
-              background: FOREST,
-              color: CREAM,
+              background: 'var(--color-action)',
+              color: '#fff',
               border: 'none',
               fontSize: 15,
               fontWeight: 600,
               padding: '13px 0',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-pill)',
               textAlign: 'center',
               textDecoration: 'none',
               cursor: 'pointer',
@@ -357,7 +357,7 @@ export default function BasketPageClient() {
             fontSize: 14,
             fontWeight: 500,
             padding: '11px 0',
-            borderRadius: 8,
+            borderRadius: 'var(--radius-pill)',
             textAlign: 'center',
             textDecoration: 'none',
           }}
@@ -372,7 +372,7 @@ export default function BasketPageClient() {
           }}
           style={{
             background: 'transparent',
-            color: '#999',
+            color: 'var(--color-ink-faint)',
             border: 'none',
             fontSize: 13,
             padding: '8px 0',
@@ -401,13 +401,13 @@ function Row({
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0' }}>
-        <span style={{ fontSize: 14, color: '#333' }}>{label}</span>
-        <span style={{ fontSize: 14, color: highlight ? GOLD : '#1A1A1A', fontWeight: highlight ? 600 : 400 }}>
+        <span style={{ fontSize: 14, color: 'var(--color-ink)' }}>{label}</span>
+        <span style={{ fontSize: 14, color: highlight ? GOLD : 'var(--color-ink)', fontWeight: highlight ? 600 : 400 }}>
           {value}
         </span>
       </div>
       {hint && (
-        <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{hint}</div>
+        <div style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginTop: 2 }}>{hint}</div>
       )}
     </div>
   )

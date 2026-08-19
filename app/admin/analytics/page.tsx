@@ -86,11 +86,11 @@ const SERIES = {
   shelf_visits: { label: 'Shelves', color: '#1baf7a' },
 } as const
 
-const INK = '#0b0b0b'
-const INK_SECONDARY = '#52514e'
-const INK_MUTED = '#898781'
-const GRID = '#e1e0d9'
-const SURFACE = '#fcfcfb'
+const INK = 'var(--color-ink)'
+const INK_SECONDARY = 'var(--color-ink-soft)'
+const INK_MUTED = 'var(--color-ink-faint)'
+const GRID = 'var(--color-rule)'
+const SURFACE = 'var(--color-paper-warm)'
 
 const gbp = (n: number) =>
   n.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 2 })
@@ -142,7 +142,7 @@ function ViewsChart({ daily }: { daily: DailyRow[] }) {
             </g>
           )
         })}
-        <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH} y2={PAD.top + innerH} stroke="#c3c2b7" strokeWidth={1} />
+        <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH} y2={PAD.top + innerH} stroke="var(--color-rule)" strokeWidth={1} />
         {daily.map((r, i) => {
           const x = PAD.left + i * band + (band - barW) / 2
           let yCursor = PAD.top + innerH
@@ -234,7 +234,7 @@ function MiniBars({ daily, getValue, color, format, label }: {
   return (
     <div style={{ position: 'relative' }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={label}>
-        <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH} y2={PAD.top + innerH} stroke="#c3c2b7" strokeWidth={1} />
+        <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH} y2={PAD.top + innerH} stroke="var(--color-rule)" strokeWidth={1} />
         {daily.map((r, i) => {
           const v = getValue(r)
           const h = (v / max) * innerH
@@ -419,13 +419,13 @@ export default function AnalyticsPage() {
 
   if (restoring) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9f9f7' }} />
+      <div style={{ minHeight: '100vh', background: 'var(--color-paper-warm)' }} />
     )
   }
 
   if (!authed) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9f9f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-paper-warm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ background: SURFACE, border: '1px solid rgba(11,11,11,0.10)', borderRadius: 12, padding: 28, width: 320 }}>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, color: INK }}>Analytics — admin</div>
           <input
@@ -434,19 +434,19 @@ export default function AnalyticsPage() {
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
             placeholder="Admin password"
-            style={{ width: '100%', padding: '10px 12px', border: '1px solid #c3c2b7', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-rule)', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
           />
-          <button onClick={handleAuth} disabled={loading} style={{ width: '100%', padding: '10px 12px', background: '#254B3C', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}>
+          <button onClick={handleAuth} disabled={loading} style={{ width: '100%', padding: '10px 12px', background: 'var(--color-action)', color: '#fff', border: 'none', borderRadius: 999, fontSize: 14, cursor: 'pointer' }}>
             {loading ? 'Checking…' : 'Enter'}
           </button>
-          {authError && <div style={{ color: '#d03b3b', fontSize: 12, marginTop: 8 }}>{authError}</div>}
+          {authError && <div style={{ color: 'var(--color-danger)', fontSize: 12, marginTop: 8 }}>{authError}</div>}
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9f9f7', fontFamily: 'system-ui, sans-serif', color: INK }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-paper-warm)', color: INK }}>
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 20px 60px' }}>
         <AdminNav />
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
@@ -459,7 +459,7 @@ export default function AnalyticsPage() {
                 style={{
                   padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
                   border: '1px solid rgba(11,11,11,0.10)',
-                  background: days === d ? '#254B3C' : SURFACE,
+                  background: days === d ? 'var(--color-ground-raised)' : SURFACE,
                   color: days === d ? '#fff' : INK_SECONDARY,
                   fontWeight: days === d ? 600 : 400,
                 }}
@@ -470,7 +470,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {error && <div style={{ color: '#d03b3b', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+        {error && <div style={{ color: 'var(--color-danger)', fontSize: 13, marginBottom: 12 }}>{error}</div>}
         {loading && !data && <div style={{ color: INK_MUTED, fontSize: 13 }}>Loading…</div>}
 
         {data && (
@@ -489,7 +489,7 @@ export default function AnalyticsPage() {
                   style={{
                     padding: '7px 14px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
                     border: '1px solid rgba(11,11,11,0.10)',
-                    background: section === key ? '#254B3C' : SURFACE,
+                    background: section === key ? 'var(--color-ground-raised)' : SURFACE,
                     color: section === key ? '#fff' : INK_SECONDARY,
                     fontWeight: section === key ? 600 : 400,
                   }}
@@ -511,7 +511,7 @@ export default function AnalyticsPage() {
                   />
                 </div>
                 {data.gsc_rows === 0 && (
-                  <div style={{ background: '#FEF9C3', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#854D0E' }}>
+                  <div style={{ background: '#FEF9C3', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--color-notice-ink)' }}>
                     ⚠ Google Search Console import not running yet — impressions, clicks and query data will appear here once the GSC service account is connected.
                   </div>
                 )}
@@ -684,7 +684,7 @@ export default function AnalyticsPage() {
                     </div>
 
                     {wallets.total_ebay_owed_gbp > 0 && (
-                      <div style={{ background: '#FDECEC', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#B3261E' }}>
+                      <div style={{ background: 'var(--color-danger-bg)', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#B3261E' }}>
                         <strong>{gbp(wallets.total_ebay_owed_gbp)} owed outside Stripe.</strong> eBay cross-list sales settle
                         into the platform&apos;s eBay account, never the seller&apos;s Stripe Connect account — so this money
                         appears in no balance and has to be paid by hand.
@@ -692,7 +692,7 @@ export default function AnalyticsPage() {
                     )}
 
                     {wallets.unreachable > 0 && (
-                      <div style={{ background: '#FEF7E0', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#8A6100' }}>
+                      <div style={{ background: 'var(--color-notice-bg)', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#8A6100' }}>
                         {wallets.unreachable} account(s) could not be reached at Stripe — shown as “?”, not zero.
                       </div>
                     )}
@@ -781,7 +781,7 @@ export default function AnalyticsPage() {
                   <StatTile label="Sold all-time" value={data.listing_inventory.sold.toLocaleString()} />
                 </div>
 
-                <div style={{ background: '#FEF7E0', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#8A6100' }}>
+                <div style={{ background: 'var(--color-notice-bg)', border: '1px solid rgba(11,11,11,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#8A6100' }}>
                   {data.listing_inventory.draft.toLocaleString()} drafts across {data.listing_inventory.sellers_with_draft} sellers
                   ({gbp(data.listing_inventory.draft_value)}) are scanned but never published — the largest recoverable supply pool.
                 </div>
@@ -815,7 +815,7 @@ export default function AnalyticsPage() {
                         {data.top_sellers.map((s) => (
                           <tr key={s.username} style={{ borderTop: `1px solid ${GRID}` }}>
                             <td style={{ padding: '6px 8px' }}>
-                              <a href={`https://www.sellyourshelf.com/${s.username}`} target="_blank" rel="noopener noreferrer" style={{ color: '#254B3C' }}>@{s.username}</a>
+                              <a href={`https://www.sellyourshelf.com/${s.username}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-ground-raised)' }}>@{s.username}</a>
                             </td>
                             <td style={{ padding: '6px 8px', textAlign: 'right' }}>{s.active_listings}</td>
                             <td style={{ padding: '6px 8px', textAlign: 'right' }}>{gbp(s.inventory_value)}</td>

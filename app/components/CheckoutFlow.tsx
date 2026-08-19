@@ -22,10 +22,10 @@ import {
 } from '@/app/lib/basketAnalytics'
 import { gaEvent } from '@/app/lib/ga'
 
-const FOREST = '#2D4A3E'
-const FOREST_DEEP = '#1F3329'
-const CREAM = '#FAF8F5'
-const GOLD = '#C9A961'
+const FOREST = 'var(--color-ground)'
+const FOREST_DEEP = 'var(--color-ground-deep)'
+const CREAM = 'var(--color-paper)'
+const GOLD = 'var(--color-accent)'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const STRIPE_PK = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -77,7 +77,7 @@ export default function CheckoutFlow() {
   const totalGbp = subtotal + shippingGbp
 
   if (!hydrated) {
-    return <div style={{ color: '#999', fontSize: 14, padding: 24 }}>Loading checkout…</div>
+    return <div style={{ color: 'var(--color-ink-faint)', fontSize: 14, padding: 24 }}>Loading checkout…</div>
   }
 
   if (!basket || items.length === 0) {
@@ -86,19 +86,19 @@ export default function CheckoutFlow() {
         <h1 style={{ fontSize: 22, color: FOREST_DEEP, fontWeight: 600, marginBottom: 8 }}>
           Your basket is empty
         </h1>
-        <p style={{ color: '#666', fontSize: 14, marginBottom: 24 }}>
+        <p style={{ color: 'var(--color-ink-soft)', fontSize: 14, marginBottom: 24 }}>
           Add books to your basket before checking out.
         </p>
         <Link
           href="/browse"
           style={{
             display: 'inline-block',
-            background: FOREST,
-            color: CREAM,
+            background: 'var(--color-action)',
+            color: '#fff',
             fontSize: 14,
             fontWeight: 500,
             padding: '11px 22px',
-            borderRadius: 8,
+            borderRadius: 'var(--radius-pill)',
             textDecoration: 'none',
           }}
         >
@@ -257,7 +257,7 @@ export default function CheckoutFlow() {
   if (walletCovered && orderId) {
     return (
       <div style={{ textAlign: 'center', padding: '48px 0' }}>
-        <p style={{ fontSize: 14, color: '#666' }}>Order placed — redirecting to confirmation…</p>
+        <p style={{ fontSize: 14, color: 'var(--color-ink-soft)' }}>Order placed — redirecting to confirmation…</p>
       </div>
     )
   }
@@ -268,7 +268,7 @@ export default function CheckoutFlow() {
       <h1 style={{ fontSize: 22, color: FOREST_DEEP, fontWeight: 600, margin: 0 }}>
         Checkout
       </h1>
-      <p style={{ fontSize: 13, color: '#666', margin: '4px 0 20px' }}>
+      <p style={{ fontSize: 13, color: 'var(--color-ink-soft)', margin: '4px 0 20px' }}>
         From{' '}
         <Link href={`/${basket.sellerUsername}`} style={{ color: FOREST, textDecoration: 'underline' }}>
           @{basket.sellerUsername}
@@ -285,10 +285,10 @@ export default function CheckoutFlow() {
 
       {staleItems.length > 0 && (
         <div style={staleBoxStyle}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#6A4F0E', marginBottom: 6 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-notice-ink)', marginBottom: 6 }}>
             Some items are no longer available
           </div>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#6A4F0E', listStyle: 'disc' }}>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--color-notice-ink)', listStyle: 'disc' }}>
             {staleItems.map((s) => (
               <li key={s.id} style={{ marginBottom: 4 }}>
                 {s.title ?? `Listing #${s.id}`} — {s.reason}
@@ -302,13 +302,13 @@ export default function CheckoutFlow() {
             }}
             style={{
               marginTop: 10,
-              background: FOREST,
+              background: 'var(--color-action)',
               color: CREAM,
               border: 'none',
               fontSize: 13,
               fontWeight: 500,
               padding: '8px 14px',
-              borderRadius: 6,
+              borderRadius: 'var(--radius-pill)',
               cursor: 'pointer',
             }}
           >
@@ -365,19 +365,19 @@ export default function CheckoutFlow() {
           style={{
             marginTop: 24,
             width: '100%',
-            background: submitting ? '#B8B8B8' : FOREST,
+            background: submitting ? 'var(--color-ink-faint)' : 'var(--color-action)',
             color: CREAM,
             border: 'none',
             fontSize: 15,
             fontWeight: 600,
             padding: '13px 0',
-            borderRadius: 8,
+            borderRadius: 'var(--radius-pill)',
             cursor: submitting ? 'not-allowed' : 'pointer',
           }}
         >
           {submitting ? 'Setting up payment…' : 'Continue to payment'}
         </button>
-        <p style={{ fontSize: 11, color: '#999', textAlign: 'center', marginTop: 10 }}>
+        <p style={{ fontSize: 11, color: 'var(--color-ink-faint)', textAlign: 'center', marginTop: 10 }}>
           You'll review the order before charging your card.
         </p>
       </form>
@@ -446,19 +446,19 @@ function PaymentForm({
         style={{
           marginTop: 16,
           width: '100%',
-          background: submitting ? '#B8B8B8' : FOREST,
+          background: submitting ? 'var(--color-ink-faint)' : 'var(--color-action)',
           color: CREAM,
           border: 'none',
           fontSize: 15,
           fontWeight: 600,
           padding: '13px 0',
-          borderRadius: 8,
+          borderRadius: 'var(--radius-pill)',
           cursor: submitting ? 'not-allowed' : 'pointer',
         }}
       >
         {submitting ? 'Processing…' : 'Pay now'}
       </button>
-      <p style={{ fontSize: 11, color: '#999', textAlign: 'center', marginTop: 10 }}>
+      <p style={{ fontSize: 11, color: 'var(--color-ink-faint)', textAlign: 'center', marginTop: 10 }}>
         Your card will only be charged once payment succeeds.
       </p>
     </form>
@@ -482,8 +482,8 @@ function SummaryCard({
     <div
       style={{
         background: '#fff',
-        border: '0.5px solid #E5E3DF',
-        borderRadius: 10,
+        border: '1px solid var(--color-rule)',
+        borderRadius: 'var(--radius-md)',
         padding: 16,
         marginBottom: 20,
       }}
@@ -493,16 +493,16 @@ function SummaryCard({
       </div>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
         {items.map((it, idx) => (
-          <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#333' }}>
+          <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--color-ink)' }}>
             <span style={{ flex: 1, paddingRight: 8 }}>
               {it.title}
               {it.author ? ` · ${it.author}` : ''}
             </span>
-            <span style={{ color: '#1A1A1A' }}>£{it.priceGbp.toFixed(2)}</span>
+            <span style={{ color: 'var(--color-ink)' }}>£{it.priceGbp.toFixed(2)}</span>
           </li>
         ))}
       </ul>
-      <div style={{ borderTop: '0.5px solid #E5E3DF', marginTop: 12, paddingTop: 12 }}>
+      <div style={{ borderTop: '1px solid var(--color-rule)', marginTop: 12, paddingTop: 12 }}>
         <Row label="Subtotal" value={`£${subtotal.toFixed(2)}`} />
         <Row
           label="Shipping"
@@ -514,11 +514,11 @@ function SummaryCard({
               : undefined
           }
         />
-        <div style={{ borderTop: '0.5px solid #E5E3DF', marginTop: 10, paddingTop: 10 }}>
+        <div style={{ borderTop: '1px solid var(--color-rule)', marginTop: 10, paddingTop: 10 }}>
           <Row label={<strong>Total</strong>} value={<strong>£{total.toFixed(2)}</strong>} />
         </div>
         {weightG && weightG > SOFT_CAP_WEIGHT_G && (
-          <p style={{ fontSize: 11, color: '#B85C00', marginTop: 8 }}>
+          <p style={{ fontSize: 11, color: 'var(--color-notice-strong)', marginTop: 8 }}>
             Your basket is approaching our 5kg limit ({(weightG / 1000).toFixed(1)}kg).
           </p>
         )}
@@ -541,12 +541,12 @@ function Row({
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0' }}>
-        <span style={{ fontSize: 14, color: '#333' }}>{label}</span>
-        <span style={{ fontSize: 14, color: highlight ? GOLD : '#1A1A1A', fontWeight: highlight ? 600 : 400 }}>
+        <span style={{ fontSize: 14, color: 'var(--color-ink)' }}>{label}</span>
+        <span style={{ fontSize: 14, color: highlight ? GOLD : 'var(--color-ink)', fontWeight: highlight ? 600 : 400 }}>
           {value}
         </span>
       </div>
-      {hint && <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginTop: 2 }}>{hint}</div>}
     </div>
   )
 }
@@ -570,7 +570,7 @@ function Field({
 }) {
   return (
     <label style={{ display: 'block' }}>
-      <div style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>{label}</div>
       <input
         type={type}
         value={value}
@@ -581,26 +581,26 @@ function Field({
           width: '100%',
           padding: '10px 12px',
           fontSize: 14,
-          borderRadius: 8,
+          borderRadius: 'var(--radius-md)',
           background: '#fff',
-          border: '0.5px solid #E5E3DF',
-          color: '#1A1A1A',
+          border: '1px solid var(--color-rule)',
+          color: 'var(--color-ink)',
           boxSizing: 'border-box',
           outline: 'none',
         }}
       />
-      {hint && <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11, color: 'var(--color-ink-faint)', marginTop: 4 }}>{hint}</div>}
     </label>
   )
 }
 
 function ConfigError({ message }: { message: string }) {
   return (
-    <div style={{ padding: 24, background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 10 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: '#991B1B', marginBottom: 6 }}>
+    <div style={{ padding: 24, background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-line)', borderRadius: 'var(--radius-md)' }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-danger-ink)', marginBottom: 6 }}>
         Checkout misconfigured
       </div>
-      <p style={{ fontSize: 13, color: '#7F1D1D', margin: 0 }}>{message}</p>
+      <p style={{ fontSize: 13, color: 'var(--color-danger-strong)', margin: 0 }}>{message}</p>
     </div>
   )
 }
@@ -624,17 +624,17 @@ const twoColStyle: React.CSSProperties = {
 const errorBoxStyle: React.CSSProperties = {
   marginTop: 12,
   padding: '10px 12px',
-  background: '#FEF2F2',
-  border: '1px solid #FCA5A5',
-  borderRadius: 8,
+  background: 'var(--color-danger-bg)',
+  border: '1px solid var(--color-danger-line)',
+  borderRadius: 'var(--radius-md)',
   fontSize: 13,
-  color: '#991B1B',
+  color: 'var(--color-danger-ink)',
 }
 
 const staleBoxStyle: React.CSSProperties = {
-  background: '#FFF7E6',
-  border: '1px solid #E8C97A',
-  borderRadius: 8,
+  background: 'var(--color-notice-bg)',
+  border: '1px solid var(--color-notice-line)',
+  borderRadius: 'var(--radius-md)',
   padding: '12px 14px',
   marginTop: 16,
 }

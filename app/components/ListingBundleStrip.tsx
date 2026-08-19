@@ -21,9 +21,9 @@ import { useBasket } from './BasketProvider'
 import { resolveBookCover } from '@/app/lib/coverUrl'
 import type { BasketItem } from '@/app/lib/basket'
 
-const FOREST = '#2D4A3E'
-const FOREST_DEEP = '#1F3329'
-const GOLD = '#C9A961'
+const FOREST = 'var(--color-ground)'
+const FOREST_DEEP = 'var(--color-ground-deep)'
+const GOLD = 'var(--color-accent)'
 
 export interface BundleStripMember {
   id: number
@@ -131,7 +131,7 @@ export default function ListingBundleStrip({ bundles, seller, currentListingId }
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#999',
+                    color: 'var(--color-ink-faint)',
                     fontSize: 11,
                     fontWeight: 600,
                   }}
@@ -144,7 +144,7 @@ export default function ListingBundleStrip({ bundles, seller, currentListingId }
               <div style={{ fontSize: 13, fontWeight: 600, color: FOREST_DEEP, marginBottom: 2 }}>
                 Part of {b.name}
               </div>
-              <div style={{ fontSize: 12, color: '#666' }}>
+              <div style={{ fontSize: 12, color: 'var(--color-ink-soft)' }}>
                 {otherCount === 1
                   ? 'Save '
                   : `Buy all ${b.members.length} together — save `}
@@ -162,7 +162,7 @@ export default function ListingBundleStrip({ bundles, seller, currentListingId }
                 <div
                   style={{
                     fontSize: 12,
-                    color: '#666',
+                    color: 'var(--color-ink-soft)',
                     fontStyle: 'italic',
                     marginTop: 4,
                     display: '-webkit-box',
@@ -199,8 +199,8 @@ export default function ListingBundleStrip({ bundles, seller, currentListingId }
               }}
               disabled={allInBasket}
               style={{
-                background: allInBasket ? '#E5E3DF' : FOREST,
-                color: allInBasket ? '#999' : '#FAF8F5',
+                background: allInBasket ? 'var(--color-rule)' : 'var(--color-action)',
+                color: allInBasket ? 'var(--color-ink-faint)' : 'var(--color-paper)',
                 border: 'none',
                 fontSize: 12,
                 fontWeight: 500,

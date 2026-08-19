@@ -3,8 +3,8 @@
 import { useBasket } from './BasketProvider'
 import type { BasketItem } from '@/app/lib/basket'
 
-const FOREST = '#2D4A3E'
-const CREAM = '#FAF8F5'
+const FOREST = 'var(--color-ground)'
+const CREAM = 'var(--color-paper)'
 
 type Props = {
   seller: { sellerId: string; sellerUsername: string }
@@ -22,13 +22,13 @@ export default function AddToBasketButton({ seller, item }: Props) {
         style={{
           display: 'block',
           width: '100%',
-          background: '#fff',
-          color: FOREST,
-          border: `1px solid ${FOREST}`,
+          background: 'var(--color-sheet)',
+          color: 'var(--color-action)',
+          border: '1px solid var(--color-action)',
           fontSize: 15,
           fontWeight: 600,
           padding: '13px 0',
-          borderRadius: 8,
+          borderRadius: 999,
           cursor: 'pointer',
         }}
       >
@@ -43,13 +43,13 @@ export default function AddToBasketButton({ seller, item }: Props) {
       style={{
         display: 'block',
         width: '100%',
-        background: FOREST,
-        color: CREAM,
+        background: 'var(--color-action)',
+        color: '#fff',
         border: 'none',
         fontSize: 15,
         fontWeight: 600,
         padding: '13px 0',
-        borderRadius: 8,
+        borderRadius: 999,
         cursor: 'pointer',
       }}
     >

@@ -20,10 +20,10 @@ const CONDITIONS: Record<string, string> = {
 }
 
 const CONDITION_COLORS: Record<string, { bg: string; text: string }> = {
-  like_new: { bg: '#DCFCE7', text: '#166534' },
-  very_good: { bg: '#DBEAFE', text: '#1E40AF' },
-  good: { bg: '#FEF9C3', text: '#854D0E' },
-  acceptable: { bg: '#F3F4F6', text: '#374151' },
+  like_new: { bg: 'var(--color-paper-warm)', text: 'var(--color-cond-like-new)' },
+  very_good: { bg: 'var(--color-paper-warm)', text: 'var(--color-cond-very-good)' },
+  good: { bg: 'var(--color-notice-bg)', text: 'var(--color-notice-ink)' },
+  acceptable: { bg: 'var(--color-paper-warm)', text: 'var(--color-cond-acceptable)' },
 }
 
 const PASSWORD_RULES = [
@@ -49,21 +49,21 @@ type Props = {
 }
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 8,
-  background: '#fff', color: '#1A1A1A',
+  width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 'var(--radius-md)',
+  background: '#fff', color: 'var(--color-ink)',
   outline: 'none', boxSizing: 'border-box' as const,
   transition: 'border-color 0.15s',
 }
 
 function getInputStyle(touched: boolean, valid: boolean): React.CSSProperties {
-  if (!touched) return { ...inputBase, border: '0.5px solid #E5E3DF' }
-  if (valid) return { ...inputBase, border: '1.5px solid #16A34A' }
-  return { ...inputBase, border: '1.5px solid #DC2626' }
+  if (!touched) return { ...inputBase, border: '1px solid var(--color-rule)' }
+  if (valid) return { ...inputBase, border: '1.5px solid var(--color-cond-like-new)' }
+  return { ...inputBase, border: '1.5px solid var(--color-danger-ink)' }
 }
 
 function CheckIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-ok)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
     </svg>
   )
@@ -71,7 +71,7 @@ function CheckIcon() {
 
 function XIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   )
@@ -81,7 +81,7 @@ function Spinner({ size = 16 }: { size?: number }) {
   return (
     <span style={{
       display: 'inline-block', width: size, height: size,
-      border: '2px solid #E5E3DF', borderTopColor: '#2D4A3E',
+      border: '2px solid var(--color-rule)', borderTopColor: 'var(--color-ground)',
       borderRadius: '50%', animation: 'spin 0.6s linear infinite',
     }} />
   )
@@ -91,16 +91,16 @@ function TrustStrip() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '12px 0', flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-        <span style={{ fontSize: 11, color: '#666' }}>Secure checkout</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span style={{ fontSize: 11, color: 'var(--color-ink-soft)' }}>Secure checkout</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/></svg>
-        <span style={{ fontSize: 11, color: '#666' }}>Tracked delivery</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/></svg>
+        <span style={{ fontSize: 11, color: 'var(--color-ink-soft)' }}>Tracked delivery</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-        <span style={{ fontSize: 11, color: '#666' }}>Buyer protection</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <span style={{ fontSize: 11, color: 'var(--color-ink-soft)' }}>Buyer protection</span>
       </div>
     </div>
   )
@@ -322,9 +322,9 @@ export default function CheckoutForm({ listing }: Props) {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* 1. Order summary */}
-      <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '16px 20px', marginBottom: 24 }}>
+      <div style={{ background: '#fff', border: '1px solid var(--color-rule)', borderRadius: 'var(--radius-md)', padding: '16px 20px', marginBottom: 24 }}>
         <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-          <div style={{ width: 60, borderRadius: 6, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3', flexShrink: 0 }}>
+          <div style={{ width: 60, borderRadius: 'var(--radius-sm)', overflow: 'hidden', background: 'var(--color-ground)', aspectRatio: '2/3', flexShrink: 0 }}>
             {(() => {
               const cover = resolveBookCover(
                 { cover_url: listing.cover_url, cover_url_hosted: listing.cover_url_hosted ?? null },
@@ -340,31 +340,31 @@ export default function CheckoutForm({ listing }: Props) {
             })()}
           </div>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>{listing.title}</p>
-            {listing.author && <p style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>by {listing.author}</p>}
-            <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: condColor.bg, color: condColor.text }}>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-ink)', marginBottom: 4 }}>{listing.title}</p>
+            {listing.author && <p style={{ fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>by {listing.author}</p>}
+            <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 'var(--radius-sm)', background: condColor.bg, color: condColor.text }}>
               {CONDITIONS[listing.condition] ?? listing.condition}
             </span>
             {listing.username && (
-              <p style={{ fontSize: 12, color: '#999', marginTop: 6 }}>Seller: @{listing.username}</p>
+              <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginTop: 6 }}>Seller: @{listing.username}</p>
             )}
           </div>
         </div>
 
-        <div style={{ borderTop: '0.5px solid #E5E3DF', paddingTop: 12 }}>
+        <div style={{ borderTop: '1px solid var(--color-rule)', paddingTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 13, color: '#666' }}>Book price</span>
-            <span style={{ fontSize: 13, color: '#1A1A1A' }}>{'\u00A3'}{price.toFixed(2)}</span>
+            <span style={{ fontSize: 13, color: 'var(--color-ink-soft)' }}>Book price</span>
+            <span style={{ fontSize: 13, color: 'var(--color-ink)' }}>{'\u00A3'}{price.toFixed(2)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 13, color: '#666' }}>
-              Shipping <span style={{ color: '#999', fontSize: 11 }}>(2-4 working days)</span>
+            <span style={{ fontSize: 13, color: 'var(--color-ink-soft)' }}>
+              Shipping <span style={{ color: 'var(--color-ink-faint)', fontSize: 11 }}>(2-4 working days)</span>
             </span>
-            <span style={{ fontSize: 13, color: '#1A1A1A' }}>{'\u00A3'}{shipping.toFixed(2)}</span>
+            <span style={{ fontSize: 13, color: 'var(--color-ink)' }}>{'\u00A3'}{shipping.toFixed(2)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '0.5px solid #E5E3DF', paddingTop: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A' }}>Total</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#2D4A3E' }}>{'\u00A3'}{total.toFixed(2)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-rule)', paddingTop: 10 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-ink)' }}>Total</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-ground)' }}>{'\u00A3'}{total.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -374,11 +374,11 @@ export default function CheckoutForm({ listing }: Props) {
 
       {/* 2. Account */}
       <div style={{ marginTop: 24, marginBottom: 28 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1A1A1A', marginBottom: 14 }}>Account</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-ink)', marginBottom: 14 }}>Account</h2>
 
         {/* Email */}
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Email</label>
+          <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>Email</label>
           <div style={{ position: 'relative' }}>
             <input
               type="email"
@@ -397,20 +397,20 @@ export default function CheckoutForm({ listing }: Props) {
             </span>
           </div>
           {touched.email && email.length > 0 && !emailValid && (
-            <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Please enter a valid email address</p>
+            <p style={{ fontSize: 11, color: 'var(--color-danger-ink)', marginTop: 4 }}>Please enter a valid email address</p>
           )}
           {isExistingUser === true && (
-            <p style={{ fontSize: 11, color: '#16A34A', marginTop: 4 }}>Welcome back! Enter your password to continue.</p>
+            <p style={{ fontSize: 11, color: 'var(--color-cond-like-new)', marginTop: 4 }}>Welcome back! Enter your password to continue.</p>
           )}
           {isExistingUser === false && emailValid && (
-            <p style={{ fontSize: 11, color: '#2D4A3E', marginTop: 4 }}>New account — choose a username and password below.</p>
+            <p style={{ fontSize: 11, color: 'var(--color-ground)', marginTop: 4 }}>New account — choose a username and password below.</p>
           )}
         </div>
 
         {/* Username — only for new users */}
         {isNewUser && (
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Username</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>Username</label>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
@@ -434,13 +434,13 @@ export default function CheckoutForm({ listing }: Props) {
               </span>
             </div>
             {touched.username && username.length > 0 && username.length < 3 && (
-              <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Username must be at least 3 characters</p>
+              <p style={{ fontSize: 11, color: 'var(--color-danger-ink)', marginTop: 4 }}>Username must be at least 3 characters</p>
             )}
             {usernameAvailable === false && (
-              <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>That username is already taken</p>
+              <p style={{ fontSize: 11, color: 'var(--color-danger-ink)', marginTop: 4 }}>That username is already taken</p>
             )}
             {usernameAvailable === true && (
-              <p style={{ fontSize: 11, color: '#16A34A', marginTop: 4 }}>Username available</p>
+              <p style={{ fontSize: 11, color: 'var(--color-cond-like-new)', marginTop: 4 }}>Username available</p>
             )}
           </div>
         )}
@@ -449,7 +449,7 @@ export default function CheckoutForm({ listing }: Props) {
         {isExistingUser !== null && (
           <>
             <div style={{ marginBottom: isNewUser ? 4 : 8 }}>
-              <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Password</label>
+              <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>Password</label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -467,7 +467,7 @@ export default function CheckoutForm({ listing }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#2D4A3E', background: 'none', border: 'none', cursor: 'pointer' }}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--color-ground)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
@@ -484,7 +484,7 @@ export default function CheckoutForm({ listing }: Props) {
                         <circle cx="12" cy="12" r="10" />
                       </svg>
                     )}
-                    <span style={{ fontSize: 11, color: rule.passed ? '#16A34A' : '#999' }}>{rule.label}</span>
+                    <span style={{ fontSize: 11, color: rule.passed ? 'var(--color-cond-like-new)' : 'var(--color-ink-faint)' }}>{rule.label}</span>
                   </div>
                 ))}
               </div>
@@ -493,7 +493,7 @@ export default function CheckoutForm({ listing }: Props) {
             {/* Confirm password — only for new users */}
             {isNewUser && (
               <div style={{ marginBottom: 8 }}>
-                <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Confirm password</label>
+                <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>Confirm password</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -502,7 +502,7 @@ export default function CheckoutForm({ listing }: Props) {
                   style={getInputStyle(touched.confirmPassword && confirmPassword.length > 0, confirmValid)}
                 />
                 {touched.confirmPassword && confirmPassword.length > 0 && !confirmValid && (
-                  <p style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>Passwords do not match</p>
+                  <p style={{ fontSize: 11, color: 'var(--color-danger-ink)', marginTop: 4 }}>Passwords do not match</p>
                 )}
               </div>
             )}
@@ -514,9 +514,9 @@ export default function CheckoutForm({ listing }: Props) {
                 style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
               >
                 <div style={{
-                  width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
-                  border: tosAccepted ? '2px solid #2D4A3E' : '2px solid #E5E3DF',
-                  background: tosAccepted ? '#2D4A3E' : '#fff',
+                  width: 20, height: 20, borderRadius: 'var(--radius-sm)', flexShrink: 0, marginTop: 1,
+                  border: tosAccepted ? '2px solid var(--color-ground)' : '2px solid var(--color-rule)',
+                  background: tosAccepted ? 'var(--color-ground)' : '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s',
                 }}>
@@ -526,11 +526,11 @@ export default function CheckoutForm({ listing }: Props) {
                     </svg>
                   )}
                 </div>
-                <span style={{ fontSize: 12, color: '#666', lineHeight: 1.5 }}>
+                <span style={{ fontSize: 12, color: 'var(--color-ink-soft)', lineHeight: 1.5 }}>
                   I agree to the{' '}
-                  <a href="https://sellyourshelf.com/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#2D4A3E', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Terms of Service</a>
+                  <a href="https://sellyourshelf.com/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-ground)', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Terms of Service</a>
                   {' '}and{' '}
-                  <a href="https://sellyourshelf.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#2D4A3E', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Privacy Policy</a>
+                  <a href="https://sellyourshelf.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-ground)', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Privacy Policy</a>
                 </span>
               </div>
             )}
@@ -540,11 +540,11 @@ export default function CheckoutForm({ listing }: Props) {
 
       {/* 3. Delivery address */}
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1A1A1A', marginBottom: 14 }}>Delivery address</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-ink)', marginBottom: 14 }}>Delivery address</h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>First name</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>First name</label>
             <input
               type="text"
               value={firstName}
@@ -554,7 +554,7 @@ export default function CheckoutForm({ listing }: Props) {
             />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Last name</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>Last name</label>
             <input
               type="text"
               value={lastName}
@@ -566,7 +566,7 @@ export default function CheckoutForm({ listing }: Props) {
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Address line 1</label>
+          <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>Address line 1</label>
           <input
             type="text"
             value={line1}
@@ -577,13 +577,13 @@ export default function CheckoutForm({ listing }: Props) {
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Address line 2 <span style={{ color: '#bbb' }}>(optional)</span></label>
-          <input type="text" value={line2} onChange={e => setLine2(e.target.value)} style={{ ...inputBase, border: '0.5px solid #E5E3DF' }} />
+          <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>Address line 2 <span style={{ color: 'var(--color-ink-faint)' }}>(optional)</span></label>
+          <input type="text" value={line2} onChange={e => setLine2(e.target.value)} style={{ ...inputBase, border: '1px solid var(--color-rule)' }} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>City</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>City</label>
             <input
               type="text"
               value={city}
@@ -593,7 +593,7 @@ export default function CheckoutForm({ listing }: Props) {
             />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: 13, color: '#666', marginBottom: 6 }}>Postcode</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--color-ink-soft)', marginBottom: 6 }}>Postcode</label>
             <input
               type="text"
               value={postcode}
@@ -607,17 +607,17 @@ export default function CheckoutForm({ listing }: Props) {
 
       {/* 4. Payment */}
       <div style={{ marginBottom: 120 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1A1A1A', marginBottom: 14 }}>Payment</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-ink)', marginBottom: 14 }}>Payment</h2>
 
         {!clientSecret ? (
           <>
             {error && (
-              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
-                <p style={{ fontSize: 13, color: '#DC2626', margin: 0 }}>{error}</p>
+              <div style={{ background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-line)', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 16 }}>
+                <p style={{ fontSize: 13, color: 'var(--color-danger-ink)', margin: 0 }}>{error}</p>
               </div>
             )}
 
-            <p style={{ fontSize: 12, color: '#999', marginBottom: 8 }}>
+            <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginBottom: 8 }}>
               Enter your details above, then tap Pay to securely enter your card details via Stripe.
             </p>
           </>
@@ -639,7 +639,7 @@ export default function CheckoutForm({ listing }: Props) {
       {!clientSecret && (
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
-          background: '#FAF8F5', borderTop: '1px solid #E5E3DF',
+          background: 'var(--color-paper)', borderTop: '1px solid var(--color-rule)',
           padding: '12px 24px', paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
           zIndex: 50,
         }}>
@@ -648,9 +648,9 @@ export default function CheckoutForm({ listing }: Props) {
               onClick={handleCreatePaymentIntent}
               disabled={loading}
               style={{
-                width: '100%', padding: '14px', fontSize: 15, fontWeight: 600, borderRadius: 8,
+                width: '100%', padding: '14px', fontSize: 15, fontWeight: 600, borderRadius: 'var(--radius-pill)',
                 border: 'none', cursor: !loading ? 'pointer' : 'default',
-                background: formValid && !loading ? '#2D4A3E' : '#ccc', color: '#FAF8F5',
+                background: formValid && !loading ? 'var(--color-action)' : 'var(--color-rule)', color: 'var(--color-paper)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
             >
@@ -708,15 +708,15 @@ function PaymentStep({
       </div>
 
       {payError && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
-          <p style={{ fontSize: 13, color: '#DC2626', margin: 0 }}>{payError}</p>
+        <div style={{ background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-line)', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: 'var(--color-danger-ink)', margin: 0 }}>{payError}</p>
         </div>
       )}
 
       {/* Sticky pay button for payment step */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: '#FAF8F5', borderTop: '1px solid #E5E3DF',
+        background: 'var(--color-paper)', borderTop: '1px solid var(--color-rule)',
         padding: '12px 24px', paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         zIndex: 50,
       }}>
@@ -725,9 +725,9 @@ function PaymentStep({
             type="submit"
             disabled={!stripe || paying}
             style={{
-              width: '100%', padding: '14px', fontSize: 15, fontWeight: 600, borderRadius: 8,
+              width: '100%', padding: '14px', fontSize: 15, fontWeight: 600, borderRadius: 'var(--radius-pill)',
               border: 'none', cursor: !paying ? 'pointer' : 'default',
-              background: !paying ? '#2D4A3E' : '#ccc', color: '#FAF8F5',
+              background: !paying ? 'var(--color-action)' : 'var(--color-rule)', color: 'var(--color-paper)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
@@ -737,7 +737,7 @@ function PaymentStep({
               `Pay \u00A3${total.toFixed(2)}`
             )}
           </button>
-          <p style={{ fontSize: 10, color: '#999', textAlign: 'center', marginTop: 6 }}>
+          <p style={{ fontSize: 10, color: 'var(--color-ink-faint)', textAlign: 'center', marginTop: 6 }}>
             Secure payment powered by Stripe
           </p>
         </div>

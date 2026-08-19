@@ -11,6 +11,9 @@ import BundleDiscoveryRow, {
   type DiscoveryBundleMember,
 } from '@/app/components/BundleDiscoveryRow'
 import { computeBundlePricing } from '@/app/lib/bundlePricing'
+import { resolveBookCover } from '@/app/lib/coverUrl'
+import { buildFlow, DEFAULT_FLOW_RULES } from '@/app/lib/browseFlow'
+import { BookCard, BookGrid, formatCount } from '@/app/components/ui'
 
 export const revalidate = 0
 
@@ -18,6 +21,34 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SECRET_KEY!
 )
+
+// PostgREST caps a request at 1000 rows by default, and the browse query
+// had no .limit() — so it silently saw 1000 of 3622 active listings and
+// 2622 never appeared, at any filter. Range-paginate until exhausted.
+const PAGE = 1000
+async function fetchAllListings(restrictToIds: number[] | null) {
+  const rows: any[] = []
+  for (let from = 0; ; from += PAGE) {
+    let q = supabase
+      .from('listings')
+      .select(`
+        id, title, author, asking_price_gbp, condition, user_id,
+        books(cover_url, cover_url_hosted, category),
+        listing_images(url, sort_order),
+        users!inner(username, deleted_at)
+      `)
+      .eq('status', 'active')
+      .is('users.deleted_at', null)
+      .order('created_at', { ascending: false })
+      .range(from, from + PAGE - 1)
+    if (restrictToIds) q = q.in('id', restrictToIds)
+    const { data } = await q
+    if (!data || data.length === 0) break
+    rows.push(...data)
+    if (data.length < PAGE) break
+  }
+  return rows
+}
 
 export async function generateMetadata() {
   return {
@@ -32,7 +63,7 @@ export async function generateMetadata() {
   }
 }
 
-type SearchParams = Promise<{ bundles?: string }>
+type SearchParams = Promise<{ bundles?: string; band?: string; cat?: string; all?: string; more?: string }>
 
 export default async function NewInPage({
   searchParams,
@@ -41,6 +72,10 @@ export default async function NewInPage({
 }) {
   const params = searchParams ? await searchParams : {}
   const bundlesOnly = params.bundles === '1'
+  const band = params.band ?? ''
+  const cat = params.cat ?? ''
+  const showAll = params.all === '1'
+  const pagesShown = Math.max(1, Number(params.more ?? '1') || 1)
 
   // When the buyer asks for bundles only, query the bundle universe
   // FIRST and then restrict the listings query to just those ids.
@@ -69,33 +104,10 @@ export default async function NewInPage({
     if (!bundledListingIdsUpfront || bundledListingIdsUpfront.length === 0) {
       listings = []
     } else {
-      const { data } = await supabase
-        .from('listings')
-        .select(`
-          id, title, author, asking_price_gbp, condition,
-          books(cover_url, cover_url_hosted),
-          listing_images(url, sort_order),
-          users!inner(username, deleted_at)
-        `)
-        .eq('status', 'active')
-        .is('users.deleted_at', null)
-        .in('id', bundledListingIdsUpfront)
-        .order('created_at', { ascending: false })
-      listings = data
+      listings = await fetchAllListings(bundledListingIdsUpfront)
     }
   } else {
-    const { data } = await supabase
-      .from('listings')
-      .select(`
-        id, title, author, asking_price_gbp, condition,
-        books(cover_url, cover_url_hosted),
-        listing_images(url, sort_order),
-        users!inner(username, deleted_at)
-      `)
-      .eq('status', 'active')
-      .is('users.deleted_at', null)
-      .order('created_at', { ascending: false })
-    listings = data
+    listings = await fetchAllListings(null)
   }
 
   const curatedRows = await getCuratedRows()
@@ -106,7 +118,8 @@ export default async function NewInPage({
     author: string | null
     asking_price_gbp: number
     condition: string
-    books: { cover_url: string | null; cover_url_hosted?: string | null } | null
+    user_id: string | null
+    books: { cover_url: string | null; cover_url_hosted?: string | null; category?: string | null } | null
     listing_images: Array<{ url: string; sort_order: number }> | null
     users: { username: string } | null
   }>
@@ -163,6 +176,7 @@ export default async function NewInPage({
       .select(`
         id,
         name,
+        description,
         pricing_mode,
         discount_pct,
         price_gbp,
@@ -190,6 +204,7 @@ export default async function NewInPage({
     type RawBundle = {
       id: number
       name: string
+      description: string | null
       pricing_mode: 'discount' | 'absolute'
       discount_pct: number | null
       price_gbp: number | null
@@ -223,6 +238,7 @@ export default async function NewInPage({
       buckets.push({
         id: raw.id,
         name: raw.name,
+        description: raw.description ?? null,
         sellerUsername: seller.username,
         members,
         // Placeholder — pricing recomputed below once we have asking
@@ -278,133 +294,182 @@ export default async function NewInPage({
       }
     }
 
-    // Cap at 6 for the row.
-    discoveryBundles = buckets.filter((b) => b.bundlePriceGbp > 0).slice(0, 6)
+    // The rail scrolls, so the cap is about query weight, not layout.
+    // 6 was leaving most of ~58 active bundles unreachable from browse.
+    discoveryBundles = buckets.filter((b) => b.bundlePriceGbp > 0).slice(0, 18)
+  }
+
+  // ---- Shop-window flow -------------------------------------------------
+  // Curated rows lead, bundles follow, then a gated and seller-capped
+  // "new in" flow. Rules and rationale live in lib/browseFlow.ts.
+
+  const PRICE_BANDS: Array<{ key: string; label: string; min: number; max: number }> = [
+    { key: 'under3', label: 'Under £3', min: 0, max: 3 },
+    { key: '3to6', label: '£3–£6', min: 3, max: 6 },
+    { key: '6to15', label: '£6–£15', min: 6, max: 15 },
+    { key: 'over15', label: '£15+', min: 15, max: Infinity },
+  ]
+
+  const categories = Array.from(
+    new Set(
+      safeListingsWithBundleFlag
+        .map((l) => l.books?.category)
+        .filter((c): c is string => Boolean(c)),
+    ),
+  ).sort()
+
+  const activeBand = PRICE_BANDS.find((b) => b.key === band) ?? null
+
+  // Filters scope the flow, never the curated rows — a collection is an
+  // editorial statement and shouldn't silently lose books to a price filter.
+  const scoped = visibleListings.filter((l) => {
+    const price = Number(l.asking_price_gbp)
+    if (activeBand && !(price >= activeBand.min && price < activeBand.max)) return false
+    if (cat && l.books?.category !== cat) return false
+    return true
+  })
+
+  const asFlow = scoped.map((l) => ({
+    ...l,
+    cover: resolveBookCover(l.books, l.listing_images),
+    category: l.books?.category ?? null,
+    sellerId: l.user_id ?? null,
+  }))
+
+  const { flow, pages, heldBackByGate } = buildFlow(asFlow, DEFAULT_FLOW_RULES)
+
+  // "See everything" drops the gate and the cap but keeps the filters —
+  // and still paginates. Rendering the ungated catalogue in one go put
+  // 3,626 cards in a single DOM, which is unusable on a phone.
+  const ALL_PAGE = DEFAULT_FLOW_RULES.pageSize
+  const shown = showAll
+    ? asFlow.slice(0, ALL_PAGE * pagesShown)
+    : flow.slice(0, pages.slice(0, pagesShown).reduce((a, b) => a + b, 0))
+  const hasMore = showAll
+    ? ALL_PAGE * pagesShown < asFlow.length
+    : pagesShown < pages.length
+  const remainingCount = showAll
+    ? asFlow.length - shown.length
+    : asFlow.length - flow.length
+
+  const qs = (over: Record<string, string | undefined>) => {
+    const base: Record<string, string | undefined> = {
+      bundles: bundlesOnly ? '1' : undefined,
+      band: band || undefined,
+      cat: cat || undefined,
+      all: showAll ? '1' : undefined,
+      more: pagesShown > 1 ? String(pagesShown) : undefined,
+      ...over,
+    }
+    const q = Object.entries(base)
+      .filter(([, v]) => v !== undefined && v !== '')
+      .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
+      .join('&')
+    return q ? `/new?${q}` : '/new'
   }
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
-
+    <div className="sy-page">
       <SiteNav current="browse" />
 
-      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '32px 24px 24px' }}>
-        <div style={{ maxWidth: 840, margin: '0 auto' }}>
-          {/* Breadcrumbs */}
-          <div style={{ fontSize: 12, color: '#999', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
-            <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
-            <span style={{ color: '#ccc' }}>/</span>
-            <span style={{ color: '#666' }}>Browse</span>
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>
-            Browse Books
-          </div>
-          <div style={{ fontSize: 14, color: '#666' }}>
-            {bundlesOnly
-              ? `${visibleListings.length} books in bundles`
-              : `${safeListings.length} books available — updated in real time`}
-          </div>
-        </div>
-      </div>
+      <section className="sy-wrap" style={{ paddingTop: 56, paddingBottom: 8 }}>
+        <h1 className="sy-h1">Shop books</h1>
+        <p className="sy-lede" style={{ marginTop: 14, maxWidth: 560 }}>
+          Secondhand books from readers across the UK. Buy several from one seller and
+          they ship together.
+        </p>
+      </section>
 
-      {/* Bundles-only toggle pill — sits above the category pills so
-          it's a top-level filter. Toggling appends/strips ?bundles=1
-          on the URL. */}
-      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '12px 24px' }}>
-        <div style={{ maxWidth: 840, margin: '0 auto' }}>
-          <Link
-            href={bundlesOnly ? '/new' : '/new?bundles=1'}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 14px',
-              borderRadius: 999,
-              border: '1px solid #2D4A3E',
-              textDecoration: 'none',
-              fontSize: 13,
-              fontWeight: 600,
-              background: bundlesOnly ? '#2D4A3E' : '#FFFDF6',
-              color: bundlesOnly ? '#FAF8F5' : '#2D4A3E',
-            }}
-          >
-            <span aria-hidden style={{ fontSize: 14 }}>📚</span>
-            Bundles only
-            {bundlesOnly && (
-              <span aria-hidden style={{ marginLeft: 4 }}>×</span>
-            )}
+      {/* The shop window: hand-picked collections lead the page. */}
+      <CuratedRows rows={curatedRows} />
+
+      {/* Seller-made collections. Not a page mode — content. */}
+      {discoveryBundles.length > 0 && <BundleDiscoveryRow bundles={discoveryBundles} />}
+
+      {/* Filters scope the flow below, not the window above. */}
+      <section className="sy-wrap" style={{ paddingTop: 48 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <Link href={qs({ band: undefined, cat: undefined, more: undefined })}
+            className={`sy-chip${!band && !cat && !bundlesOnly ? ' is-active' : ''}`}>
+            All books
           </Link>
-        </div>
-      </div>
-
-      {/* Category pills */}
-      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '12px 24px', overflow: 'auto' }}>
-        <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', gap: 8, flexWrap: 'nowrap' }}>
-          {[
-            { slug: 'fiction', name: 'Fiction' },
-            { slug: 'childrens', name: "Children's" },
-            { slug: 'biography-memoir', name: 'Biography & Memoir' },
-            { slug: 'crime-thriller', name: 'Crime & Thriller' },
-            { slug: 'self-help', name: 'Self-Help' },
-            { slug: 'history', name: 'History' },
-            { slug: 'reference-education', name: 'Reference & Education' },
-            { slug: 'business-finance', name: 'Business & Finance' },
-            { slug: 'literary-fiction', name: 'Literary Fiction' },
-            { slug: 'travel', name: 'Travel' },
-            { slug: 'cookery-food', name: 'Cookery & Food' },
-            { slug: 'art-photography', name: 'Art & Photography' },
-            { slug: 'science-nature', name: 'Science & Nature' },
-            { slug: 'young-adult', name: 'Young Adult' },
-            { slug: 'classic-fiction', name: 'Classic Fiction' },
-            { slug: 'historical-fiction', name: 'Historical Fiction' },
-            { slug: 'romance', name: 'Romance' },
-            { slug: 'sci-fi-fantasy', name: 'Sci-Fi & Fantasy' },
-            { slug: 'comics-graphic-novels', name: 'Comics & Graphic Novels' },
-          ].map(cat => (
-            <Link
-              key={cat.slug}
-              href={`/category/${cat.slug}`}
-              style={{
-                fontSize: 12, padding: '6px 14px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap',
-                background: '#fff', color: '#666', border: '0.5px solid #E5E3DF',
-              }}
-            >
-              {cat.name}
+          <Link href={qs({ bundles: bundlesOnly ? undefined : '1', more: undefined })}
+            className={`sy-chip${bundlesOnly ? ' is-active' : ''}`}>
+            In a bundle
+          </Link>
+          {PRICE_BANDS.map((b) => (
+            <Link key={b.key} href={qs({ band: band === b.key ? undefined : b.key, more: undefined })}
+              className={`sy-chip${band === b.key ? ' is-active' : ''}`}>
+              {b.label}
             </Link>
           ))}
         </div>
-      </div>
 
-      {/* Marketplace bundle discovery (slice L13b) — only shown when
-          not already filtered to bundles-only. */}
-      {!bundlesOnly && <BundleDiscoveryRow bundles={discoveryBundles} />}
-
-      <CuratedRows rows={curatedRows} />
-
-      <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
-        <ShelfGrid listings={visibleListings} showSeller pageSize={24} />
-      </div>
-
-      <div style={{ background: '#F0EDE8', borderTop: '0.5px solid #E5E3DF', padding: '32px 24px' }}>
-        <div style={{ maxWidth: 840, margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: 16, fontWeight: 500, color: '#1A1A1A', marginBottom: 6 }}>
-            Browse on the go
-          </p>
-          <p style={{ fontSize: 13, color: '#666', marginBottom: 20 }}>
-            Get push alerts for new listings and message sellers from your phone.
-          </p>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <AppBadges
-              utm={{ source: 'new_in', medium: 'footer', campaign: 'get_the_app' }}
-              size="md"
-              layout="auto"
-              align="center"
-            />
+        {categories.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+            {categories.slice(0, 12).map((c) => (
+              <Link key={c} href={qs({ cat: cat === c ? undefined : c, more: undefined })}
+                className={`sy-chip${cat === c ? ' is-active' : ''}`}>
+                {c}
+              </Link>
+            ))}
           </div>
+        )}
+      </section>
+
+      {/* New in — always the bottom of the page, always fresh. */}
+      <section className="sy-wrap" style={{ paddingTop: 44, paddingBottom: 88 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+          <h2 className="sy-h2" style={{ margin: 0 }}>{showAll ? 'Everything' : 'New in'}</h2>
+          <span className="sy-mark" style={{ color: 'var(--color-ink-faint)' }}>
+            {formatCount(shown.length)} {shown.length === 1 ? 'book' : 'books'}
+          </span>
         </div>
-      </div>
+
+        {shown.length === 0 ? (
+          <p className="sy-lede">
+            Nothing matches those filters yet.{' '}
+            <Link href="/new" style={{ color: 'var(--color-action)' }}>Clear them</Link> to see everything.
+          </p>
+        ) : (
+          <BookGrid>
+            {shown.map((l) => (
+              <BookCard
+                key={l.id}
+                href={`/listing/${l.id}`}
+                book={{
+                  id: l.id,
+                  title: l.title,
+                  author: l.author,
+                  price: Number(l.asking_price_gbp),
+                  cover: l.cover,
+                  inBundle: l.has_bundles,
+                }}
+              />
+            ))}
+          </BookGrid>
+        )}
+
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginTop: 40 }}>
+          {hasMore && (
+            <Link href={qs({ more: String(pagesShown + 1) })} className="sy-cta sy-cta-quiet">
+              Show more
+            </Link>
+          )}
+          {!showAll && remainingCount > 0 && (
+            <Link href={qs({ all: '1', more: undefined })} className="sy-cta sy-cta-quiet">
+              See all {formatCount(asFlow.length)} books
+            </Link>
+          )}
+          {showAll && (
+            <Link href={qs({ all: undefined, more: undefined })} className="sy-cta sy-cta-quiet">
+              Back to new in
+            </Link>
+          )}
+        </div>
+      </section>
 
       <Footer />
-
     </div>
   )
 }

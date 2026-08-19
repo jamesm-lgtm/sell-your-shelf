@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AppBadges from './AppBadges'
+import BrandMark from './BrandMark'
 
 type SearchResult = {
   book_id: number
@@ -66,6 +67,14 @@ function clearRecentSearches() {
   try {
     localStorage.removeItem(RECENT_SEARCHES_KEY)
   } catch {}
+}
+
+// Cover fallback swatches, drawn from the calibration patch set so a missing
+// asset becomes a metered reference chip rather than a grey hole.
+const PATCH_SWATCHES = ['#2E8FA6', '#3A5CA8', '#4B8B5A', '#B33A34', '#A6417E', '#E0B03C']
+
+function patchFor(id: number) {
+  return PATCH_SWATCHES[Math.abs(id) % PATCH_SWATCHES.length]
 }
 
 type Props = {
@@ -210,58 +219,26 @@ export default function SiteNav({ current = null }: Props) {
     }
   }
 
-  const linkStyle = (active: boolean) => ({
-    color: active ? '#FAF8F5' : 'rgba(250,248,245,0.8)',
-    fontSize: 13,
-    fontWeight: 500 as const,
-    textDecoration: 'none' as const,
-  })
-
   const SuggestionsDropdown = () => {
     if (!showSuggestions || suggestions.length === 0) return null
 
     return (
-      <div style={{
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        right: 0,
-        background: '#fff',
-        borderRadius: '0 0 10px 10px',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-        zIndex: 200,
-        overflow: 'hidden',
-        maxHeight: 400,
-        overflowY: 'auto',
-      }}>
+      <div className="sl-sheet">
         {suggestions.map((result) => (
           <button
             key={result.book_id}
             onClick={() => handleSuggestionClick(result)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              width: '100%',
-              padding: '10px 16px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              textAlign: 'left',
-              borderBottom: '0.5px solid #F0EDE8',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#FAF8F5' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            className="sl-row"
           >
-            {/* Cover thumbnail */}
-            <div style={{
-              width: 36,
-              height: 52,
-              borderRadius: 4,
-              overflow: 'hidden',
-              background: '#2D4A3E',
-              flexShrink: 0,
-            }}>
+            <div
+              style={{
+                width: 34,
+                height: 51,
+                overflow: 'hidden',
+                background: patchFor(result.book_id),
+                flexShrink: 0,
+              }}
+            >
               {result.cover_url ? (
                 <img
                   src={result.cover_url}
@@ -269,73 +246,63 @@ export default function SiteNav({ current = null }: Props) {
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
               ) : (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 7, padding: 2, textAlign: 'center', lineHeight: 1.2 }}>
-                    {result.title.slice(0, 20)}
-                  </span>
-                </div>
+                <span
+                  className="sy-mark"
+                  style={{
+                    display: 'flex',
+                    width: '100%',
+                    height: '100%',
+                    alignItems: 'flex-end',
+                    padding: 3,
+                    fontSize: 6,
+                    letterSpacing: '0.1em',
+                    color: 'rgba(255,255,255,0.85)',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {result.title.slice(0, 18)}
+                </span>
               )}
             </div>
 
-            {/* Book info */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: '#1A1A1A',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: 'var(--color-ink)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
                 {result.title}
               </div>
-              <div style={{
-                fontSize: 12,
-                color: '#666',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: 'var(--color-ink-soft)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
                 {result.author}{result.category ? ` · ${result.category}` : ''}
               </div>
             </div>
 
-            {/* Price + copies */}
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#2D4A3E' }}>
+              <div className="sy-figure" style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--color-ink)' }}>
                 from £{Number(result.lowest_price).toFixed(2)}
               </div>
-              <div style={{ fontSize: 11, color: '#999' }}>
+              <div className="sy-figure" style={{ fontSize: 11.5, color: 'var(--color-ink-faint)' }}>
                 {result.copy_count} {result.copy_count === 1 ? 'copy' : 'copies'}
               </div>
             </div>
           </button>
         ))}
 
-        {/* "See all results" footer */}
-        <button
-          onClick={handleSearch as any}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '12px 16px',
-            border: 'none',
-            background: '#FAF8F5',
-            cursor: 'pointer',
-            fontSize: 13,
-            fontWeight: 500,
-            color: '#2D4A3E',
-            textAlign: 'center',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = '#F0EDE8' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = '#FAF8F5' }}
-        >
+        <button onClick={handleSearch as any} className="sl-row-foot">
           See all results for &ldquo;{searchQuery.trim()}&rdquo; →
         </button>
       </div>
@@ -346,60 +313,36 @@ export default function SiteNav({ current = null }: Props) {
     if (!showRecent || recentSearches.length === 0) return null
 
     return (
-      <div style={{
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        right: 0,
-        background: '#fff',
-        borderRadius: '0 0 10px 10px',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-        zIndex: 200,
-        overflow: 'hidden',
-      }}>
-        <div style={{ padding: '10px 16px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Recent searches
-          </span>
-          <button
-            onClick={handleClearAllRecent}
-            style={{ fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#2D4A3E' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#999' }}
-          >
-            Clear all
-          </button>
+      <div className="sl-sheet">
+        <div
+          style={{
+            padding: '11px 16px 8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid var(--color-rule)',
+          }}
+        >
+          <span className="sy-mark" style={{ color: 'var(--color-ink-faint)' }}>Recent searches</span>
+          <button onClick={handleClearAllRecent} className="sl-clear">Clear all</button>
         </div>
         {recentSearches.map((query) => (
-          <button
-            key={query}
-            onClick={() => handleRecentClick(query)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              width: '100%',
-              padding: '9px 16px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              textAlign: 'left',
-              borderBottom: '0.5px solid #F0EDE8',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#FAF8F5' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          <button key={query} onClick={() => handleRecentClick(query)} className="sl-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-ink-faint)', flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
-            <span style={{ flex: 1, fontSize: 14, color: '#1A1A1A' }}>{query}</span>
+            <span style={{ flex: 1, fontSize: 14, color: 'var(--color-ink)', textAlign: 'left' }}>{query}</span>
             <span
+              role="button"
+              tabIndex={0}
+              aria-label={`Remove ${query}`}
               onClick={(e) => handleRemoveRecent(query, e)}
-              style={{ fontSize: 16, color: '#ccc', cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
-              onMouseEnter={(e) => { (e.target as HTMLElement).style.color = '#666' }}
-              onMouseLeave={(e) => { (e.target as HTMLElement).style.color = '#ccc' }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRemoveRecent(query, e as any) }}
+              className="sl-remove"
             >
-              ×
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
             </span>
           </button>
         ))}
@@ -407,131 +350,254 @@ export default function SiteNav({ current = null }: Props) {
     )
   }
 
+  const navLink = (href: string, label: string, key: Props['current']) => (
+    <Link href={href} className={`sl-navlink${current === key ? ' is-active' : ''}`}>
+      {label}
+    </Link>
+  )
+
   return (
     <>
-      <nav style={{ background: '#2D4A3E', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 100 }}>
-        <Link href="/" style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, textDecoration: 'none' }}>
-          Sell Your Shelf
+      <nav className="sl-nav">
+        <Link href="/" className="sl-logo">
+          <BrandMark size={26} color="#fff" />
+          <span className="sy-wordmark">Sell Your Shelf</span>
         </Link>
 
         {/* Desktop nav */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }} className="site-nav-desktop">
+        <div className="site-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
           <button
             onClick={() => { setSearchOpen(!searchOpen); setMenuOpen(false); if (searchOpen) { setShowSuggestions(false); setShowRecent(false) } }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+            className="sl-iconbtn"
             aria-label="Search"
+            aria-expanded={searchOpen}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(250,248,245,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
             </svg>
           </button>
-          <Link href="/new" style={linkStyle(current === 'browse')}>Shop books</Link>
-          <Link href="/bundles" style={linkStyle(current === 'bundles')}>Bundles</Link>
-          <Link href="/blog" style={linkStyle(current === 'blog')}>Blog</Link>
-          <Link href="/support" style={linkStyle(current === 'support')}>Support</Link>
-          <AppBadges
-            utm={{ source: 'nav', medium: 'header', campaign: 'get_the_app' }}
-            size="sm"
-            layout="row"
-          />
+          {navLink('/new', 'Shop books', 'browse')}
+          {navLink('/bundles', 'Bundles', 'bundles')}
+          {navLink('/blog', 'Blog', 'blog')}
+          {navLink('/support', 'Support', 'support')}
+          <AppBadges utm={{ source: 'nav', medium: 'header', campaign: 'get_the_app' }} size="sm" layout="row" />
         </div>
 
         {/* Mobile nav */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }} className="site-nav-mobile">
+        <div className="site-nav-mobile" style={{ alignItems: 'center', gap: 10 }}>
           <button
             onClick={() => { setSearchOpen(!searchOpen); setMenuOpen(false); if (searchOpen) { setShowSuggestions(false); setShowRecent(false) } }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+            className="sl-iconbtn"
             aria-label="Search"
+            aria-expanded={searchOpen}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FAF8F5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
             </svg>
           </button>
           <button
             onClick={() => { setMenuOpen(!menuOpen); setSearchOpen(false); setShowSuggestions(false); setShowRecent(false) }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+            className="sl-iconbtn"
             aria-label="Menu"
+            aria-expanded={menuOpen}
           >
-            {menuOpen ? (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FAF8F5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            ) : (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FAF8F5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12h18M3 6h18M3 18h18"/>
-              </svg>
-            )}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {menuOpen ? <path d="M18 6L6 18M6 6l12 12" /> : <path d="M3 12h18M3 6h18M3 18h18" />}
+            </svg>
           </button>
         </div>
       </nav>
 
-      {/* Search bar dropdown with autocomplete */}
+      {/* Search bar with autocomplete */}
       {searchOpen && (
-        <div
-          ref={searchContainerRef}
-          style={{ background: '#2D4A3E', padding: '0 24px 16px', borderBottom: '1px solid rgba(250,248,245,0.1)', position: 'relative', zIndex: 150 }}
-        >
-          <div style={{ maxWidth: 600, margin: '0 auto', position: 'relative' }}>
-            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8 }}>
+        <div ref={searchContainerRef} className="sl-searchbar">
+          <div style={{ maxWidth: 640, margin: '0 auto', position: 'relative' }}>
+            <span className="sy-mark" style={{ color: 'var(--color-on-ground-soft)', display: 'block', marginBottom: 8 }}>
+              Search the marketplace
+            </span>
+            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 0 }}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => handleSearchInput(e.target.value)}
                 onFocus={handleSearchFocus}
-                placeholder="Search by title or author..."
+                placeholder="Title, author or ISBN"
                 autoFocus
-                style={{
-                  flex: 1, padding: '10px 14px', fontSize: 14, borderRadius: 8,
-                  border: 'none', background: 'rgba(250,248,245,0.15)', color: '#FAF8F5',
-                  outline: 'none',
-                }}
+                className="sl-input"
               />
-              <button
-                type="submit"
-                style={{
-                  background: '#FAF8F5', color: '#2D4A3E', fontSize: 13, fontWeight: 500,
-                  padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                }}
-              >
-                Search
-              </button>
+              <button type="submit" className="sl-submit">Search</button>
             </form>
-
+            {loadingSuggestions && (
+              <span className="sy-mark" style={{ color: 'var(--color-on-ground-soft)', display: 'block', marginTop: 8 }}>
+                Reading…
+              </span>
+            )}
             <SuggestionsDropdown />
             <RecentSearchesDropdown />
           </div>
         </div>
       )}
 
-      {/* Mobile menu dropdown */}
+      {/* Mobile menu */}
       {menuOpen && (
-        <div style={{ background: '#2D4A3E', padding: '8px 24px 20px', borderBottom: '1px solid rgba(250,248,245,0.1)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Link href="/new" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'browse' ? 600 : 400 }}>
-            Shop books
-          </Link>
-          <Link href="/bundles" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'bundles' ? 600 : 400 }}>
-            Bundles
-          </Link>
-          <Link href="/blog" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'blog' ? 600 : 400 }}>
-            Blog
-          </Link>
-          <Link href="/support" onClick={() => setMenuOpen(false)} style={{ color: '#FAF8F5', fontSize: 15, textDecoration: 'none', fontWeight: current === 'support' ? 600 : 400 }}>
-            Support
-          </Link>
-          <div style={{ paddingTop: 4 }}>
-            <AppBadges
-              utm={{ source: 'nav', medium: 'mobile_menu', campaign: 'get_the_app' }}
-              size="md"
-              layout="row"
-            />
+        <div className="sl-mobilemenu">
+          <Link href="/new" onClick={() => setMenuOpen(false)} className={`sl-mobilelink${current === 'browse' ? ' is-active' : ''}`}>Shop books</Link>
+          <Link href="/bundles" onClick={() => setMenuOpen(false)} className={`sl-mobilelink${current === 'bundles' ? ' is-active' : ''}`}>Bundles</Link>
+          <Link href="/blog" onClick={() => setMenuOpen(false)} className={`sl-mobilelink${current === 'blog' ? ' is-active' : ''}`}>Blog</Link>
+          <Link href="/support" onClick={() => setMenuOpen(false)} className={`sl-mobilelink${current === 'support' ? ' is-active' : ''}`}>Support</Link>
+          <div style={{ paddingTop: 6 }}>
+            <AppBadges utm={{ source: 'nav', medium: 'mobile_menu', campaign: 'get_the_app' }} size="md" layout="row" />
           </div>
         </div>
       )}
 
-      {/* Responsive CSS — hide mobile nav on desktop, desktop nav on mobile */}
       <style>{`
+        .sl-nav {
+          background: var(--color-ground-deep);
+          padding: 0 24px;
+          height: 56px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          position: relative;
+          z-index: 100;
+          border-bottom: 1px solid var(--color-rule-dim);
+        }
+        .sl-logo {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #fff;
+          text-decoration: none;
+        }
+        .sl-navlink {
+          color: rgba(255,255,255,0.82);
+          font-size: 14px;
+          font-weight: 600;
+          text-decoration: none;
+          padding: 4px 0;
+          border-bottom: 2px solid transparent;
+          transition: color .12s linear, border-color .12s linear;
+        }
+        .sl-navlink:hover { color: #fff; border-bottom-color: var(--color-on-ground-soft); }
+        .sl-navlink.is-active { color: #fff; border-bottom-color: var(--color-accent); }
+        .sl-iconbtn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 6px;
+          display: flex;
+          align-items: center;
+          color: rgba(255,255,255,0.88);
+        }
+        .sl-iconbtn:hover { color: #fff; }
+        .sl-searchbar {
+          background: var(--color-ground-deep);
+          padding: 18px 24px 22px;
+          border-bottom: 1px solid var(--color-rule-dim);
+          position: relative;
+          z-index: 150;
+        }
+        .sl-input {
+          flex: 1;
+          min-width: 0;
+          padding: 13px 20px;
+          font-size: 15px;
+          border: 1px solid transparent;
+          background: var(--color-paper);
+          color: var(--color-ink);
+          outline: none;
+          border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+        }
+        .sl-input::placeholder { color: var(--color-ink-faint); }
+        .sl-submit {
+          background: var(--color-action);
+          color: #fff;
+          font-size: 14px;
+          font-weight: 600;
+          padding: 13px 26px;
+          border: 1px solid var(--color-action);
+          cursor: pointer;
+          border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+        }
+        .sl-submit:hover { background: var(--color-action-deep); border-color: var(--color-action-deep); }
+        .sl-sheet {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: var(--color-sheet);
+          border: 1px solid var(--color-rule);
+          border-radius: 0 0 var(--radius-md) var(--radius-md);
+          box-shadow: 0 16px 34px rgba(26,29,27,0.26);
+          margin-top: 8px;
+          z-index: 200;
+          max-height: 420px;
+          overflow-y: auto;
+        }
+        .sl-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          padding: 10px 14px;
+          border: 0;
+          border-bottom: 1px solid var(--color-rule);
+          background: transparent;
+          cursor: pointer;
+          text-align: left;
+        }
+        .sl-row:hover { background: var(--color-paper-warm); }
+        .sl-row-foot {
+          display: block;
+          width: 100%;
+          padding: 13px 16px;
+          border: 0;
+          background: var(--color-paper-warm);
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--color-action);
+          text-align: center;
+        }
+        .sl-row-foot:hover { background: var(--color-paper-deep); }
+        .sl-clear {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--color-action);
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+        }
+        .sl-clear:hover { text-decoration: underline; }
+        .sl-remove {
+          color: var(--color-ink-faint);
+          cursor: pointer;
+          display: flex;
+          padding: 4px;
+        }
+        .sl-remove:hover { color: var(--color-action); }
+        .sl-mobilemenu {
+          background: var(--color-ground-deep);
+          padding: 12px 24px 22px;
+          border-bottom: 1px solid var(--color-rule-dim);
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .sl-mobilelink {
+          color: rgba(255,255,255,0.88);
+          font-size: 16px;
+          font-weight: 600;
+          text-decoration: none;
+        }
+        .sl-mobilelink.is-active { color: #fff; text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--color-accent); text-decoration-thickness: 2px; }
+        .sl-navlink { white-space: nowrap; }
         .site-nav-mobile { display: none; }
-        @media (max-width: 640px) {
+        /* 900, not 640: the desktop row carries four links plus both store
+           badges, and it starts wrapping well before phone widths. */
+        @media (max-width: 900px) {
           .site-nav-desktop { display: none !important; }
           .site-nav-mobile { display: flex !important; }
         }
