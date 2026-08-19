@@ -30,7 +30,6 @@ const supabase = createClient(
 
 const FOREST = 'var(--color-ground)'
 const FOREST_DEEP = 'var(--color-ground-deep)'
-const GOLD = 'var(--color-accent)'
 
 const CONDITION_LABELS: Record<string, string> = {
   like_new: 'Like New',
@@ -202,71 +201,39 @@ export default async function BundleDetailPage({
       <SiteNav current="bundles" />
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
-        {/* Breadcrumbs */}
-        <div style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginBottom: 20, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Link href="/" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Home</Link>
-          <span style={{ color: 'var(--color-rule)' }}>/</span>
-          <Link href="/bundles" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Bundles</Link>
-          <span style={{ color: 'var(--color-rule)' }}>/</span>
-          <span style={{ color: 'var(--color-ink-soft)' }}>{bundle.name}</span>
+        {/* Where you are, and what you can do with this page. Share used to
+            sit under the buy button at equal width; this page does have a
+            utility row, so the exception that kept it there no longer holds. */}
+        <div className="sy-pagebar">
+          <div className="sy-crumbs">
+            <Link href="/">Home</Link>
+            <span className="sy-crumb-sep">/</span>
+            <Link href="/bundles">Bundles</Link>
+            <span className="sy-crumb-sep">/</span>
+            <span className="sy-crumb-here sy-crumb-clip">{bundle.name}</span>
+          </div>
+          <ShareButton
+            url={`https://www.sellyourshelf.com/bundle/${bundle.id}`}
+            title={`${bundle.name} — bundle from @${seller.username}`}
+            description={bundle.description}
+            kind="bundle"
+            compact
+          />
         </div>
 
         {/* Hero — covers + headline */}
-        <div
-          style={{
-            background: '#fff',
-            border: `1px solid ${GOLD}`,
-            borderRadius: 12,
-            padding: 24,
-            marginBottom: 24,
-          }}
-        >
-          {/* Cover stack */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-            {detailMembers.slice(0, 6).map((m) => (
-              <div
-                key={m.id}
-                title={m.title}
-                style={{
-                  width: 70,
-                  height: 105,
-                  background: 'var(--color-ground-raised)',
-                  borderRadius: 'var(--radius-sm)',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                }}
-              >
-                {m.coverUrl ? (
-                  <img
-                    src={m.coverUrl}
-                    alt={m.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : null}
+        <div style={{ marginBottom: 40 }}>
+          {/* Every cover, at the size covers get everywhere else. This is the
+              page for the whole set — there is nothing to truncate to. */}
+          <div className="sy-bundle-hero">
+            {detailMembers.map((m) => (
+              <div key={m.id} className="sy-cover" title={m.title}>
+                {m.coverUrl ? <img src={m.coverUrl} alt={m.title} /> : null}
               </div>
             ))}
-            {detailMembers.length > 6 && (
-              <div
-                style={{
-                  width: 70,
-                  height: 105,
-                  borderRadius: 4,
-                  border: `1px dashed ${GOLD}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--color-ink-faint)',
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                +{detailMembers.length - 6}
-              </div>
-            )}
           </div>
 
-          {/* Name */}
-          <h1 style={{ fontSize: 24, fontWeight: 600, color: FOREST_DEEP, margin: '0 0 8px', lineHeight: 1.3 }}>
+          <h1 className="sy-h2" style={{ margin: '0 0 8px' }}>
             {bundle.name}
           </h1>
 
@@ -288,16 +255,7 @@ export default async function BundleDetailPage({
                 <span style={{ fontSize: 16, color: 'var(--color-ink-faint)', textDecoration: 'line-through' }}>
                   £{pricing.subtotalGbp.toFixed(2)}
                 </span>
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'var(--color-on-ground)',
-                    background: 'var(--color-ground)',
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-pill)',
-                  }}
-                >
+                <span style={{ fontSize: 15, fontWeight: 600, color: FOREST }}>
                   Save £{pricing.totalDiscountGbp.toFixed(2)}
                 </span>
               </>
@@ -316,66 +274,32 @@ export default async function BundleDetailPage({
             </p>
           )}
 
-          {/* Add + share buttons (client islands). Add is primary,
-              share gets a quieter pill next to it so sellers/buyers
-              can send the bundle URL via native share sheet (mobile)
-              or copy-link fallback (desktop). */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ maxWidth: 380 }}>
             <BundleDetailAddButton
               bundleId={bundle.id}
               bundleName={bundle.name}
               members={detailMembers}
               seller={{ sellerId: bundle.seller_id, sellerUsername: seller.username }}
             />
-            <ShareButton
-              url={`https://sellyourshelf.com/bundle/${bundle.id}`}
-              title={`${bundle.name} — bundle from @${seller.username}`}
-              description={bundle.description}
-            />
           </div>
         </div>
 
         {/* Books in this bundle */}
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: FOREST_DEEP, margin: '0 0 12px' }}>
+        <h2 className="sy-h3" style={{ margin: '0 0 4px' }}>
           Books in this bundle
         </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
           {detailMembers.map((m) => (
             <Link
               key={m.id}
               href={`/listing/${m.id}`}
-              style={{
-                background: '#fff',
-                border: '1px solid #E5E3DF',
-                borderRadius: 10,
-                padding: 12,
-                textDecoration: 'none',
-                color: 'inherit',
-                display: 'flex',
-                gap: 14,
-                alignItems: 'center',
-              }}
+              className="sy-member-row"
             >
-              <div
-                style={{
-                  width: 50,
-                  height: 75,
-                  background: 'var(--color-ground-raised)',
-                  borderRadius: 'var(--radius-sm)',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                }}
-              >
-                {m.coverUrl ? (
-                  <img
-                    src={m.coverUrl}
-                    alt={m.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : null}
+              <div className="sy-cover" style={{ width: 54, flex: '0 0 54px' }}>
+                {m.coverUrl ? <img src={m.coverUrl} alt={m.title} /> : null}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-ink)', lineHeight: 1.3, marginBottom: 2 }}>
+                <div className="sy-member-title" style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-ink)', lineHeight: 1.32, marginBottom: 3 }}>
                   {m.title}
                 </div>
                 {m.author && (
