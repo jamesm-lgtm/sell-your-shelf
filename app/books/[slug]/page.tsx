@@ -25,13 +25,6 @@ const CONDITIONS: Record<string, string> = {
   acceptable: 'Acceptable',
 }
 
-const CONDITION_COLORS: Record<string, { bg: string; text: string }> = {
-  like_new: { bg: '#DCFCE7', text: '#166534' },
-  very_good: { bg: '#DBEAFE', text: '#1E40AF' },
-  good: { bg: '#FEF9C3', text: '#854D0E' },
-  acceptable: { bg: '#F3F4F6', text: '#374151' },
-}
-
 /** schema.org bookFormat from a raw binding string ("Hardcover", "Mass
  *  Market Paperback", ...). Undefined when unknown — omit rather than guess. */
 function schemaBookFormat(binding: string | null | undefined): string | undefined {
@@ -331,7 +324,6 @@ export default async function BookPage({ params }: Props) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {listings.map((listing: any) => {
-              const condColor = CONDITION_COLORS[listing.condition] ?? CONDITION_COLORS.acceptable
               const username = (listing.users as any)?.username
 
               return (
