@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteNav from '../components/SiteNav';
 import Footer from '../components/Footer';
+import { SectionMark } from '../components/ui';
 import { getAllPosts } from '../lib/blog';
 
 export const metadata: Metadata = {
@@ -19,22 +20,14 @@ export const metadata: Metadata = {
   },
 };
 
-const categoryColours: Record<string, { bg: string; text: string }> = {
-  'Selling Guides': { bg: 'rgba(45, 74, 62, 0.1)', text: '#2D4A3E' },
-  Comparisons: { bg: 'rgba(45, 62, 74, 0.1)', text: '#2D3E4A' },
-  Valuation: { bg: 'rgba(74, 62, 45, 0.1)', text: '#4A3E2D' },
-  Product: { bg: 'rgba(62, 45, 74, 0.1)', text: '#3E2D4A' },
-  Textbooks: { bg: 'rgba(74, 45, 62, 0.1)', text: '#4A2D3E' },
-  Decluttering: { bg: 'rgba(45, 74, 66, 0.1)', text: '#2D4A42' },
-  'Cash Focus': { bg: 'rgba(45, 74, 62, 0.1)', text: '#2D4A3E' },
-  Buyer: { bg: 'rgba(62, 62, 74, 0.1)', text: '#3E3E4A' },
-};
-
 function formatDate(dateStr: string) {
+  // timeZone pinned: server runs UTC, readers don't, and a date near a
+  // month boundary would otherwise render differently on each side.
   return new Date(dateStr).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
@@ -47,68 +40,50 @@ export default function BlogIndex() {
   const posts = getAllPosts();
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+    <div className="sy-page">
       <SiteNav current="blog" />
 
-      <div className="max-w-2xl mx-auto px-6 pt-12 pb-24">
-        <div className="mb-10">
-          <h1
-            className="text-4xl text-gray-900 mb-3 tracking-tight"
-            style={{ fontFamily: 'Georgia, serif' }}
-          >
-            Blog
-          </h1>
-          <p className="text-gray-500 text-lg">
-            Guides, tips, and comparisons for selling second hand books in the
-            UK.
+      <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '48px 0 36px' }}>
+        <div className="sy-wrap">
+          <h1 className="sy-h1" style={{ marginBottom: 12 }}>Blog</h1>
+          <p className="sy-lede" style={{ maxWidth: 620 }}>
+            Guides, tips and comparisons for selling second hand books in the UK.
           </p>
-        </div>
-
-        {posts.length === 0 && (
-          <p className="text-gray-400">No posts yet. Check back soon.</p>
-        )}
-
-        <div>
-          {posts.map((post) => {
-            const colours = categoryColours[post.category] ?? {
-              bg: '#f0f0f0',
-              text: '#666',
-            };
-
-            return (
-              <Link
-                key={post.slug}
-                href={`/blog/${post.slug}`}
-                className="block py-7 group"
-                style={{ borderBottom: '1px solid #F0EDE8' }}
-              >
-                <div className="flex items-center gap-3 mb-2.5">
-                  <span
-                    className="inline-block px-2.5 py-1 rounded text-xs font-medium"
-                    style={{ backgroundColor: colours.bg, color: colours.text }}
-                  >
-                    {post.category}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    {readingTime(post.content)}
-                  </span>
-                </div>
-                <h2 className="text-xl font-semibold text-gray-900 group-hover:text-[#2D4A3E] transition-colors mb-2 leading-snug">
-                  {post.title}
-                </h2>
-                <p className="text-gray-500 text-sm leading-relaxed mb-3">
-                  {post.description}
-                </p>
-                <time className="text-xs text-gray-400">
-                  {formatDate(post.date)}
-                </time>
-              </Link>
-            );
-          })}
         </div>
       </div>
 
+      <div className="sy-wrap" style={{ padding: '8px 32px 72px', maxWidth: 780 }}>
+        {posts.length === 0 && (
+          <p className="sy-prose" style={{ paddingTop: 32 }}>No posts yet. Check back soon.</p>
+        )}
+
+        {posts.map((post) => (
+          <Link
+            key={post.slug}
+            href={`/blog/${post.slug}`}
+            className="sy-post-row"
+          >
+            {/* The category was eight tinted pastels — a colour system that
+                existed only here. One mark, like every other section label
+                on the site, with the reading time as its quiet companion. */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 10 }}>
+              <SectionMark>{post.category}</SectionMark>
+              <span style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+                {readingTime(post.content)}
+              </span>
+            </div>
+            <h2 className="sy-h3" style={{ marginBottom: 8 }}>{post.title}</h2>
+            <p className="sy-prose" style={{ margin: '0 0 10px', maxWidth: 620 }}>
+              {post.description}
+            </p>
+            <time style={{ fontSize: 13, color: 'var(--color-ink-faint)' }}>
+              {formatDate(post.date)}
+            </time>
+          </Link>
+        ))}
+      </div>
+
       <Footer />
-    </main>
+    </div>
   );
 }

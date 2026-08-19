@@ -28,9 +28,9 @@ const supabase = createClient(
   process.env.SUPABASE_SECRET_KEY!,
 )
 
-const FOREST = '#2D4A3E'
-const FOREST_DEEP = '#1F3329'
-const GOLD = '#C9A961'
+const FOREST = 'var(--color-ground)'
+const FOREST_DEEP = 'var(--color-ground-deep)'
+const GOLD = 'var(--color-accent)'
 const PAGE_SIZE = 50
 
 export async function generateMetadata() {
@@ -280,20 +280,20 @@ export default async function BundlesIndexPage({
   }
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
       <SiteNav current="bundles" />
 
-      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '32px 24px 24px' }}>
+      <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '32px 24px 24px' }}>
         <div style={{ maxWidth: 840, margin: '0 auto' }}>
-          <div style={{ fontSize: 12, color: '#999', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
-            <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
-            <span style={{ color: '#ccc' }}>/</span>
-            <span style={{ color: '#666' }}>Bundles</span>
+          <div style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
+            <Link href="/" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Home</Link>
+            <span style={{ color: 'var(--color-rule)' }}>/</span>
+            <span style={{ color: 'var(--color-ink-soft)' }}>Bundles</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>
-            <span aria-hidden style={{ marginRight: 8 }}>📚</span>Bundles
+          <div style={{ fontSize: 24, fontWeight: 500, color: 'var(--color-ink)', marginBottom: 4 }}>
+            Bundles
           </div>
-          <div style={{ fontSize: 14, color: '#666', maxWidth: 540 }}>
+          <div style={{ fontSize: 14, color: 'var(--color-ink-soft)', maxWidth: 540 }}>
             Curated by independent sellers — one shipment, one discount. Tap any bundle to see the
             seller&apos;s shelf and add the whole set to your basket.
           </div>
@@ -301,7 +301,7 @@ export default async function BundlesIndexPage({
       </div>
 
       {/* Category pills + sort. Both submit via plain links so no client JS. */}
-      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '12px 16px', background: '#FFFDF6' }}>
+      <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '12px 16px', background: 'var(--color-paper)' }}>
         <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', whiteSpace: 'nowrap', paddingBottom: 2 }}>
             <Link
@@ -309,9 +309,9 @@ export default async function BundlesIndexPage({
               style={{
                 padding: '6px 12px',
                 borderRadius: 999,
-                border: `1px solid ${activeCategory ? '#E5E3DF' : GOLD}`,
+                border: `1px solid ${activeCategory ? 'var(--color-rule)' : GOLD}`,
                 background: activeCategory ? '#fff' : FOREST,
-                color: activeCategory ? '#666' : '#FAF8F5',
+                color: activeCategory ? 'var(--color-ink-soft)' : 'var(--color-paper)',
                 fontSize: 12,
                 fontWeight: 600,
                 textDecoration: 'none',
@@ -329,9 +329,9 @@ export default async function BundlesIndexPage({
                   style={{
                     padding: '6px 12px',
                     borderRadius: 999,
-                    border: `1px solid ${isActive ? GOLD : '#E5E3DF'}`,
+                    border: `1px solid ${isActive ? GOLD : 'var(--color-rule)'}`,
                     background: isActive ? FOREST : '#fff',
-                    color: isActive ? '#FAF8F5' : '#666',
+                    color: isActive ? 'var(--color-paper)' : 'var(--color-ink-soft)',
                     fontSize: 12,
                     fontWeight: 600,
                     textDecoration: 'none',
@@ -343,10 +343,10 @@ export default async function BundlesIndexPage({
               )
             })}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#666' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: 'var(--color-ink-soft)' }}>
             <span>{totalCount} {totalCount === 1 ? 'bundle' : 'bundles'}</span>
             <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ color: '#999' }}>Sort:</span>
+              <span style={{ color: 'var(--color-ink-faint)' }}>Sort:</span>
               {(['newest', 'biggest_savings', 'lowest_price', 'most_books'] as SortOption[]).map((s) => {
                 const isActive = sort === s
                 return (
@@ -354,7 +354,7 @@ export default async function BundlesIndexPage({
                     key={s}
                     href={buildHref({ sort: s, page: 1 })}
                     style={{
-                      color: isActive ? FOREST_DEEP : '#666',
+                      color: isActive ? FOREST_DEEP : 'var(--color-ink-soft)',
                       fontWeight: isActive ? 700 : 500,
                       textDecoration: isActive ? 'underline' : 'none',
                     }}
@@ -370,9 +370,9 @@ export default async function BundlesIndexPage({
 
       <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
         {bundles.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 16px', color: '#666' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }} aria-hidden>📚</div>
-            <div style={{ fontSize: 16, color: '#1A1A1A', fontWeight: 500, marginBottom: 4 }}>
+          <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--color-ink-soft)' }}>
+            
+            <div style={{ fontSize: 16, color: 'var(--color-ink)', fontWeight: 500, marginBottom: 4 }}>
               {activeCategory ? `No bundles in ${activeCategory.name}` : 'No bundles yet'}
             </div>
             <div style={{ fontSize: 14 }}>
@@ -446,7 +446,7 @@ export default async function BundlesIndexPage({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#999',
+                        color: 'var(--color-ink-faint)',
                         fontSize: 11,
                         fontWeight: 600,
                         flexShrink: 0,
@@ -467,7 +467,7 @@ export default async function BundlesIndexPage({
                   </span>
                   {b.savingsGbp > 0 && (
                     <>
-                      <span style={{ fontSize: 12, color: '#999', textDecoration: 'line-through' }}>
+                      <span style={{ fontSize: 12, color: 'var(--color-ink-faint)', textDecoration: 'line-through' }}>
                         £{b.subtotalGbp.toFixed(2)}
                       </span>
                       <span style={{ fontSize: 12, color: FOREST, fontWeight: 600 }}>
@@ -481,7 +481,7 @@ export default async function BundlesIndexPage({
                   <div
                     style={{
                       fontSize: 12,
-                      color: '#666',
+                      color: 'var(--color-ink-soft)',
                       lineHeight: 1.4,
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
@@ -493,7 +493,7 @@ export default async function BundlesIndexPage({
                   </div>
                 )}
 
-                <div style={{ fontSize: 12, color: '#666' }}>
+                <div style={{ fontSize: 12, color: 'var(--color-ink-soft)' }}>
                   from @{b.sellerUsername}
                 </div>
               </Link>
@@ -509,9 +509,9 @@ export default async function BundlesIndexPage({
                 ← Newer
               </Link>
             ) : (
-              <span style={{ color: '#ccc' }}>← Newer</span>
+              <span style={{ color: 'var(--color-rule)' }}>← Newer</span>
             )}
-            <span style={{ color: '#666' }}>
+            <span style={{ color: 'var(--color-ink-soft)' }}>
               Page {pageNum} of {totalPages}
             </span>
             {pageNum < totalPages ? (
@@ -519,7 +519,7 @@ export default async function BundlesIndexPage({
                 Older →
               </Link>
             ) : (
-              <span style={{ color: '#ccc' }}>Older →</span>
+              <span style={{ color: 'var(--color-rule)' }}>Older →</span>
             )}
           </div>
         )}

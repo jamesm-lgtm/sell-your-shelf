@@ -8,8 +8,11 @@ import OrderConfirmationClient from '@/app/components/OrderConfirmationClient'
 import GaPurchase from '@/app/components/GaPurchase'
 
 export const revalidate = 0
+// Neutral on purpose: this route also renders "payment didn't go through"
+// and "confirming your payment", and a tab reading "Order confirmed" over
+// a failed payment is a lie the browser history keeps.
 export const metadata: Metadata = {
-  title: 'Order confirmed — Sell Your Shelf',
+  title: 'Your order — Sell Your Shelf',
   robots: { index: false, follow: false },
 }
 
@@ -44,7 +47,7 @@ export default async function OrderConfirmationPage({ params }: Props) {
   const items = (order as { order_items?: Array<{ id: string; title: string; author: string | null; price_gbp: number }> }).order_items ?? []
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
       {['paid', 'shipped', 'delivered', 'completed'].includes(order.status as string) && (
         <GaPurchase
           transactionId={order.id as string}
@@ -71,11 +74,15 @@ export default async function OrderConfirmationPage({ params }: Props) {
           totalGbp={Number(order.total_gbp)}
           shippingAddress={order.shipping_address as Record<string, unknown> | null}
         />
-        <div style={{ marginTop: 28, fontSize: 13, color: '#666', textAlign: 'center' }}>
-          <Link href="/" style={{ color: '#2D4A3E', textDecoration: 'underline' }}>
-            Continue browsing
-          </Link>
-        </div>
+        {/* The cancelled branch renders its own "Continue browsing" button,
+            so this quiet one would be the same action twice on that state. */}
+        {order.status !== 'cancelled' && (
+          <div style={{ marginTop: 28, fontSize: 13, color: 'var(--color-ink-soft)', textAlign: 'center' }}>
+            <Link href="/" style={{ color: 'var(--color-action)', textDecoration: 'underline' }}>
+              Continue browsing
+            </Link>
+          </div>
+        )}
       </div>
       <Footer />
     </div>

@@ -6,6 +6,8 @@ import Footer from '@/app/components/Footer'
 import AppBadges from '@/app/components/AppBadges'
 import BuyNowLink from '@/app/components/BuyNowLink'
 import BookViewTracker from '@/app/components/BookViewTracker'
+import { Price, ConditionMarker } from '@/app/components/ui'
+import ShareButton from '@/app/components/ShareButton'
 import { offerShippingDetails, merchantReturnPolicy } from '@/app/lib/offerSchema'
 
 export const revalidate = 0
@@ -47,7 +49,7 @@ function DescriptionParagraphs({ text, fontSize = 14 }: { text: string; fontSize
   return (
     <>
       {paragraphs.map((p, i) => (
-        <p key={i} style={{ fontSize, color: '#444', lineHeight: 1.7, marginBottom: i === paragraphs.length - 1 ? 0 : 10 }}>
+        <p key={i} style={{ fontSize, color: 'var(--color-ink-soft)', lineHeight: 1.7, marginBottom: i === paragraphs.length - 1 ? 0 : 10 }}>
           {p}
         </p>
       ))}
@@ -249,7 +251,7 @@ export default async function BookPage({ params }: Props) {
   }
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
 
       <script
         type="application/ld+json"
@@ -264,72 +266,76 @@ export default async function BookPage({ params }: Props) {
 
       <SiteNav />
 
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 24px' }}>
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 32px 64px' }}>
 
-        {/* Breadcrumbs */}
-        <div style={{ fontSize: 12, color: '#999', marginBottom: 20, display: 'flex', gap: 6, alignItems: 'center' }}>
-          <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
-          <span style={{ color: '#ccc' }}>/</span>
-          <Link href="/new" style={{ color: '#999', textDecoration: 'none' }}>Browse</Link>
-          <span style={{ color: '#ccc' }}>/</span>
-          <span style={{ color: '#666' }}>{book.title}</span>
+        {/* Where you are, and what you can do with this page. */}
+        <div className="sy-pagebar">
+          <div className="sy-crumbs">
+            <Link href="/">Home</Link>
+            <span className="sy-crumb-sep">/</span>
+            <Link href="/new">Browse</Link>
+            <span className="sy-crumb-sep">/</span>
+            {/* Last crumb, so it can't drop — it truncates instead. */}
+            <span className="sy-crumb-here sy-crumb-clip">{book.title}</span>
+          </div>
+          <ShareButton
+            url={`https://www.sellyourshelf.com/books/${slug}`}
+            title={book.title}
+            kind="book"
+            compact
+          />
         </div>
 
         {/* Book header */}
-        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 32, alignItems: 'start', marginBottom: 40 }}>
+        <div className="sy-listing-split">
           <div>
-            <div style={{ borderRadius: 10, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3' }}>
+            <div className="sy-cover">
               {(book.cover_url_hosted || book.cover_url) ? (
                 <img src={book.cover_url_hosted || book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, padding: 8, textAlign: 'center' }}>{book.title}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.95)', fontSize: 12, padding: 10, textAlign: 'center' }}>{book.title}</span>
                 </div>
               )}
             </div>
             {(book.cover_url_hosted || book.cover_url) && (
-              <p style={{ fontSize: 10, color: '#999', marginTop: 6, lineHeight: 1.4 }}>
+              <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginTop: 8, lineHeight: 1.4 }}>
                 Cover image is for illustration. Actual edition may vary.
               </p>
             )}
           </div>
 
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 6 }}>
+            <h1 className="sy-h2" style={{ marginBottom: 8 }}>
               {book.title}
             </h1>
             {book.author && (
-              <p style={{ fontSize: 15, color: '#666', marginBottom: 12 }}>
+              <p style={{ fontSize: 16, color: 'var(--color-ink-soft)', marginBottom: 14 }}>
                 {book.author}
               </p>
             )}
 
             {(editionMeta?.binding || editionMeta?.page_count || editionMeta?.publisher || publishedYear || isbn13) && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+              <dl className="sy-editiontable">
                 {editionMeta?.binding && (
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                    {editionMeta.binding}
-                  </span>
-                )}
-                {editionMeta?.page_count && (
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                    {editionMeta.page_count} pages
-                  </span>
+                  <div><dt>Format</dt><dd style={{ textTransform: 'capitalize' }}>{editionMeta.binding}</dd></div>
                 )}
                 {editionMeta?.publisher && (
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                    {editionMeta.publisher}{publishedYear ? `, ${publishedYear}` : ''}
-                  </span>
+                  <div>
+                    <dt>Publisher</dt>
+                    <dd>{editionMeta.publisher}{publishedYear ? `, ${publishedYear}` : ''}</dd>
+                  </div>
+                )}
+                {editionMeta?.page_count && (
+                  <div><dt>Pages</dt><dd className="sy-figure">{editionMeta.page_count}</dd></div>
                 )}
                 {isbn13 && (
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                    ISBN: {isbn13}
-                  </span>
+                  <div><dt>ISBN</dt><dd className="sy-figure sy-isbn">{isbn13}</dd></div>
                 )}
-              </div>
+              </dl>
             )}
 
-            <p style={{ fontSize: 14, color: '#666' }}>
+            <p style={{ fontSize: 14, color: 'var(--color-ink-soft)' }}>
               {inStock
                 ? `${listings.length} ${listings.length === 1 ? 'copy' : 'copies'} available`
                 : 'Currently out of stock'}
@@ -341,7 +347,7 @@ export default async function BookPage({ params }: Props) {
             readers and crawlers get the whole synopsis, in paragraphs. */}
         {book.description && (
           <div style={{ marginBottom: 40 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#1A1A1A', marginBottom: 12, borderBottom: '0.5px solid #E5E3DF', paddingBottom: 12 }}>
+            <h2 className="sy-h3" style={{ marginBottom: 16, borderBottom: '1px solid var(--color-rule)', paddingBottom: 14 }}>
               About this book
             </h2>
             <DescriptionParagraphs text={String(book.description)} fontSize={14} />
@@ -350,25 +356,25 @@ export default async function BookPage({ params }: Props) {
 
         {/* Available copies */}
         <div style={{ marginBottom: 40 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#1A1A1A', marginBottom: 16, borderBottom: '0.5px solid #E5E3DF', paddingBottom: 12 }}>
+          <h2 className="sy-h3" style={{ marginBottom: 20, borderBottom: '1px solid var(--color-rule)', paddingBottom: 14 }}>
             Available Copies
           </h2>
 
           {!inStock && (
-            <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '24px 20px', textAlign: 'center' }}>
-              <p style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A', marginBottom: 6 }}>
+            <div className="sy-panel" style={{ padding: '32px 24px', textAlign: 'center' }}>
+              <p className="sy-h3" style={{ marginBottom: 8 }}>
                 No copies available right now
               </p>
-              <p style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>
+              <p style={{ fontSize: 15, color: 'var(--color-ink-soft)', marginBottom: 20, lineHeight: 1.6 }}>
                 Sellers list new books every day — check back soon. Or if you have a copy,
                 scan it with the app and it could be listed in 90 seconds.
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <Link href="/new" style={{ display: 'inline-block', background: '#254B3C', color: '#fff', borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                <Link href="/new" className="sy-cta sy-cta-solid">
                   Browse available books
                 </Link>
                 {book.category && (
-                  <Link href={`/category/${String(book.category).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} style={{ display: 'inline-block', background: '#fff', color: '#254B3C', border: '1px solid #254B3C', borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                  <Link href={`/category/${String(book.category).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} className="sy-cta sy-cta-quiet">
                     More {book.category}
                   </Link>
                 )}
@@ -385,45 +391,33 @@ export default async function BookPage({ params }: Props) {
                 <div
                   key={listing.id}
                   style={{
-                    background: '#fff',
-                    border: '0.5px solid #E5E3DF',
-                    borderRadius: 10,
-                    padding: '16px 20px',
+                    background: 'var(--color-sheet)',
+                    border: '1px solid var(--color-rule)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '18px 22px',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <span style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      padding: '4px 10px',
-                      borderRadius: 4,
-                      background: condColor.bg,
-                      color: condColor.text,
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {CONDITIONS[listing.condition] ?? listing.condition}
-                    </span>
+                    <ConditionMarker condition={listing.condition} />
                     {username && (
-                      <Link href={`/${username}`} style={{ fontSize: 13, color: '#2D4A3E', textDecoration: 'none' }}>
+                      <Link href={`/${username}`} style={{ fontSize: 13, color: 'var(--color-action)', textDecoration: 'none' }}>
                         @{username}
                       </Link>
                     )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 20, fontWeight: 600, color: '#2D4A3E' }}>
-                      £{Number(listing.asking_price_gbp).toFixed(2)}
-                    </span>
+                    <Price value={Number(listing.asking_price_gbp)} large />
                     <BuyNowLink
                       listingId={listing.id}
                       sellerId={(listing as { user_id?: string | null }).user_id ?? null}
                       style={{
-                        background: '#2D4A3E',
-                        color: '#FAF8F5',
-                        fontSize: 13,
-                        fontWeight: 500,
-                        padding: '10px 24px',
-                        borderRadius: 6,
+                        background: 'var(--color-action)',
+                        color: '#fff',
+                        fontSize: 15,
+                        fontWeight: 600,
+                        padding: '13px 26px',
+                        borderRadius: 'var(--radius-pill)',
                         textDecoration: 'none',
                         whiteSpace: 'nowrap',
                       }}
@@ -438,11 +432,11 @@ export default async function BookPage({ params }: Props) {
         </div>
 
         {/* Sell CTA */}
-        <div style={{ background: '#2D4A3E', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
-          <p style={{ color: '#FAF8F5', fontSize: 16, fontWeight: 500, marginBottom: 6 }}>
+        <div style={{ background: 'var(--color-ground)', borderRadius: 'var(--radius-md)', padding: '40px 24px', textAlign: 'center' }}>
+          <p className="sy-h3" style={{ color: 'var(--color-on-ground)', marginBottom: 8 }}>
             Sell your copy of {book.title}
           </p>
-          <p style={{ color: 'rgba(250,248,245,0.7)', fontSize: 13, marginBottom: 20 }}>
+          <p style={{ color: 'var(--color-on-ground-soft)', fontSize: 15, marginBottom: 24 }}>
             List it in seconds with the Sell Your Shelf app
           </p>
           <div style={{ display: 'flex', justifyContent: 'center' }}>

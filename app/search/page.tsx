@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { formatCount } from '@/app/components/ui'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import EventTracker from '@/app/components/EventTracker'
@@ -62,16 +63,16 @@ function BookCard({ book }: { book: BookResult }) {
       style={{ textDecoration: 'none', color: 'inherit' }}
     >
       <div style={{
-        background: '#fff',
-        borderRadius: 10,
-        border: '0.5px solid #E5E3DF',
+        background: 'var(--color-sheet)',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--color-rule)',
         overflow: 'hidden',
         transition: 'box-shadow 0.15s',
       }}>
         {/* Cover */}
         <div style={{
           aspectRatio: '2/3',
-          background: '#2D4A3E',
+          background: 'var(--color-ground-raised)',
           position: 'relative',
         }}>
           {book.cover_url ? (
@@ -111,7 +112,7 @@ function BookCard({ book }: { book: BookResult }) {
           <div style={{
             fontSize: 14,
             fontWeight: 500,
-            color: '#1A1A1A',
+            color: 'var(--color-ink)',
             lineHeight: 1.3,
             marginBottom: 3,
             overflow: 'hidden',
@@ -124,7 +125,7 @@ function BookCard({ book }: { book: BookResult }) {
           </div>
           <div style={{
             fontSize: 12,
-            color: '#666',
+            color: 'var(--color-ink-soft)',
             marginBottom: 2,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -135,7 +136,7 @@ function BookCard({ book }: { book: BookResult }) {
           {book.category && (
             <div style={{
               fontSize: 11,
-              color: '#999',
+              color: 'var(--color-ink-faint)',
               marginBottom: 6,
             }}>
               {book.category}
@@ -143,7 +144,7 @@ function BookCard({ book }: { book: BookResult }) {
           )}
           <div style={{
             fontSize: 13,
-            color: '#2D4A3E',
+            color: 'var(--color-action)',
             fontWeight: 600,
           }}>
             {book.copy_count} {book.copy_count === 1 ? 'copy' : 'copies'} from £{Number(book.lowest_price).toFixed(2)}
@@ -279,30 +280,30 @@ export default async function SearchPage({ searchParams }: Props) {
   }
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
 
       <SiteNav />
 
-      <div style={{ borderBottom: '0.5px solid #E5E3DF', padding: '32px 24px 24px' }}>
+      <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '32px 24px 24px' }}>
         <div style={{ maxWidth: 840, margin: '0 auto' }}>
-          <div style={{ fontSize: 12, color: '#999', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
-            <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
+          <div style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
+            <Link href="/" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Home</Link>
             <span style={{ color: '#ccc' }}>/</span>
-            <span style={{ color: '#666' }}>Search</span>
+            <span style={{ color: 'var(--color-ink)' }}>Search</span>
           </div>
           {q ? (
             <>
-              <div style={{ fontSize: 24, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>
+              <div style={{ fontSize: 24, fontWeight: 500, color: 'var(--color-ink)', marginBottom: 4 }}>
                 Results for &ldquo;{q}&rdquo;
               </div>
-              <div style={{ fontSize: 14, color: '#666' }}>
-                {books.length} {books.length === 1 ? 'book' : 'books'}
+              <div style={{ fontSize: 15, color: 'var(--color-ink-soft)' }}>
+                {formatCount(books.length)} {books.length === 1 ? 'book' : 'books'}
                 {bundles.length > 0 ? ` · ${bundles.length} ${bundles.length === 1 ? 'bundle' : 'bundles'}` : ''}
                 {' '}found
               </div>
             </>
           ) : (
-            <div style={{ fontSize: 24, fontWeight: 500, color: '#1A1A1A' }}>
+            <div className="sy-h3">
               Search
             </div>
           )}
@@ -315,14 +316,13 @@ export default async function SearchPage({ searchParams }: Props) {
             <div style={{
               fontSize: 16,
               fontWeight: 500,
-              color: '#1A1A1A',
+              color: 'var(--color-ink)',
               marginBottom: 12,
               display: 'flex',
               alignItems: 'baseline',
               gap: 8,
             }}>
-              <span aria-hidden>📚</span>
-              Bundles matching &ldquo;{q}&rdquo;
+                            Bundles matching &ldquo;{q}&rdquo;
             </div>
             <div style={{
               display: 'grid',
@@ -335,8 +335,8 @@ export default async function SearchPage({ searchParams }: Props) {
                   href={`/bundle/${b.id}`}
                   style={{
                     background: '#fff',
-                    border: '1px solid #C9A961',
-                    borderRadius: 10,
+                    border: '1px solid var(--color-accent)',
+                    borderRadius: 'var(--radius-md)',
                     padding: 12,
                     textDecoration: 'none',
                     color: 'inherit',
@@ -349,8 +349,8 @@ export default async function SearchPage({ searchParams }: Props) {
                     {b.covers.slice(0, 4).map((c, i) => (
                       <div key={i} style={{
                         width: 36, height: 54,
-                        background: '#2D4A3E',
-                        borderRadius: 3,
+                        background: 'var(--color-ground-raised)',
+                        borderRadius: 2,
                         overflow: 'hidden',
                         flexShrink: 0,
                       }}>
@@ -360,12 +360,12 @@ export default async function SearchPage({ searchParams }: Props) {
                     {b.memberCount > 4 && (
                       <div style={{
                         width: 36, height: 54,
-                        border: '1px dashed #C9A961',
+                        border: '1px dashed var(--color-accent)',
                         borderRadius: 3,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#999',
+                        color: 'var(--color-ink-faint)',
                         fontSize: 11,
                         fontWeight: 600,
                         flexShrink: 0,
@@ -377,7 +377,7 @@ export default async function SearchPage({ searchParams }: Props) {
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#1F3329', lineHeight: 1.3 }}>
                     {b.name}
                   </div>
-                  <div style={{ fontSize: 11, color: '#666' }}>
+                  <div style={{ fontSize: 13, color: 'var(--color-ink-soft)' }}>
                     {b.memberCount} books · @{b.sellerUsername}
                   </div>
                 </Link>
@@ -386,16 +386,16 @@ export default async function SearchPage({ searchParams }: Props) {
           </div>
         )}
         {q.length === 0 ? (
-          <p style={{ color: '#999', fontSize: 15, textAlign: 'center', paddingTop: 48 }}>
+          <p style={{ color: 'var(--color-ink-faint)', fontSize: 15, textAlign: 'center', paddingTop: 48 }}>
             Use the search bar above to find books by title or author.
           </p>
         ) : books.length === 0 ? (
           <div>
             <div style={{ textAlign: 'center', paddingTop: 48, marginBottom: 40 }}>
-              <p style={{ color: '#999', fontSize: 15, marginBottom: 8 }}>
+              <p style={{ color: 'var(--color-ink-faint)', fontSize: 15, marginBottom: 8 }}>
                 No books found for &ldquo;{q}&rdquo;
               </p>
-              <Link href="/new" style={{ color: '#2D4A3E', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
+              <Link href="/new" style={{ color: 'var(--color-action)', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
                 Browse all books →
               </Link>
             </div>
@@ -405,10 +405,10 @@ export default async function SearchPage({ searchParams }: Props) {
                 <div style={{
                   fontSize: 16,
                   fontWeight: 500,
-                  color: '#1A1A1A',
+                  color: 'var(--color-ink)',
                   marginBottom: 16,
                   paddingBottom: 12,
-                  borderBottom: '0.5px solid #E5E3DF',
+                  borderBottom: '1px solid var(--color-rule)',
                 }}>
                   Popular right now
                 </div>

@@ -18,7 +18,7 @@ import Footer from '@/app/components/Footer'
 import BundleDetailAddButton, {
   type BundleDetailMember,
 } from '@/app/components/BundleDetailAddButton'
-import BundleShareButton from '@/app/components/BundleShareButton'
+import ShareButton from '@/app/components/ShareButton'
 import { computeBundlePricing } from '@/app/lib/bundlePricing'
 
 export const revalidate = 0
@@ -28,9 +28,9 @@ const supabase = createClient(
   process.env.SUPABASE_SECRET_KEY!,
 )
 
-const FOREST = '#2D4A3E'
-const FOREST_DEEP = '#1F3329'
-const GOLD = '#C9A961'
+const FOREST = 'var(--color-ground)'
+const FOREST_DEEP = 'var(--color-ground-deep)'
+const GOLD = 'var(--color-accent)'
 
 const CONDITION_LABELS: Record<string, string> = {
   like_new: 'Like New',
@@ -208,17 +208,17 @@ export default async function BundleDetailPage({
   })
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
       <SiteNav current="bundles" />
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
         {/* Breadcrumbs */}
-        <div style={{ fontSize: 12, color: '#999', marginBottom: 20, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
-          <span style={{ color: '#ccc' }}>/</span>
-          <Link href="/bundles" style={{ color: '#999', textDecoration: 'none' }}>Bundles</Link>
-          <span style={{ color: '#ccc' }}>/</span>
-          <span style={{ color: '#666' }}>{bundle.name}</span>
+        <div style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginBottom: 20, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link href="/" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Home</Link>
+          <span style={{ color: 'var(--color-rule)' }}>/</span>
+          <Link href="/bundles" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Bundles</Link>
+          <span style={{ color: 'var(--color-rule)' }}>/</span>
+          <span style={{ color: 'var(--color-ink-soft)' }}>{bundle.name}</span>
         </div>
 
         {/* Hero — covers + headline */}
@@ -240,8 +240,8 @@ export default async function BundleDetailPage({
                 style={{
                   width: 70,
                   height: 105,
-                  background: FOREST,
-                  borderRadius: 4,
+                  background: 'var(--color-ground-raised)',
+                  borderRadius: 'var(--radius-sm)',
                   overflow: 'hidden',
                   flexShrink: 0,
                 }}
@@ -265,7 +265,7 @@ export default async function BundleDetailPage({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#999',
+                  color: 'var(--color-ink-faint)',
                   fontSize: 13,
                   fontWeight: 600,
                 }}
@@ -295,17 +295,17 @@ export default async function BundleDetailPage({
             </span>
             {pricing.totalDiscountGbp > 0 && (
               <>
-                <span style={{ fontSize: 16, color: '#999', textDecoration: 'line-through' }}>
+                <span style={{ fontSize: 16, color: 'var(--color-ink-faint)', textDecoration: 'line-through' }}>
                   £{pricing.subtotalGbp.toFixed(2)}
                 </span>
                 <span
                   style={{
                     fontSize: 13,
                     fontWeight: 600,
-                    color: '#FAF8F5',
-                    background: FOREST,
+                    color: 'var(--color-on-ground)',
+                    background: 'var(--color-ground)',
                     padding: '4px 10px',
-                    borderRadius: 4,
+                    borderRadius: 'var(--radius-pill)',
                   }}
                 >
                   Save £{pricing.totalDiscountGbp.toFixed(2)}
@@ -321,7 +321,7 @@ export default async function BundleDetailPage({
 
           {/* Description */}
           {bundle.description && (
-            <p style={{ fontSize: 14, color: '#444', lineHeight: 1.6, margin: '14px 0 20px', fontStyle: 'italic' }}>
+            <p style={{ fontSize: 14, color: 'var(--color-ink-soft)', lineHeight: 1.6, margin: '14px 0 20px', fontStyle: 'italic' }}>
               {bundle.description}
             </p>
           )}
@@ -337,7 +337,7 @@ export default async function BundleDetailPage({
               members={detailMembers}
               seller={{ sellerId: bundle.seller_id, sellerUsername: seller.username }}
             />
-            <BundleShareButton
+            <ShareButton
               url={`https://sellyourshelf.com/bundle/${bundle.id}`}
               title={`${bundle.name} — bundle from @${seller.username}`}
               description={bundle.description}
@@ -370,8 +370,8 @@ export default async function BundleDetailPage({
                 style={{
                   width: 50,
                   height: 75,
-                  background: FOREST,
-                  borderRadius: 4,
+                  background: 'var(--color-ground-raised)',
+                  borderRadius: 'var(--radius-sm)',
                   overflow: 'hidden',
                   flexShrink: 0,
                 }}
@@ -385,22 +385,22 @@ export default async function BundleDetailPage({
                 ) : null}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 2 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-ink)', lineHeight: 1.3, marginBottom: 2 }}>
                   {m.title}
                 </div>
                 {m.author && (
-                  <div style={{ fontSize: 12, color: '#666' }}>{m.author}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-ink-soft)' }}>{m.author}</div>
                 )}
                 <div style={{ marginTop: 6, display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: FOREST_DEEP }}>
                     £{m.effectivePriceGbp.toFixed(2)}
                   </span>
                   {m.discountGbp > 0 && (
-                    <span style={{ fontSize: 11, color: '#999', textDecoration: 'line-through' }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-ink-faint)', textDecoration: 'line-through' }}>
                       £{m.asking_price_gbp.toFixed(2)}
                     </span>
                   )}
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '2px 8px', borderRadius: 3 }}>
+                  <span style={{ fontSize: 11, color: 'var(--color-ink-soft)', background: 'var(--color-paper-warm)', padding: '2px 8px', borderRadius: 3 }}>
                     {CONDITION_LABELS[m.condition] ?? m.condition}
                   </span>
                 </div>
@@ -413,7 +413,7 @@ export default async function BundleDetailPage({
         </div>
 
         {/* Footer note */}
-        <p style={{ fontSize: 12, color: '#999', marginTop: 24, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginTop: 24, lineHeight: 1.6 }}>
           Bundles ship together in one parcel. The discount is applied automatically at checkout. Remove any item from
           your basket and the bundle discount drops — the remaining items charge at their normal price.
         </p>

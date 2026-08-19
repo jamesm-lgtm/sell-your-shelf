@@ -284,9 +284,9 @@ export default function MerchandisePage() {
   // Login screen
   if (!authed) {
     return (
-      <div style={{ background: '#FAF8F5', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
-        <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 32, width: 360 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 500, color: '#1A1A1A', marginBottom: 8 }}>Admin Access</h1>
+      <div style={{ background: 'var(--color-paper)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: '#fff', border: '0.5px solid var(--color-rule)', borderRadius: 12, padding: 32, width: 360 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 500, color: 'var(--color-ink)', marginBottom: 8 }}>Admin Access</h1>
           <p style={{ fontSize: 13, color: '#666', marginBottom: 20 }}>Enter the admin password to continue.</p>
           <input
             type="password"
@@ -294,12 +294,12 @@ export default function MerchandisePage() {
             onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
             placeholder="Password"
-            style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: '0.5px solid #E5E3DF', borderRadius: 8, marginBottom: 12, boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: '0.5px solid var(--color-rule)', borderRadius: 8, marginBottom: 12, boxSizing: 'border-box' }}
           />
-          {authError && <p style={{ color: '#DC2626', fontSize: 13, marginBottom: 12 }}>{authError}</p>}
+          {authError && <p style={{ color: 'var(--color-danger)', fontSize: 13, marginBottom: 12 }}>{authError}</p>}
           <button
             onClick={handleLogin}
-            style={{ width: '100%', padding: '10px 0', fontSize: 14, fontWeight: 500, background: '#2D4A3E', color: '#FAF8F5', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+            style={{ width: '100%', padding: '10px 0', fontSize: 14, fontWeight: 500, background: 'var(--color-action)', color: 'var(--color-paper)', border: 'none', borderRadius: 999, cursor: 'pointer' }}
           >
             Sign in
           </button>
@@ -311,10 +311,10 @@ export default function MerchandisePage() {
   const activeTags = tags.filter(t => t.active)
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ background: 'var(--color-paper)', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '0.5px solid #E5E3DF', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h1 style={{ fontSize: 18, fontWeight: 500, color: '#1A1A1A', margin: 0 }}>Editorial Merchandising</h1>
+      <div style={{ background: '#fff', borderBottom: '0.5px solid var(--color-rule)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Editorial Merchandising</h1>
         <button
           onClick={() => { clearAdminPassword(); setAuthed(false) }}
           style={{ fontSize: 13, color: '#666', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -330,18 +330,18 @@ export default function MerchandisePage() {
       <div style={{ display: 'flex', maxWidth: 1200, margin: '0 auto', padding: 24, gap: 24 }}>
         {/* Left column — Tag management (40%) */}
         <div style={{ width: '40%', flexShrink: 0 }}>
-          <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 20 }}>
+          <div style={{ background: '#fff', border: '0.5px solid var(--color-rule)', borderRadius: 12, padding: 20 }}>
 
             {/* Platform tabs */}
-            <div style={{ display: 'flex', gap: 0, marginBottom: 16, border: '0.5px solid #E5E3DF', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', gap: 0, marginBottom: 16, border: '0.5px solid var(--color-rule)', borderRadius: 8, overflow: 'hidden' }}>
               {(['web', 'app'] as Platform[]).map(p => (
                 <button
                   key={p}
                   onClick={() => { setPlatform(p); setExpandedTagId(null) }}
                   style={{
                     flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer',
-                    background: platform === p ? '#2D4A3E' : '#fff',
-                    color: platform === p ? '#FAF8F5' : '#666',
+                    background: platform === p ? 'var(--color-ground)' : '#fff',
+                    color: platform === p ? 'var(--color-paper)' : '#666',
                   }}
                 >
                   {p === 'web' ? 'Web Collections' : 'App Collections'}
@@ -356,13 +356,13 @@ export default function MerchandisePage() {
                 disabled={syncing}
                 style={{
                   padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6, cursor: 'pointer',
-                  background: '#fff', color: '#2D4A3E', border: '1px solid #2D4A3E',
+                  background: '#fff', color: 'var(--color-ground)', border: '1px solid var(--color-ground)',
                 }}
               >
                 {syncing ? 'Syncing…' : platform === 'web' ? 'Copy all to App' : 'Sync from Web'}
               </button>
               {syncMessage && (
-                <span style={{ fontSize: 12, color: '#2D4A3E', fontWeight: 500 }}>{syncMessage}</span>
+                <span style={{ fontSize: 12, color: 'var(--color-ground)', fontWeight: 500 }}>{syncMessage}</span>
               )}
             </div>
 
@@ -380,8 +380,8 @@ export default function MerchandisePage() {
                   <div
                     key={tag.id}
                     style={{
-                      background: tag.active ? '#fff' : '#F5F5F5',
-                      border: `0.5px solid ${isExpanded ? '#2D4A3E' : '#E5E3DF'}`,
+                      background: tag.active ? '#fff' : 'var(--color-paper-warm)',
+                      border: `0.5px solid ${isExpanded ? 'var(--color-ground)' : 'var(--color-rule)'}`,
                       borderRadius: 8,
                       opacity: tag.active ? 1 : 0.6,
                       overflow: 'hidden',
@@ -405,12 +405,12 @@ export default function MerchandisePage() {
                             onBlur={() => handleSaveRename(tag)}
                             onClick={e => e.stopPropagation()}
                             autoFocus
-                            style={{ fontSize: 14, fontWeight: 500, border: '1px solid #2D4A3E', borderRadius: 4, padding: '2px 6px', width: '100%', boxSizing: 'border-box' }}
+                            style={{ fontSize: 14, fontWeight: 500, border: '1px solid var(--color-ground)', borderRadius: 4, padding: '2px 6px', width: '100%', boxSizing: 'border-box' }}
                           />
                         ) : (
                           <div
                             onDoubleClick={e => handleStartRename(tag, e)}
-                            style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A' }}
+                            style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-ink)' }}
                             title="Double-click to rename"
                           >
                             {tag.label}
@@ -426,15 +426,15 @@ export default function MerchandisePage() {
                         value={orderValue}
                         onChange={e => handleUpdateOrder(tag, parseInt(e.target.value) || 0)}
                         onClick={e => e.stopPropagation()}
-                        style={{ width: 44, padding: '3px 4px', fontSize: 12, border: '0.5px solid #E5E3DF', borderRadius: 4, textAlign: 'center' }}
+                        style={{ width: 44, padding: '3px 4px', fontSize: 12, border: '0.5px solid var(--color-rule)', borderRadius: 4, textAlign: 'center' }}
                         title={platform === 'app' ? 'App display order' : 'Web display order'}
                       />
                       <button
                         onClick={e => handleToggleActive(tag, e)}
                         style={{
                           padding: '3px 10px', fontSize: 11, fontWeight: 500, borderRadius: 4, border: 'none', cursor: 'pointer',
-                          background: tag.active ? '#2D4A3E' : '#E5E3DF',
-                          color: tag.active ? '#FAF8F5' : '#666',
+                          background: tag.active ? 'var(--color-ground)' : 'var(--color-rule)',
+                          color: tag.active ? 'var(--color-paper)' : '#666',
                         }}
                       >
                         {tag.active ? 'Active' : 'Inactive'}
@@ -443,19 +443,19 @@ export default function MerchandisePage() {
 
                     {/* Expanded panel */}
                     {isExpanded && (
-                      <div style={{ padding: '0 12px 12px', borderTop: '0.5px solid #E5E3DF' }}>
+                      <div style={{ padding: '0 12px 12px', borderTop: '0.5px solid var(--color-rule)' }}>
                         {/* Show on toggle */}
                         <div style={{ padding: '10px 0 8px' }}>
                           <label style={{ fontSize: 11, fontWeight: 500, color: '#999', display: 'block', marginBottom: 4 }}>Show on</label>
-                          <div style={{ display: 'flex', gap: 0, border: '0.5px solid #E5E3DF', borderRadius: 6, overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', gap: 0, border: '0.5px solid var(--color-rule)', borderRadius: 6, overflow: 'hidden' }}>
                             {SHOW_ON_OPTIONS.map(opt => (
                               <button
                                 key={opt.value}
                                 onClick={() => handleUpdateShowOn(tag, opt.value)}
                                 style={{
                                   flex: 1, padding: '5px 0', fontSize: 12, fontWeight: 500, border: 'none', cursor: 'pointer',
-                                  background: tag.show_on === opt.value ? '#2D4A3E' : '#fff',
-                                  color: tag.show_on === opt.value ? '#FAF8F5' : '#666',
+                                  background: tag.show_on === opt.value ? 'var(--color-ground)' : '#fff',
+                                  color: tag.show_on === opt.value ? 'var(--color-paper)' : '#666',
                                 }}
                               >
                                 {opt.label}
@@ -472,17 +472,17 @@ export default function MerchandisePage() {
                             onChange={e => setDescriptions(prev => ({ ...prev, [tag.id]: e.target.value }))}
                             placeholder="Add a description for this tag…"
                             rows={2}
-                            style={{ width: '100%', fontSize: 13, border: '0.5px solid #E5E3DF', borderRadius: 4, padding: '6px 8px', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'system-ui, sans-serif' }}
+                            style={{ width: '100%', fontSize: 13, border: '0.5px solid var(--color-rule)', borderRadius: 4, padding: '6px 8px', resize: 'vertical', boxSizing: 'border-box' }}
                           />
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
                             <button
                               onClick={() => handleSaveDescription(tag)}
-                              style={{ padding: '5px 14px', fontSize: 12, fontWeight: 500, background: '#2D4A3E', color: '#FAF8F5', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                              style={{ padding: '5px 14px', fontSize: 12, fontWeight: 500, background: 'var(--color-action)', color: 'var(--color-paper)', border: 'none', borderRadius: 999, cursor: 'pointer' }}
                             >
                               Save description
                             </button>
                             {savedDescTagId === tag.id && (
-                              <span style={{ fontSize: 12, color: '#2D4A3E', fontWeight: 500 }}>Saved!</span>
+                              <span style={{ fontSize: 12, color: 'var(--color-ground)', fontWeight: 500 }}>Saved!</span>
                             )}
                           </div>
                         </div>
@@ -506,13 +506,13 @@ export default function MerchandisePage() {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
                             {listings.map(listing => (
                               <div key={listing.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-                                <div style={{ width: 28, height: 40, borderRadius: 3, overflow: 'hidden', background: '#2D4A3E', flexShrink: 0 }}>
+                                <div style={{ width: 28, height: 40, borderRadius: 3, overflow: 'hidden', background: 'var(--color-ground)', flexShrink: 0 }}>
                                   {listing.books?.cover_url && (
                                     <img src={listing.books.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   )}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 500, color: '#1A1A1A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {listing.title}
                                   </div>
                                   <div style={{ fontSize: 11, color: '#999' }}>
@@ -534,7 +534,7 @@ export default function MerchandisePage() {
                 if (platform === 'web') return t.show_on === 'app'
                 return t.show_on === 'web'
               }).length > 0 && (
-                <div style={{ padding: '8px 0', borderTop: '0.5px solid #E5E3DF', marginTop: 4 }}>
+                <div style={{ padding: '8px 0', borderTop: '0.5px solid var(--color-rule)', marginTop: 4 }}>
                   <p style={{ fontSize: 11, color: '#999', margin: '0 0 6px' }}>
                     Not on {platform === 'web' ? 'web' : 'app'}:
                   </p>
@@ -545,7 +545,7 @@ export default function MerchandisePage() {
                     }).map(t => (
                       <span
                         key={t.id}
-                        style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#F0EDE8', color: '#999', cursor: 'pointer' }}
+                        style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: 'var(--color-rule)', color: '#999', cursor: 'pointer' }}
                         onClick={() => handleUpdateShowOn(t, 'both')}
                         title={`Click to add to ${platform}`}
                       >
@@ -558,7 +558,7 @@ export default function MerchandisePage() {
 
               {/* Add new tag */}
               {addingTag ? (
-                <div style={{ border: '1px dashed #2D4A3E', borderRadius: 8, padding: 12 }}>
+                <div style={{ border: '1px dashed var(--color-ground)', borderRadius: 8, padding: 12 }}>
                   <input
                     type="text"
                     value={newTagLabel}
@@ -566,25 +566,25 @@ export default function MerchandisePage() {
                     onKeyDown={e => { if (e.key === 'Enter') handleAddTag(); if (e.key === 'Escape') setAddingTag(false) }}
                     placeholder="Tag label (e.g. Summer Reads)"
                     autoFocus
-                    style={{ width: '100%', fontSize: 14, border: '0.5px solid #E5E3DF', borderRadius: 4, padding: '8px 10px', marginBottom: 8, boxSizing: 'border-box' }}
+                    style={{ width: '100%', fontSize: 14, border: '0.5px solid var(--color-rule)', borderRadius: 4, padding: '8px 10px', marginBottom: 8, boxSizing: 'border-box' }}
                   />
                   <textarea
                     value={newTagDescription}
                     onChange={e => setNewTagDescription(e.target.value)}
                     placeholder="Optional description…"
                     rows={2}
-                    style={{ width: '100%', fontSize: 13, border: '0.5px solid #E5E3DF', borderRadius: 4, padding: '6px 8px', marginBottom: 8, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'system-ui, sans-serif' }}
+                    style={{ width: '100%', fontSize: 13, border: '0.5px solid var(--color-rule)', borderRadius: 4, padding: '6px 8px', marginBottom: 8, resize: 'vertical', boxSizing: 'border-box' }}
                   />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       onClick={handleAddTag}
-                      style={{ padding: '6px 16px', fontSize: 13, fontWeight: 500, background: '#2D4A3E', color: '#FAF8F5', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                      style={{ padding: '6px 16px', fontSize: 13, fontWeight: 500, background: 'var(--color-action)', color: 'var(--color-paper)', border: 'none', borderRadius: 999, cursor: 'pointer' }}
                     >
                       Add tag
                     </button>
                     <button
                       onClick={() => { setAddingTag(false); setNewTagLabel(''); setNewTagDescription('') }}
-                      style={{ padding: '6px 16px', fontSize: 13, color: '#666', background: 'none', border: '0.5px solid #E5E3DF', borderRadius: 6, cursor: 'pointer' }}
+                      style={{ padding: '6px 16px', fontSize: 13, color: '#666', background: 'none', border: '0.5px solid var(--color-rule)', borderRadius: 6, cursor: 'pointer' }}
                     >
                       Cancel
                     </button>
@@ -594,8 +594,8 @@ export default function MerchandisePage() {
                 <button
                   onClick={() => setAddingTag(true)}
                   style={{
-                    padding: '10px 12px', fontSize: 13, fontWeight: 500, color: '#2D4A3E',
-                    background: 'none', border: '1px dashed #E5E3DF', borderRadius: 8, cursor: 'pointer',
+                    padding: '10px 12px', fontSize: 13, fontWeight: 500, color: 'var(--color-ground)',
+                    background: 'none', border: '1px dashed var(--color-rule)', borderRadius: 8, cursor: 'pointer',
                     textAlign: 'center',
                   }}
                 >
@@ -608,8 +608,8 @@ export default function MerchandisePage() {
 
         {/* Right column — Search & tagging (60%) */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A', margin: '0 0 12px' }}>Search Listings</h2>
+          <div style={{ background: '#fff', border: '0.5px solid var(--color-rule)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-ink)', margin: '0 0 12px' }}>Search Listings</h2>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type="text"
@@ -617,12 +617,12 @@ export default function MerchandisePage() {
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 placeholder="Search by title, author, or ISBN…"
-                style={{ flex: 1, padding: '10px 12px', fontSize: 14, border: '0.5px solid #E5E3DF', borderRadius: 8 }}
+                style={{ flex: 1, padding: '10px 12px', fontSize: 14, border: '0.5px solid var(--color-rule)', borderRadius: 8 }}
               />
               <button
                 onClick={handleSearch}
                 disabled={searching}
-                style={{ padding: '10px 20px', fontSize: 14, fontWeight: 500, background: '#2D4A3E', color: '#FAF8F5', border: 'none', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ padding: '10px 20px', fontSize: 14, fontWeight: 500, background: 'var(--color-action)', color: 'var(--color-paper)', border: 'none', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 {searching ? 'Searching…' : 'Search'}
               </button>
@@ -630,8 +630,8 @@ export default function MerchandisePage() {
           </div>
 
           {searchResults.length > 0 && (
-            <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', margin: '0 0 12px' }}>
+            <div style={{ background: '#fff', border: '0.5px solid var(--color-rule)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-ink)', margin: '0 0 12px' }}>
                 {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -646,18 +646,18 @@ export default function MerchandisePage() {
                       onClick={() => handleSelectListing(listing)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 12, padding: 12,
-                        border: `1px solid ${isSelected ? '#2D4A3E' : '#E5E3DF'}`,
+                        border: `1px solid ${isSelected ? 'var(--color-ground)' : 'var(--color-rule)'}`,
                         borderRadius: 8, cursor: 'pointer',
                         background: isSelected ? 'rgba(45, 74, 62, 0.04)' : '#fff',
                       }}
                     >
-                      <div style={{ width: 40, height: 56, borderRadius: 4, overflow: 'hidden', background: '#2D4A3E', flexShrink: 0 }}>
+                      <div style={{ width: 40, height: 56, borderRadius: 4, overflow: 'hidden', background: 'var(--color-ground)', flexShrink: 0 }}>
                         {listing.books?.cover_url && (
                           <img src={listing.books.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         )}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {listing.title}
                         </div>
                         <div style={{ fontSize: 12, color: '#666' }}>
@@ -666,7 +666,7 @@ export default function MerchandisePage() {
                         {listingTags.length > 0 && (
                           <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
                             {listingTags.map(t => (
-                              <span key={t.id} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: '#2D4A3E', color: '#FAF8F5' }}>
+                              <span key={t.id} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--color-ground)', color: 'var(--color-paper)' }}>
                                 {t.label}
                               </span>
                             ))}
@@ -681,8 +681,8 @@ export default function MerchandisePage() {
           )}
 
           {selectedListing && (
-            <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 12, padding: 20 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', margin: '0 0 4px' }}>
+            <div style={{ background: '#fff', border: '0.5px solid var(--color-rule)', borderRadius: 12, padding: 20 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-ink)', margin: '0 0 4px' }}>
                 Assign tags to: {selectedListing.title}
               </h3>
               <p style={{ fontSize: 12, color: '#666', margin: '0 0 16px' }}>
@@ -692,13 +692,13 @@ export default function MerchandisePage() {
                 {activeTags.map(tag => (
                   <label
                     key={tag.id}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: '#1A1A1A' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: 'var(--color-ink)' }}
                   >
                     <input
                       type="checkbox"
                       checked={selectedTagIds.includes(tag.id)}
                       onChange={() => handleToggleTag(tag.id)}
-                      style={{ width: 16, height: 16, accentColor: '#2D4A3E' }}
+                      style={{ width: 16, height: 16, accentColor: 'var(--color-ground)' }}
                     />
                     {tag.label}
                     <span style={{ fontSize: 10, color: '#999', marginLeft: 4 }}>
@@ -710,7 +710,7 @@ export default function MerchandisePage() {
               <button
                 onClick={handleSaveTags}
                 disabled={saving}
-                style={{ padding: '10px 24px', fontSize: 14, fontWeight: 500, background: '#2D4A3E', color: '#FAF8F5', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                style={{ padding: '10px 24px', fontSize: 14, fontWeight: 500, background: 'var(--color-action)', color: 'var(--color-paper)', border: 'none', borderRadius: 999, cursor: 'pointer' }}
               >
                 {saving ? 'Saving…' : 'Save tags'}
               </button>

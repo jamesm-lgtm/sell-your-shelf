@@ -8,16 +8,16 @@ export const metadata = {
 
 export default function Returns() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+    <div className="sy-page">
       <SiteNav />
       <main className="py-16">
         <div className="max-w-2xl mx-auto px-6">
-          <h1 className="text-3xl font-bold mb-8">Returns Policy</h1>
-          <p className="text-gray-600 mb-8">Last updated: March 2026</p>
+          <h1 className="sy-h2" style={{ marginBottom: 28 }}>Returns Policy</h1>
+          <p className="sy-prose" style={{ marginBottom: 28 }}>Last updated: March 2026</p>
 
-          <div className="space-y-8 text-gray-700">
+          <div className="space-y-8 sy-prose">
             <section>
-              <h2 className="text-xl font-semibold mb-3">Overview</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>Overview</h2>
               <p>
                 Sell Your Shelf is a peer-to-peer marketplace. When you buy a book, you are purchasing
                 directly from another user. Because all items are secondhand and pre-owned, our returns
@@ -26,7 +26,7 @@ export default function Returns() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">When you can request a return</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>When you can request a return</h2>
               <p className="mb-2">You may request a return or refund if:</p>
               <ul className="list-disc pl-6 space-y-1">
                 <li>The book is significantly not as described (e.g. listed as "Like New" but has major damage)</li>
@@ -37,7 +37,7 @@ export default function Returns() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">When returns are not accepted</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>When returns are not accepted</h2>
               <p className="mb-2">We cannot accept returns for:</p>
               <ul className="list-disc pl-6 space-y-1">
                 <li>Change of mind — all sales are final unless the item is not as described</li>
@@ -47,7 +47,7 @@ export default function Returns() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">How to request a return</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>How to request a return</h2>
               <ol className="list-decimal pl-6 space-y-2">
                 <li>
                   Email <a href="mailto:support@sellyourshelf.com" className="text-emerald-700 hover:underline">support@sellyourshelf.com</a> within
@@ -60,7 +60,7 @@ export default function Returns() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">Refund process</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>Refund process</h2>
               <p>
                 If your return is approved, we will issue a full refund to your original payment method.
                 Refunds typically take 5-10 business days to appear on your statement, depending on
@@ -73,7 +73,7 @@ export default function Returns() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">Return shipping</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>Return shipping</h2>
               <p>
                 If a return is approved and we require the book to be sent back, return shipping is
                 the buyer's responsibility. We may waive this at our discretion for cases where the
@@ -82,7 +82,7 @@ export default function Returns() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">Exchanges</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>Exchanges</h2>
               <p>
                 We do not offer exchanges. If you receive an item that is not as described,
                 we will process a refund. You are welcome to purchase another copy separately.
@@ -90,7 +90,7 @@ export default function Returns() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">Contact</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>Contact</h2>
               <p>
                 For any questions about returns or refunds:<br />
                 Email: <a href="mailto:support@sellyourshelf.com" className="text-emerald-700 hover:underline">support@sellyourshelf.com</a><br /><br />

@@ -10,6 +10,9 @@ import ListingViewTracker from '@/app/components/ListingViewTracker'
 import AddToBasketButton from '@/app/components/AddToBasketButton'
 import ListingBundleStrip, { type BundleStripBundle, type BundleStripMember } from '@/app/components/ListingBundleStrip'
 import { computeBundlePricing } from '@/app/lib/bundlePricing'
+import { resolveBookCover } from '@/app/lib/coverUrl'
+import { BookCard } from '@/app/components/ui'
+import ShareButton from '@/app/components/ShareButton'
 
 export const revalidate = 0
 
@@ -116,6 +119,31 @@ export default async function ListingPage({ params }: Props) {
   const description = listing.edition_description || listing.work_description || listing.description
   const category = listing.category
   const username = listing.seller_name
+
+  // More from this shelf. Same seller, still active, excluding this copy —
+  // the cross-sell that actually pays off, because a second book from the
+  // same seller ships in the same parcel.
+  let shelfMore: Array<{ id: number; title: string; author: string | null; price: number; cover: string | null }> = []
+  if (rawListing.user_id) {
+    const { data: more } = await supabase
+      .from('listings')
+      .select('id, title, author, asking_price_gbp, books(cover_url, cover_url_hosted), listing_images(url, sort_order)')
+      .eq('status', 'active')
+      .eq('user_id', rawListing.user_id)
+      .neq('id', id)
+      .order('created_at', { ascending: false })
+      .limit(24)
+    shelfMore = ((more ?? []) as any[])
+      .map((m) => ({
+        id: m.id,
+        title: m.title,
+        author: m.author,
+        price: Number(m.asking_price_gbp),
+        cover: resolveBookCover(m.books, m.listing_images),
+      }))
+      .filter((m) => m.cover)
+      .slice(0, 12)
+  }
   const hasEditionData = !!(listing.edition_cover || listing.edition_publisher || listing.edition_page_count)
 
   // Get normalized fields for slug from books table
@@ -272,7 +300,7 @@ export default async function ListingPage({ params }: Props) {
   }
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
 
       <script
         type="application/ld+json"
@@ -283,36 +311,45 @@ export default async function ListingPage({ params }: Props) {
 
       <SiteNav />
 
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 24px' }}>
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 32px 64px' }}>
 
-        {/* Breadcrumbs */}
-        <div style={{ fontSize: 12, color: '#999', marginBottom: 20, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Link href="/" style={{ color: '#999', textDecoration: 'none' }}>Home</Link>
-          <span style={{ color: '#ccc' }}>/</span>
-          <Link href="/new" style={{ color: '#999', textDecoration: 'none' }}>Browse</Link>
-          {bookSlug && (
-            <>
-              <span style={{ color: '#ccc' }}>/</span>
-              <Link href={`/books/${bookSlug}`} style={{ color: '#999', textDecoration: 'none' }}>{listing.title}</Link>
-            </>
-          )}
-          <span style={{ color: '#ccc' }}>/</span>
-          <span style={{ color: '#666' }}>This copy</span>
+        {/* Where you are, and what you can do with this page. */}
+        <div className="sy-pagebar">
+          <div className="sy-crumbs">
+            <Link href="/">Home</Link>
+            <span className="sy-crumb-sep">/</span>
+            <Link href="/new">Browse</Link>
+            {bookSlug && (
+              <>
+                {/* The title is the long one — it goes first on a phone. */}
+                <span className="sy-crumb-sep sy-crumb-drop">/</span>
+                <Link href={`/books/${bookSlug}`} className="sy-crumb-drop">{listing.title}</Link>
+              </>
+            )}
+            <span className="sy-crumb-sep">/</span>
+            <span className="sy-crumb-here">This copy</span>
+          </div>
+          <ShareButton
+            url={`https://www.sellyourshelf.com/listing/${id}`}
+            title={listing.title}
+            kind="book"
+            compact
+          />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 32, alignItems: 'start', marginBottom: 32 }}>
+        <div className="sy-listing-split">
           <div>
-            <div style={{ borderRadius: 10, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3' }}>
+            <div className="sy-cover">
               {cover ? (
                 <img src={cover} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, padding: 8, textAlign: 'center' }}>{listing.title}</span>
+                  <span style={{ fontFamily: 'var(--font-display)', color: 'rgba(255,255,255,0.95)', fontSize: 16, fontWeight: 600, lineHeight: 1.25, padding: 16, textAlign: 'center' }}>{listing.title}</span>
                 </div>
               )}
             </div>
             {cover && !hasEditionData && (
-              <p style={{ fontSize: 10, color: '#999', marginTop: 6, lineHeight: 1.4 }}>
+              <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginTop: 8, lineHeight: 1.4 }}>
                 Cover image is for illustration. Actual edition may vary.
               </p>
             )}
@@ -320,128 +357,160 @@ export default async function ListingPage({ params }: Props) {
 
           <div>
             {category && (
-              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+              <div className="sy-mark" style={{ color: 'var(--color-ink-faint)', marginBottom: 10 }}>
                 {category}
               </div>
             )}
-            <h1 style={{ fontSize: 22, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 6 }}>
+            <h1 className="sy-h2" style={{ marginBottom: 8 }}>
               {listing.title}
             </h1>
             {listing.author && (
-              <p style={{ fontSize: 15, color: '#666', marginBottom: 8 }}>
+              <p style={{ fontSize: 16, color: 'var(--color-ink-soft)', marginBottom: 10 }}>
                 {listing.author}
               </p>
             )}
 
             {hasEditionData && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#DCFCE7', color: '#166534', fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 4, marginBottom: 12 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--color-cond-like-new)', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
                 Specific Edition
               </div>
             )}
 
             {(listing.isbn || listing.edition_publisher || listing.edition_page_count || listing.format) && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+              <dl className="sy-editiontable">
                 {listing.format && (
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4, textTransform: 'capitalize' }}>
-                    {listing.format}
-                  </span>
+                  <div>
+                    <dt>Format</dt>
+                    <dd style={{ textTransform: 'capitalize' }}>{listing.format}</dd>
+                  </div>
                 )}
                 {listing.edition_publisher && (
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                    {listing.edition_publisher}
-                  </span>
+                  <div>
+                    <dt>Publisher</dt>
+                    <dd>{listing.edition_publisher}</dd>
+                  </div>
                 )}
                 {listing.edition_page_count && (
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                    {listing.edition_page_count} pages
-                  </span>
+                  <div>
+                    <dt>Pages</dt>
+                    <dd className="sy-figure">{listing.edition_page_count}</dd>
+                  </div>
                 )}
                 {listing.isbn && (
-                  <span style={{ fontSize: 11, color: '#666', background: '#F0EDE8', padding: '3px 8px', borderRadius: 4 }}>
-                    ISBN: {listing.isbn}
-                  </span>
+                  <div>
+                    <dt>ISBN</dt>
+                    <dd className="sy-figure sy-isbn">{listing.isbn}</dd>
+                  </div>
                 )}
-              </div>
+              </dl>
             )}
 
             <div style={{ marginBottom: 20 }}>
-              <span style={{ fontSize: 28, fontWeight: 600, color: '#2D4A3E', display: 'block', marginBottom: 8 }}>
+              <span className="sy-price" style={{ fontSize: 32, display: 'block', marginBottom: 10 }}>
                 £{Number(listing.asking_price_gbp).toFixed(2)}
               </span>
-              <span style={{ fontSize: 12, color: '#666', background: '#F0EDE8', padding: '4px 10px', borderRadius: 4 }}>
+              <span style={{ fontSize: 13, color: 'var(--color-ink-soft)', background: 'var(--color-paper-warm)', padding: '5px 12px', borderRadius: 'var(--radius-pill)' }}>
                 {CONDITIONS[listing.condition] ?? listing.condition}
               </span>
             </div>
 
             {username && (
-              <Link href={`/${username}`} style={{ fontSize: 13, color: '#2D4A3E', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Link href={`/${username}`} style={{ fontSize: 14, color: 'var(--color-action)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 Sold by @{username} →
               </Link>
             )}
+            <div style={{ height: 28 }} aria-hidden />
+
+          {listing.notes && (
+            <div className="sy-panel" style={{ marginBottom: 26 }}>
+              <p className="sy-mark" style={{ color: 'var(--color-ink-faint)', marginBottom: 10 }}>Seller&rsquo;s note</p>
+              <p style={{ fontSize: 15, color: 'var(--color-ink)', lineHeight: 1.64 }}>{listing.notes}</p>
+            </div>
+          )}
+
+          {description && (
+            <div style={{ marginBottom: 24 }}>
+              <p className="sy-mark" style={{ color: 'var(--color-ink-faint)', marginBottom: 12 }}>About this book</p>
+              {/* Full text, split into paragraphs — no truncation. Crawlers
+                  index the whole synopsis; readers get real paragraphs. */}
+              {String(description).split(/\n{2,}|\n/).map(p => p.trim()).filter(Boolean).map((p, i, arr) => (
+                <p key={i} style={{ fontSize: 14, color: 'var(--color-ink-soft)', lineHeight: 1.7, marginBottom: i === arr.length - 1 ? 0 : 10 }}>
+                  {p}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {username && rawListing.user_id && stripBundles.length > 0 && (
+            <ListingBundleStrip
+              bundles={stripBundles}
+              seller={{ sellerId: rawListing.user_id as string, sellerUsername: username }}
+              currentListingId={listingIdNum}
+            />
+          )}
+
+          {username && rawListing.user_id && (
+            <div style={{ marginBottom: 16 }}>
+              <AddToBasketButton
+                seller={{ sellerId: rawListing.user_id as string, sellerUsername: username }}
+                item={{
+                  listingId: Number(id),
+                  title: listing.title,
+                  author: listing.author ?? null,
+                  priceGbp: Number(listing.asking_price_gbp),
+                  format: (rawListing.format as 'paperback' | 'hardback' | null) ?? null,
+                  coverUrl: cover ?? null,
+                  category: listing.category ?? null,
+                }}
+              />
+            </div>
+          )}
+
+          {bookSlug && (
+            <Link
+              href={`/books/${bookSlug}`}
+              className="sy-cta sy-cta-quiet" style={{ display: 'flex', marginBottom: 34 }}
+            >
+              See other copies of this book →
+            </Link>
+          )}
 
           </div>
         </div>
 
-        {listing.notes && (
-          <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '16px 20px', marginBottom: 24 }}>
-            <p style={{ fontSize: 13, color: '#666', fontWeight: 500, marginBottom: 6 }}>Seller's note</p>
-            <p style={{ fontSize: 14, color: '#1A1A1A', lineHeight: 1.6 }}>{listing.notes}</p>
-          </div>
+        {shelfMore.length > 0 && username && (
+          <section style={{ margin: '8px 0 44px' }}>
+            <div className="sy-rail-head" style={{ marginBottom: 4 }}>
+              <h2 className="sy-h3" style={{ margin: 0 }}>More from @{username}&rsquo;s shelf</h2>
+              <Link href={`/${username}`} style={{ fontSize: 14, color: 'var(--color-action)', textDecoration: 'none', fontWeight: 600 }}>
+                See the shelf →
+              </Link>
+            </div>
+            <p style={{ fontSize: 15, color: 'var(--color-ink-soft)', margin: '10px 0 0', lineHeight: 1.5, maxWidth: 620 }}>
+              Add any of these and they ship in the same parcel. Free delivery over £10.
+            </p>
+            <div
+              className="sy-rail"
+              /* Inside a page container the rail must not re-apply the page
+                 gutter — it would double-indent. Inline so it can't be lost
+                 to specificity or a stale stylesheet. */
+              style={{ paddingInline: '0 24px', scrollPaddingInline: '0 24px' }}
+            >
+              {shelfMore.map((m) => (
+                <div key={m.id} className="sy-rail-item">
+                  <BookCard href={`/listing/${m.id}`} book={{ id: m.id, title: m.title, author: m.author, price: m.price, cover: m.cover }} />
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
-        {description && (
-          <div style={{ marginBottom: 24 }}>
-            <p style={{ fontSize: 13, color: '#999', fontWeight: 500, marginBottom: 8 }}>About this book</p>
-            {/* Full text, split into paragraphs — no truncation. Crawlers
-                index the whole synopsis; readers get real paragraphs. */}
-            {String(description).split(/\n{2,}|\n/).map(p => p.trim()).filter(Boolean).map((p, i, arr) => (
-              <p key={i} style={{ fontSize: 14, color: '#444', lineHeight: 1.7, marginBottom: i === arr.length - 1 ? 0 : 10 }}>
-                {p}
-              </p>
-            ))}
-          </div>
-        )}
-
-        {username && rawListing.user_id && stripBundles.length > 0 && (
-          <ListingBundleStrip
-            bundles={stripBundles}
-            seller={{ sellerId: rawListing.user_id as string, sellerUsername: username }}
-            currentListingId={listingIdNum}
-          />
-        )}
-
-        {username && rawListing.user_id && (
-          <div style={{ marginBottom: 16 }}>
-            <AddToBasketButton
-              seller={{ sellerId: rawListing.user_id as string, sellerUsername: username }}
-              item={{
-                listingId: Number(id),
-                title: listing.title,
-                author: listing.author ?? null,
-                priceGbp: Number(listing.asking_price_gbp),
-                format: (rawListing.format as 'paperback' | 'hardback' | null) ?? null,
-                coverUrl: cover ?? null,
-                category: listing.category ?? null,
-              }}
-            />
-          </div>
-        )}
-
-        {bookSlug && (
-          <Link
-            href={`/books/${bookSlug}`}
-            style={{ display: 'block', textAlign: 'center', background: '#fff', color: '#2D4A3E', fontSize: 14, fontWeight: 500, padding: '12px 32px', borderRadius: 8, textDecoration: 'none', marginBottom: 32, border: '1px solid #2D4A3E' }}
-          >
-            See other copies of this book →
-          </Link>
-        )}
-
-        <div style={{ background: '#F0EDE8', borderRadius: 12, padding: '20px 24px' }}>
-          <p style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A', marginBottom: 2 }}>
+        <div style={{ background: 'var(--color-paper-warm)', borderRadius: 'var(--radius-md)', padding: '40px 26px', textAlign: 'center' }}>
+          <p className="sy-h3" style={{ marginBottom: 6 }}>
             Want to sell your books?
           </p>
-          <p style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
+          <p style={{ fontSize: 14, color: 'var(--color-ink-soft)', marginBottom: 20 }}>
             List 30 books in 90 seconds with AI shelf scanning
           </p>
           <AppBadges

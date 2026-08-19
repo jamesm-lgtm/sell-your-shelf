@@ -1,11 +1,21 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { formatDate } from '@/app/components/ui'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import AppBadges from '@/app/components/AppBadges'
 
 export const revalidate = 0
+
+// It had none, so a buyer's order tab read "Turn your bookshelf into cash"
+// — the seller-facing site tagline, on the one page that is purely a
+// buyer's receipt. Not indexed: it is somebody's order.
+export const metadata: Metadata = {
+  title: 'Track your order — Sell Your Shelf',
+  robots: { index: false, follow: false },
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,32 +57,32 @@ export default async function OrderStatusPage({ params }: Props) {
   const currentStepIndex = STATUS_STEPS.indexOf(transaction.status as any)
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="sy-page">
 
       <SiteNav />
 
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '40px 24px' }}>
 
-        <p style={{ fontSize: 13, color: '#999', marginBottom: 8 }}>Order #{transaction.id}</p>
+        <p style={{ fontSize: 13, color: 'var(--color-ink-faint)', marginBottom: 8 }}>Order #{transaction.id}</p>
 
-        <div style={{ background: '#fff', border: '0.5px solid #E5E3DF', borderRadius: 10, padding: '24px', marginBottom: 32 }}>
+        <div style={{ background: '#fff', border: '1px solid var(--color-rule)', borderRadius: 'var(--radius-md)', padding: '24px', marginBottom: 32 }}>
           <div style={{ display: 'flex', gap: 16, alignItems: 'start', marginBottom: 24 }}>
             {cover && (
-              <div style={{ width: 80, borderRadius: 8, overflow: 'hidden', background: '#2D4A3E', aspectRatio: '2/3', flexShrink: 0 }}>
+              <div style={{ width: 80, borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--color-ground)', aspectRatio: '2/3', flexShrink: 0 }}>
                 <img src={cover} alt={book?.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               </div>
             )}
             <div>
-              <p style={{ fontSize: 16, fontWeight: 500, color: '#1A1A1A', marginBottom: 4 }}>
+              <p style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-ink)', marginBottom: 4 }}>
                 {book?.title}
               </p>
               {book?.author && (
-                <p style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
+                <p style={{ fontSize: 14, color: 'var(--color-ink-soft)', marginBottom: 8 }}>
                   by {book.author}
                 </p>
               )}
               {seller?.username && (
-                <p style={{ fontSize: 13, color: '#999' }}>
+                <p style={{ fontSize: 13, color: 'var(--color-ink-faint)' }}>
                   Sold by @{seller.username}
                 </p>
               )}
@@ -81,7 +91,7 @@ export default async function OrderStatusPage({ params }: Props) {
 
           {/* Status tracker */}
           <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 500, color: '#666', marginBottom: 12 }}>Status</p>
+            <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-ink-soft)', marginBottom: 12 }}>Status</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {STATUS_STEPS.map((step, i) => {
                 const isActive = i <= currentStepIndex
@@ -94,9 +104,9 @@ export default async function OrderStatusPage({ params }: Props) {
                       alignItems: 'center',
                       gap: 6,
                       padding: '6px 12px',
-                      borderRadius: 20,
-                      background: isActive ? '#2D4A3E' : '#F0EDE8',
-                      color: isActive ? '#FAF8F5' : '#999',
+                      borderRadius: 'var(--radius-md)',
+                      background: isActive ? 'var(--color-ground)' : 'var(--color-paper-warm)',
+                      color: isActive ? 'var(--color-paper)' : 'var(--color-ink-faint)',
                       fontSize: 12,
                       fontWeight: isCurrent ? 600 : 400,
                       whiteSpace: 'nowrap',
@@ -105,7 +115,7 @@ export default async function OrderStatusPage({ params }: Props) {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        background: isActive ? '#FAF8F5' : '#ccc',
+                        background: isActive ? 'var(--color-paper)' : 'var(--color-rule)',
                         display: 'inline-block',
                       }} />
                       {STATUS_LABELS[step] ?? step}
@@ -117,19 +127,15 @@ export default async function OrderStatusPage({ params }: Props) {
           </div>
 
           {transaction.status === 'shipped' && transaction.shipped_at && (
-            <p style={{ fontSize: 13, color: '#666', marginTop: 12 }}>
-              Shipped on {new Date(transaction.shipped_at).toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
+            <p style={{ fontSize: 13, color: 'var(--color-ink-soft)', marginTop: 12 }}>
+              Shipped on {formatDate(transaction.shipped_at, { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           )}
         </div>
 
         {/* App badges */}
-        <div style={{ background: '#2D4A3E', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
-          <p style={{ color: '#FAF8F5', fontSize: 15, fontWeight: 500, marginBottom: 16 }}>
+        <div style={{ background: 'var(--color-ground)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'center' }}>
+          <p style={{ color: 'var(--color-paper)', fontSize: 15, fontWeight: 500, marginBottom: 16 }}>
             Download the Sell Your Shelf app
           </p>
           <div style={{ display: 'flex', justifyContent: 'center' }}>

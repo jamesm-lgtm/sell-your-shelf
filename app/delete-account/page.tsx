@@ -8,24 +8,24 @@ export const metadata = {
 
 export default function DeleteAccount() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+    <div className="sy-page">
       <SiteNav />
       <main className="py-16">
         <div className="max-w-2xl mx-auto px-6">
-          <h1 className="text-3xl font-bold mb-8">Delete your Sell Your Shelf account</h1>
+          <h1 className="sy-h2" style={{ marginBottom: 28 }}>Delete your Sell Your Shelf account</h1>
 
-          <div className="space-y-8 text-gray-700">
+          <div className="space-y-8 sy-prose">
             <section>
-              <h2 className="text-xl font-semibold mb-3">How to delete your account</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>How to delete your account</h2>
               <p className="mb-4">There are two ways to delete your Sell Your Shelf account:</p>
 
-              <h3 className="font-semibold mb-2">In-app</h3>
+              <h3 className="sy-h3" style={{ fontSize: 16, marginBottom: 8 }}>In-app</h3>
               <p className="mb-4">
                 Open the Sell Your Shelf app → Profile tab → scroll to bottom → tap Delete Account → confirm.
                 Your account and associated data are removed immediately.
               </p>
 
-              <h3 className="font-semibold mb-2">By email</h3>
+              <h3 className="sy-h3" style={{ fontSize: 16, marginBottom: 8 }}>By email</h3>
               <p>
                 Email <a href="mailto:support@sellyourshelf.com" className="text-emerald-700 hover:underline">support@sellyourshelf.com</a> from
                 the address registered to the account. Requests are processed within 7 days.
@@ -33,7 +33,7 @@ export default function DeleteAccount() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">What gets deleted</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>What gets deleted</h2>
               <ul className="list-disc pl-6 space-y-1">
                 <li>Profile, username, and login credentials</li>
                 <li>Listings and uploaded photos</li>
@@ -43,7 +43,7 @@ export default function DeleteAccount() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">What's retained</h2>
+              <h2 className="sy-h3" style={{ marginBottom: 12 }}>What's retained</h2>
               <ul className="list-disc pl-6 space-y-1">
                 <li>Completed transaction records (order history, payouts) — kept for 6 years as required by HMRC for UK tax/accounting purposes</li>
                 <li>Anonymised analytics that cannot be tied back to the user</li>

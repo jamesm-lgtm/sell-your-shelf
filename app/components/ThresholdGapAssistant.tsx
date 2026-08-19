@@ -15,9 +15,9 @@ import {
 } from '@/app/lib/basketAnalytics'
 import { resolveBookCover } from '@/app/lib/coverUrl'
 
-const FOREST = '#2D4A3E'
-const FOREST_DEEP = '#1F3329'
-const GOLD = '#C9A961'
+const FOREST = 'var(--color-ground)'
+const FOREST_DEEP = 'var(--color-ground-deep)'
+const GOLD = 'var(--color-accent)'
 
 type Listing = {
   id: number
@@ -139,20 +139,20 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
       style={{
         marginBottom: 24,
         padding: '14px 16px 14px',
-        borderRadius: 10,
-        background: '#FFFDF6',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--color-paper-warm)',
         border: `1px solid ${GOLD}`,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: FOREST_DEEP, margin: 0 }}>
+        <h2 className="sy-h3" style={{ margin: 0 }}>
           Get to free shipping
         </h2>
-        <span style={{ fontSize: 12, color: '#999' }}>
+        <span className="sy-mark" style={{ color: 'var(--color-ink-faint)' }}>
           £{state.gapGbp.toFixed(2)} to go
         </span>
       </div>
-      <p style={{ fontSize: 13, color: '#666', margin: '4px 0 12px' }}>
+      <p className="sy-prose" style={{ margin: '10px 0 18px', maxWidth: 620 }}>
         Add one of these to unlock free postage on this order.
       </p>
 
@@ -174,9 +174,9 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
             <div
               key={idx}
               style={{
-                background: '#fff',
+                background: 'var(--color-sheet)',
                 border: `1px solid ${GOLD}`,
-                borderRadius: 10,
+                borderRadius: 'var(--radius-md)',
                 padding: 12,
                 display: 'flex',
                 flexDirection: 'column',
@@ -190,10 +190,10 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
                     <div
                       key={b.id}
                       style={{
-                        width: 44,
+                        width: 52,
                         height: 66,
-                        background: FOREST,
-                        borderRadius: 3,
+                        background: 'var(--color-ground-raised)',
+                        borderRadius: 'var(--radius-sm)',
                         overflow: 'hidden',
                         flexShrink: 0,
                       }}
@@ -211,7 +211,7 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
                 })}
               </div>
 
-              <div style={{ fontSize: 13, color: FOREST_DEEP, lineHeight: 1.35 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-ink)', lineHeight: 1.32 }}>
                 {headline}
               </div>
 
@@ -221,7 +221,7 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
                   padding: 0,
                   listStyle: 'none',
                   fontSize: 12,
-                  color: '#666',
+                  color: 'var(--color-ink-soft)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 2,
@@ -229,7 +229,7 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
               >
                 {previewBooks.map((b) => (
                   <li key={b.id} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {b.title} <span style={{ color: '#999' }}>· £{Number(b.asking_price_gbp).toFixed(2)}</span>
+                    {b.title} <span style={{ color: 'var(--color-ink-faint)' }}>· £{Number(b.asking_price_gbp).toFixed(2)}</span>
                   </li>
                 ))}
               </ul>
@@ -237,13 +237,13 @@ export default function ThresholdGapAssistant({ listings, seller }: Props) {
               <button
                 onClick={() => handleAdd(s)}
                 style={{
-                  background: FOREST,
-                  color: '#FAF8F5',
-                  border: 'none',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  padding: '9px 0',
-                  borderRadius: 6,
+                  background: 'var(--color-action)',
+                  color: '#fff',
+                  border: '1px solid var(--color-action)',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  padding: '11px 0',
+                  borderRadius: 999,
                   cursor: 'pointer',
                 }}
               >

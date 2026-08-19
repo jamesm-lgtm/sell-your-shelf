@@ -14,7 +14,7 @@
 import { useBasket } from './BasketProvider'
 import type { BasketItem } from '@/app/lib/basket'
 
-const FOREST = '#2D4A3E'
+const FOREST = 'var(--color-ground)'
 
 export interface BundleDetailMember {
   id: number
@@ -74,13 +74,13 @@ export default function BundleDetailAddButton({
       onClick={handleAdd}
       disabled={allInBasket}
       style={{
-        background: allInBasket ? '#E5E3DF' : FOREST,
-        color: allInBasket ? '#999' : '#FAF8F5',
-        border: 'none',
+        background: allInBasket ? 'var(--color-paper-warm)' : 'var(--color-action)',
+        color: allInBasket ? 'var(--color-ink)' : '#fff',
+        border: allInBasket ? '1px solid var(--color-ink-faint)' : '1px solid var(--color-action)',
         fontSize: 15,
         fontWeight: 600,
         padding: '12px 0',
-        borderRadius: 8,
+        borderRadius: 999,
         cursor: allInBasket ? 'default' : 'pointer',
         width: '100%',
       }}

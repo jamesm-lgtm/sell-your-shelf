@@ -4,6 +4,7 @@ import MarkdownRenderer from '../../components/MarkdownRenderer';
 import SiteNav from '../../components/SiteNav';
 import Footer from '../../components/Footer';
 import BlogCTA from '../../components/BlogCTA';
+import { SectionMark } from '../../components/ui';
 import { getAllPosts, getPostBySlug } from '../../lib/blog';
 
 interface Props {
@@ -46,10 +47,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 function formatDate(dateStr: string) {
+  // timeZone pinned: server runs UTC, readers don't, and a date near a
+  // month boundary would otherwise render differently on each side.
   return new Date(dateStr).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
@@ -58,41 +62,27 @@ function readingTime(content: string) {
   return `${Math.max(1, Math.round(words / 250))} min read`;
 }
 
-const categoryColours: Record<string, { bg: string; text: string }> = {
-  'Selling Guides': { bg: 'rgba(45, 74, 62, 0.1)', text: '#2D4A3E' },
-  Comparisons: { bg: 'rgba(45, 62, 74, 0.1)', text: '#2D3E4A' },
-  Valuation: { bg: 'rgba(74, 62, 45, 0.1)', text: '#4A3E2D' },
-  Product: { bg: 'rgba(62, 45, 74, 0.1)', text: '#3E2D4A' },
-  Textbooks: { bg: 'rgba(74, 45, 62, 0.1)', text: '#4A2D3E' },
-  Decluttering: { bg: 'rgba(45, 74, 66, 0.1)', text: '#2D4A42' },
-  'Cash Focus': { bg: 'rgba(45, 74, 62, 0.1)', text: '#2D4A3E' },
-  Buyer: { bg: 'rgba(62, 62, 74, 0.1)', text: '#3E3E4A' },
-};
-
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
   const post = getPostBySlug(slug);
 
   if (!post) {
     return (
-      <main className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+      <div className="sy-page">
         <SiteNav current="blog" />
-        <div className="max-w-2xl mx-auto px-6 py-24 text-center">
-          <h1 className="text-3xl text-gray-900 mb-4" style={{ fontFamily: 'Georgia, serif' }}>
-            Post not found
-          </h1>
-          <Link href="/blog" className="text-sm font-medium hover:underline" style={{ color: '#2D4A3E' }}>
-            &larr; Back to blog
+        <div className="sy-wrap" style={{ padding: '96px 32px', textAlign: 'center' }}>
+          <h1 className="sy-h2" style={{ marginBottom: 12 }}>Post not found</h1>
+          <Link href="/blog" className="sy-cta sy-cta-quiet" style={{ display: 'inline-flex' }}>
+            Back to all posts
           </Link>
         </div>
         <Footer />
-      </main>
+      </div>
     );
   }
 
   const allPosts = getAllPosts();
   const related = allPosts.filter((p) => p.slug !== slug).slice(0, 3);
-  const colours = categoryColours[post.category] ?? { bg: '#f0f0f0', text: '#666' };
 
   // FAQ schema for posts that contain an FAQ section
   const faqMatches = post.content.match(/###\s*(.+?)\n([\s\S]*?)(?=###|\n##|$)/g);
@@ -126,7 +116,7 @@ export default async function BlogPostPage({ params }: Props) {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+    <div className="sy-page">
       <SiteNav current="blog" />
 
       {/* Article schema */}
@@ -161,48 +151,39 @@ export default async function BlogPostPage({ params }: Props) {
         />
       )}
 
-      <article className="max-w-2xl mx-auto px-6 pt-12 pb-16">
-        {/* Back link */}
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      <article className="sy-article">
+        <Link href="/blog" className="sy-backlink">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 19l-7-7 7-7" />
           </svg>
           All posts
         </Link>
 
-        {/* Meta */}
-        <div className="flex items-center gap-3 mb-4">
-          <span
-            className="inline-block px-2.5 py-1 rounded text-xs font-medium"
-            style={{ backgroundColor: colours.bg, color: colours.text }}
-          >
-            {post.category}
-          </span>
-          <span className="text-xs text-gray-400">{readingTime(post.content)}</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, margin: '28px 0 14px' }}>
+          <SectionMark>{post.category}</SectionMark>
+          <span style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>{readingTime(post.content)}</span>
         </div>
 
-        {/* Title */}
-        <h1
-          className="text-4xl text-gray-900 leading-tight tracking-tight mb-4"
-          style={{ fontFamily: 'Georgia, serif' }}
-        >
-          {post.title}
-        </h1>
+        {/* Hero scale belongs to a full-width page; in a 680px reading
+            column it wraps to four lines. Same step as the shelf name. */}
+        <h1 className="sy-h2" style={{ marginBottom: 14 }}>{post.title}</h1>
 
-        {/* Byline */}
-        <div className="flex items-center gap-2 text-sm text-gray-400 mb-10 pb-10" style={{ borderBottom: '1px solid #F0EDE8' }}>
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            fontSize: 14, color: 'var(--color-ink-faint)',
+            paddingBottom: 32, marginBottom: 36,
+            borderBottom: '1px solid var(--color-rule)',
+          }}
+        >
           <span>{post.author}</span>
-          <span>·</span>
+          <span aria-hidden>·</span>
           <time>{formatDate(post.date)}</time>
         </div>
 
-        {/* Content */}
         <div className="prose-sys">
-  <MarkdownRenderer content={post.content} />
-</div>
+          <MarkdownRenderer content={post.content} />
+        </div>
 
         {/* CTA */}
         <BlogCTA slug={post.slug} />
@@ -210,28 +191,20 @@ export default async function BlogPostPage({ params }: Props) {
 
       {/* Related posts */}
       {related.length > 0 && (
-        <section className="max-w-2xl mx-auto px-6 pb-24">
-          <div className="pt-10" style={{ borderTop: '1px solid #F0EDE8' }}>
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">More from the blog</h2>
-            <div className="space-y-4">
-              {related.map((r) => (
-                <Link
-                  key={r.slug}
-                  href={`/blog/${r.slug}`}
-                  className="block group"
-                >
-                  <h3 className="font-medium text-gray-900 group-hover:text-[#2D4A3E] transition-colors">
-                    {r.title}
-                  </h3>
-                  <p className="text-sm text-gray-400 mt-0.5">{r.description}</p>
-                </Link>
-              ))}
-            </div>
+        <section className="sy-article" style={{ paddingTop: 0, paddingBottom: 80 }}>
+          <div style={{ paddingTop: 40, borderTop: '1px solid var(--color-rule)' }}>
+            <h2 className="sy-h3" style={{ marginBottom: 4 }}>More from the blog</h2>
+            {related.map((r) => (
+              <Link key={r.slug} href={`/blog/${r.slug}`} className="sy-post-row">
+                <h3 className="sy-h3" style={{ fontSize: 17, marginBottom: 6 }}>{r.title}</h3>
+                <p className="sy-prose" style={{ margin: 0 }}>{r.description}</p>
+              </Link>
+            ))}
           </div>
         </section>
       )}
 
       <Footer />
-    </main>
+    </div>
   );
 }

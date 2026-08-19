@@ -49,3 +49,7 @@ SellYourShelf/
 .claude/
 deno.lock
 gsc-service-account.json
+
+# Impeccable working artifacts: review rasters, session logs, hook cache.
+# DESIGN.md and PRODUCT.md are the durable outputs and stay tracked.
+.impeccable/

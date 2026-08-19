@@ -27,9 +27,9 @@ import { computeBundlePricing, type PricingMode } from '@/app/lib/bundlePricing'
 import { resolveBookCover } from '@/app/lib/coverUrl'
 import type { BasketItem } from '@/app/lib/basket'
 
-const FOREST = '#2D4A3E'
-const FOREST_DEEP = '#1F3329'
-const GOLD = '#C9A961'
+const FOREST = 'var(--color-ground)'
+const FOREST_DEEP = 'var(--color-ground-deep)'
+const GOLD = 'var(--color-accent)'
 
 export interface BundleRowListing {
   id: number
@@ -70,20 +70,20 @@ export default function BundlesRow({ bundles, seller }: Props) {
       style={{
         marginBottom: 24,
         padding: '14px 16px 14px',
-        borderRadius: 10,
-        background: '#FFFDF6',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--color-paper-warm)',
         border: `1px solid ${GOLD}`,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: FOREST_DEEP, margin: 0 }}>
+        <h2 className="sy-h3" style={{ margin: 0 }}>
           Bundles from @{seller.sellerUsername}
         </h2>
-        <span style={{ fontSize: 12, color: '#999' }}>
+        <span className="sy-mark" style={{ color: 'var(--color-ink-faint)' }}>
           {bundles.length} {bundles.length === 1 ? 'bundle' : 'bundles'}
         </span>
       </div>
-      <p style={{ fontSize: 13, color: '#666', margin: '4px 0 12px' }}>
+      <p className="sy-prose" style={{ margin: '10px 0 18px', maxWidth: 620 }}>
         Curated by the seller — one shipment, one discount.
       </p>
 
@@ -174,9 +174,9 @@ function BundleCard({ bundle, basketHasItem, onAdd }: BundleCardProps) {
   return (
     <div
       style={{
-        background: '#fff',
+        background: 'var(--color-sheet)',
         border: `1px solid ${GOLD}`,
-        borderRadius: 10,
+        borderRadius: 'var(--radius-md)',
         padding: 12,
         display: 'flex',
         flexDirection: 'column',
@@ -191,10 +191,10 @@ function BundleCard({ bundle, basketHasItem, onAdd }: BundleCardProps) {
               key={m.id}
               title={m.title}
               style={{
-                width: 44,
+                width: 52,
                 height: 66,
-                background: FOREST,
-                borderRadius: 3,
+                background: 'var(--color-ground-raised)',
+                borderRadius: 'var(--radius-sm)',
                 overflow: 'hidden',
                 flexShrink: 0,
               }}
@@ -212,14 +212,14 @@ function BundleCard({ bundle, basketHasItem, onAdd }: BundleCardProps) {
         {bundle.members.length > 5 && (
           <div
             style={{
-              width: 44,
+              width: 52,
               height: 66,
-              borderRadius: 3,
+              borderRadius: 'var(--radius-sm)',
               border: `1px dashed ${GOLD}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#999',
+              color: 'var(--color-ink-faint)',
               fontSize: 12,
               fontWeight: 600,
               flexShrink: 0,
@@ -230,18 +230,18 @@ function BundleCard({ bundle, basketHasItem, onAdd }: BundleCardProps) {
         )}
       </div>
 
-      <div style={{ fontSize: 14, fontWeight: 600, color: FOREST_DEEP, lineHeight: 1.3 }}>
+      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-ink)', lineHeight: 1.32 }}>
         {bundle.name}
       </div>
 
       {pricing && (
-        <div style={{ fontSize: 13, color: '#444', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+        <div style={{ fontSize: 13, color: 'var(--color-ink-soft)', display: 'flex', alignItems: 'baseline', gap: 6 }}>
           <span style={{ fontWeight: 600, color: FOREST_DEEP }}>
             £{pricing.bundlePriceGbp.toFixed(2)}
           </span>
           {pricing.totalDiscountGbp > 0 && (
             <>
-              <span style={{ color: '#999', textDecoration: 'line-through', fontSize: 12 }}>
+              <span style={{ color: 'var(--color-ink-faint)', textDecoration: 'line-through', fontSize: 12 }}>
                 £{pricing.subtotalGbp.toFixed(2)}
               </span>
               <span style={{ color: FOREST, fontWeight: 600 }}>
@@ -253,7 +253,7 @@ function BundleCard({ bundle, basketHasItem, onAdd }: BundleCardProps) {
       )}
 
       {bundle.description && (
-        <p style={{ fontSize: 12, color: '#666', margin: 0, lineHeight: 1.4 }}>
+        <p style={{ fontSize: 12, color: 'var(--color-ink-soft)', margin: 0, lineHeight: 1.4 }}>
           {bundle.description}
         </p>
       )}
@@ -262,13 +262,15 @@ function BundleCard({ bundle, basketHasItem, onAdd }: BundleCardProps) {
         onClick={onAdd}
         disabled={allInBasket}
         style={{
-          background: allInBasket ? '#E5E3DF' : FOREST,
-          color: allInBasket ? '#999' : '#FAF8F5',
-          border: 'none',
-          fontSize: 13,
-          fontWeight: 500,
-          padding: '9px 0',
-          borderRadius: 6,
+          // Settled state recedes; the live action is brass, like every
+          // other primary action on the site.
+          background: allInBasket ? 'var(--color-paper-warm)' : 'var(--color-action)',
+          color: allInBasket ? 'var(--color-ink)' : '#fff',
+          border: allInBasket ? '1px solid var(--color-ink-faint)' : '1px solid var(--color-action)',
+          fontSize: 14,
+          fontWeight: allInBasket ? 500 : 600,
+          padding: '11px 0',
+          borderRadius: 999,
           cursor: allInBasket ? 'default' : 'pointer',
         }}
       >

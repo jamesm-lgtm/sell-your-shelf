@@ -61,16 +61,16 @@ type Board = {
   orders: Order[]
 }
 
-const INK = '#0b0b0b'
-const INK_SECONDARY = '#52514e'
-const INK_MUTED = '#898781'
-const GRID = '#e1e0d9'
-const SURFACE = '#fcfcfb'
+const INK = 'var(--color-ink)'
+const INK_SECONDARY = 'var(--color-ink-soft)'
+const INK_MUTED = 'var(--color-ink-faint)'
+const GRID = 'var(--color-rule)'
+const SURFACE = 'var(--color-paper-warm)'
 
 // Status palette (reserved — never reused for series colour)
 const SEVERITY = {
-  critical: { bg: '#FDECEC', fg: '#B3261E', label: 'Critical' },
-  warning: { bg: '#FEF7E0', fg: '#8A6100', label: 'Attention' },
+  critical: { bg: 'var(--color-danger-bg)', fg: '#B3261E', label: 'Critical' },
+  warning: { bg: 'var(--color-notice-bg)', fg: '#8A6100', label: 'Attention' },
   ok: { bg: '#EDF6EE', fg: '#1B5E20', label: 'OK' },
 } as const
 
@@ -105,7 +105,7 @@ function OrderCard({ o }: { o: Order }) {
   return (
     <div style={{ background: SURFACE, border: '1px solid rgba(11,11,11,0.10)', borderLeft: `4px solid ${sev.fg}`, borderRadius: 10, padding: '14px 16px' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', background: o.channel === 'ebay' ? '#E8EEF9' : '#EAF2EE', color: o.channel === 'ebay' ? '#1B3A6B' : '#254B3C', padding: '3px 8px', borderRadius: 5 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', background: o.channel === 'ebay' ? '#E8EEF9' : '#EAF2EE', color: o.channel === 'ebay' ? '#1B3A6B' : 'var(--color-ground-raised)', padding: '3px 8px', borderRadius: 5 }}>
           {o.channel}
         </span>
         <span style={{ fontSize: 13, fontWeight: 600, color: INK, fontVariantNumeric: 'tabular-nums' }}>{o.ref}</span>
@@ -161,12 +161,12 @@ function OrderCard({ o }: { o: Order }) {
             {o.seller_email ? (
               <a
                 href={`mailto:${o.seller_email}?subject=${encodeURIComponent(`Your Sell Your Shelf order ${o.ref}`)}&body=${encodeURIComponent(`Hi ${o.seller_first_name || o.seller_username || 'there'},\n\nYour order ${o.ref} (${o.first_title}) was paid ${o.days_since_paid ?? '?'} days ago and hasn't been marked as shipped yet.\n\nCould you let me know if you've posted it, or if anything's holding it up?\n\nThanks,\nJames`)}`}
-                style={{ color: '#254B3C', textDecoration: 'underline' }}
+                style={{ color: 'var(--color-ground-raised)', textDecoration: 'underline' }}
               >
                 email
               </a>
             ) : <span style={{ color: INK_MUTED }}>no email</span>}
-            {o.seller_phone && <a href={`tel:${o.seller_phone}`} style={{ color: '#254B3C', textDecoration: 'underline' }}>{o.seller_phone}</a>}
+            {o.seller_phone && <a href={`tel:${o.seller_phone}`} style={{ color: 'var(--color-ground-raised)', textDecoration: 'underline' }}>{o.seller_phone}</a>}
             {o.seller_push_tokens > 0 && <span title="has app push tokens">push ✓</span>}
             {!o.seller_email_opted_in && <span style={{ color: SEVERITY.warning.fg }}>opted out</span>}
           </div>
@@ -179,12 +179,12 @@ function OrderCard({ o }: { o: Order }) {
           {o.tracking_number && (
             <div>
               {o.tracking_url
-                ? <a href={o.tracking_url} target="_blank" rel="noopener noreferrer" style={{ color: '#254B3C' }}>{o.tracking_number}</a>
+                ? <a href={o.tracking_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-ground-raised)' }}>{o.tracking_number}</a>
                 : o.tracking_number}
             </div>
           )}
           {o.shipping_label_url && (
-            <a href={o.shipping_label_url} target="_blank" rel="noopener noreferrer" style={{ color: '#254B3C' }}>label</a>
+            <a href={o.shipping_label_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-ground-raised)' }}>label</a>
           )}
         </div>
       </div>
@@ -258,13 +258,13 @@ export default function OrdersPage() {
 
   if (restoring) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9f9f7' }} />
+      <div style={{ minHeight: '100vh', background: 'var(--color-paper-warm)' }} />
     )
   }
 
   if (!authed) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9f9f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-paper-warm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ background: SURFACE, border: '1px solid rgba(11,11,11,0.10)', borderRadius: 12, padding: 28, width: 320 }}>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, color: INK }}>Orders — admin</div>
           <input
@@ -273,19 +273,19 @@ export default function OrdersPage() {
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
             placeholder="Admin password"
-            style={{ width: '100%', padding: '10px 12px', border: '1px solid #c3c2b7', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--color-rule)', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
           />
-          <button onClick={handleAuth} disabled={loading} style={{ width: '100%', padding: '10px 12px', background: '#254B3C', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}>
+          <button onClick={handleAuth} disabled={loading} style={{ width: '100%', padding: '10px 12px', background: 'var(--color-action)', color: '#fff', border: 'none', borderRadius: 999, fontSize: 14, cursor: 'pointer' }}>
             {loading ? 'Checking…' : 'Enter'}
           </button>
-          {authError && <div style={{ color: '#d03b3b', fontSize: 12, marginTop: 8 }}>{authError}</div>}
+          {authError && <div style={{ color: 'var(--color-danger)', fontSize: 12, marginTop: 8 }}>{authError}</div>}
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9f9f7', fontFamily: 'system-ui, sans-serif', color: INK }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-paper-warm)', color: INK }}>
       <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 20px 60px' }}>
         <AdminNav />
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
@@ -298,7 +298,7 @@ export default function OrdersPage() {
                 style={{
                   padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
                   border: '1px solid rgba(11,11,11,0.10)',
-                  background: days === d ? '#254B3C' : SURFACE,
+                  background: days === d ? 'var(--color-ground-raised)' : SURFACE,
                   color: days === d ? '#fff' : INK_SECONDARY,
                   fontWeight: days === d ? 600 : 400,
                 }}
@@ -309,7 +309,7 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        {error && <div style={{ color: '#d03b3b', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+        {error && <div style={{ color: 'var(--color-danger)', fontSize: 13, marginBottom: 12 }}>{error}</div>}
         {loading && !data && <div style={{ color: INK_MUTED, fontSize: 13 }}>Loading…</div>}
 
         {data && (
@@ -328,7 +328,7 @@ export default function OrdersPage() {
                 <button key={f} onClick={() => setFilter(f)} style={{
                   padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
                   border: '1px solid rgba(11,11,11,0.10)',
-                  background: filter === f ? '#254B3C' : SURFACE,
+                  background: filter === f ? 'var(--color-ground-raised)' : SURFACE,
                   color: filter === f ? '#fff' : INK_SECONDARY,
                   fontWeight: filter === f ? 600 : 400,
                 }}>
@@ -340,7 +340,7 @@ export default function OrdersPage() {
                 <button key={c} onClick={() => setChannel(c)} style={{
                   padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
                   border: '1px solid rgba(11,11,11,0.10)',
-                  background: channel === c ? '#3F3F3A' : SURFACE,
+                  background: channel === c ? 'var(--color-ink-soft)' : SURFACE,
                   color: channel === c ? '#fff' : INK_SECONDARY,
                 }}>
                   {c === 'all' ? 'All channels' : c}

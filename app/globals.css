@@ -1,16 +1,529 @@
 @import "tailwindcss";
 
+/* SELL YOUR SHELF — the category standard, at reference-level craft.
+   Standing preference recorded in PRODUCT.md, triangulated against three
+   references: Fable (green carrying a whole page, serif display, covers as
+   hero material), Daunt (letterspaced serif restraint, quiet), Vinted
+   (transactional clarity, prices legible at a glance).
+
+   Green is a pinned brand commitment and carries the ground. Reading
+   surfaces are warm off-white, not pure white — the warmth belongs to the
+   paper, never to the ground. Book covers are the imagery; nothing
+   gradient, stock, or generic stands in for them. */
+
 @theme {
-  --color-brand-primary: #2D4A3E;
-  --color-brand-primary-light: #3B5249;
-  --color-brand-primary-dark: #1F3329;
-  --color-brand-background: #FAF8F5;
-  --color-brand-surface: #FFFFFF;
-  --color-brand-text: #1A1A1A;
-  --color-brand-text-secondary: #666666;
-  --color-brand-text-light: #999999;
-  --color-brand-border: #E5E3DF;
-  --color-brand-border-light: #F0EDE8;
-  
-  --font-serif: var(--font-fraunces), 'Fraunces', Georgia, serif;
+  /* Ground — the brand green, at page scale */
+  --color-ground: #2D4A3E;
+  --color-ground-deep: #1F3329;
+  --color-ground-raised: #38594B;
+
+  /* Reading surfaces */
+  --color-paper: #FAF7F2;
+  --color-paper-warm: #F2EDE4;
+  --color-paper-deep: #E8E2D6;
+  --color-sheet: #FFFFFF;
+
+  /* Text on green. Not a rule colour — rules are for lines, and using a
+     22%-alpha border tone for type is how labels end up illegible. */
+  --color-on-ground: #FAF7F2;
+  --color-on-ground-soft: rgba(255, 255, 255, 0.76);
+
+  /* Ink */
+  --color-ink: #1A1D1B;
+  --color-ink-soft: #55605A;
+  /* 4.74:1 on paper. The previous #8A928D was 2.99:1 — it read as a
+     "muted" tone but was an AA failure everywhere it carried text. */
+  --color-ink-faint: #67716B;
+
+  /* Action — a considered brass, not the retired gold trim.
+     Darkened so white text on the fill clears 4.5:1. */
+  --color-action: #8A5A16;
+  --color-action-deep: #6E4711;
+  --color-accent: #C08A3E;
+
+  /* Rules — hairlines, never borders that shout */
+  --color-rule: #DED6C9;
+  --color-rule-dim: rgba(255, 255, 255, 0.22);
+
+  /* Feedback. The marketing surfaces never needed these; checkout does.
+     Kept from the incumbent values, which were already sound — tokenised
+     so they stop being re-declared per component. */
+  --color-notice-bg: #FFF7E6;
+  --color-notice-line: #E8C97A;
+  --color-notice-ink: #6A4F0E;
+  --color-notice-strong: #B85C00;
+  --color-danger-bg: #FDECEC;
+  --color-danger-line: #FCA5A5;
+  --color-danger-ink: #991B1B;
+  --color-danger-strong: #7F1D1D;
+  /* The two inline status marks — a validation tick and a validation cross.
+     They were raw #16A34A / #DC2626 in the checkout form; the green is
+     pulled toward the brand's rather than Tailwind's. */
+  --color-ok: #2F7D4F;
+  --color-danger: #C2352B;
+
+  /* Condition, stated quietly */
+  --color-cond-like-new: #3F7A55;
+  --color-cond-very-good: #38618C;
+  --color-cond-good: #A8792B;
+  --color-cond-acceptable: #67716B;
+
+  /* Fable's confidence: real rounding on actions, restraint elsewhere */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-pill: 999px;
+
+  --font-display: var(--font-literata), "Literata", Georgia, serif;
+  --font-body: var(--font-archivo), "Archivo", system-ui, sans-serif;
+
 }
+
+/* Display voice — bookish, authoritative, never shouted in caps.
+   Literata carries weight, so headings sit at 600 rather than relying on
+   size alone to hold against the covers. */
+.sy-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  line-height: 1.08;
+}
+
+/* The wordmark is a sans lockup beside the symbol — a display serif at
+   nav scale reads limp, which is exactly what it did. */
+.sy-wordmark {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Section mark — the Daunt register: letterspaced serif caps, quiet.
+   Used to name a region, never stacked directly above a heading. */
+.sy-mark {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* Every price, total and figure is money. Tabular, always. */
+.sy-figure {
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Primary action — Fable's rounded pill, at full confidence. */
+.sy-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+.sy-cta-light { background: var(--color-paper); color: var(--color-ground-deep); }
+.sy-cta-light:hover { background: #fff; }
+.sy-cta-solid { background: var(--color-action); color: #fff; }
+.sy-cta-solid:hover { background: var(--color-action-deep); }
+.sy-cta-quiet { background: transparent; color: var(--color-ink); border-color: var(--color-rule); }
+.sy-cta-quiet:hover { background: var(--color-paper-warm); }
+
+/* ============================================================
+   SHARED PRIMITIVES
+   These belong to the system, not to a page. Every route uses
+   these classes; nothing re-declares a card, chip or price in a
+   page-local <style> block. That re-declaration is exactly how
+   the previous system reached fifteen copies of one colour.
+   ============================================================ */
+
+/* Headings */
+/* text-wrap: balance evens short display lines and prevents a lone word
+   dropping to its own row; pretty does the same for prose without the
+   line-count limit. This is the site-wide answer to orphans. */
+.sy-h1 {
+  text-wrap: balance;
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(32px, 4.4vw, 60px); line-height: 1.08;
+  letter-spacing: -0.014em; color: var(--color-ink); margin: 0;
+}
+.sy-h2 {
+  text-wrap: balance;
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(28px, 3.2vw, 42px); line-height: 1.12;
+  letter-spacing: -0.014em; color: var(--color-ink); margin: 0;
+}
+.sy-h3 {
+  text-wrap: balance;
+  font-family: var(--font-display); font-weight: 600;
+  font-size: 21px; line-height: 1.3; letter-spacing: -0.008em;
+  color: var(--color-ink); margin: 0;
+}
+.sy-lede {
+  text-wrap: pretty;
+  font-size: 18px; line-height: 1.62; color: var(--color-ink-soft); margin: 0;
+}
+.sy-prose { text-wrap: pretty; font-size: 15px; line-height: 1.64; color: var(--color-ink-soft); }
+
+/* Page shell */
+.sy-page { background: var(--color-paper); color: var(--color-ink); min-height: 100vh; }
+.sy-wrap { max-width: 1160px; margin: 0 auto; padding: 0 32px; }
+.sy-band-paper { background: var(--color-paper); }
+.sy-band-sheet { background: var(--color-sheet); }
+.sy-band-ground { background: var(--color-ground); color: var(--color-on-ground); }
+
+/* Money. Always tabular — a price column must align on the decimal. */
+.sy-price {
+  font-family: var(--font-body); font-size: 16px; font-weight: 600;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+/* 21px, reusing the documented title step rather than inventing a
+   near-duplicate. The ramp was just consolidated; don't reopen it. */
+.sy-price-lg { font-size: 21px; }
+
+/* Condition — a dot beside a word, never a filled badge */
+.sy-cond {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--color-ink-faint);
+}
+.sy-cond i { width: 7px; height: 7px; border-radius: 50%; display: block; }
+
+/* Chips */
+.sy-chip {
+  display: inline-block; font-size: 14px; font-weight: 500;
+  padding: 10px 18px; text-decoration: none; color: var(--color-ink);
+  border: 1px solid var(--color-rule); border-radius: var(--radius-pill);
+  background: transparent;
+}
+.sy-chip:hover { background: var(--color-paper-warm); }
+.sy-chip.is-active { background: var(--color-ground); border-color: var(--color-ground); color: var(--color-on-ground); }
+
+/* Book card — the card IS the cover; no border, no background */
+.sy-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 30px; row-gap: 46px; }
+.sy-card {
+  display: flex; flex-direction: column; text-decoration: none;
+  color: var(--color-ink); transition: transform .18s ease;
+}
+.sy-card:hover { transform: translateY(-4px); }
+.sy-card:hover .sy-cover { box-shadow: 0 18px 34px rgba(26,29,27,.24); }
+.sy-cover {
+  position: relative; display: block; aspect-ratio: 2/3; overflow: hidden;
+  border-radius: var(--radius-sm); box-shadow: 0 8px 20px rgba(26,29,27,.16);
+  transition: box-shadow .18s ease; background: var(--color-ground-raised);
+}
+.sy-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sy-cover em {
+  position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 12px;
+  font-family: var(--font-display); font-style: normal; font-size: 15px; font-weight: 600;
+  color: rgba(255,255,255,0.95); line-height: 1.2;
+}
+/* Bundle badge — sits on the cover, quiet enough not to fight the artwork.
+   Paper on ink shadow rather than a saturated chip: the covers are the
+   imagery and a loud badge competes with them. */
+.sy-cover-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-ink);
+  background: var(--color-paper);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  box-shadow: 0 2px 8px rgba(26, 29, 27, 0.28);
+  pointer-events: none;
+}
+
+.sy-card-meta { display: block; padding: 14px 2px 0; }
+/* Two lines, not one. Real book titles are long — "Cleopatra and
+   Frankenstein" and "No One Is Too Small to Make a Difference" were both
+   truncated to uselessness by a single nowrap line. Fixed min-height keeps
+   grid rows aligned when one title wraps and its neighbour doesn't. */
+.sy-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 15px; font-weight: 600; color: var(--color-ink);
+  line-height: 1.32; text-wrap: pretty;
+  min-height: calc(15px * 1.32 * 2);
+}
+.sy-card-author {
+  display: block; font-size: 13px; color: var(--color-ink-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px;
+}
+.sy-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+
+/* Rail — a full-bleed horizontal scroller.
+   The first card aligns with the page container's left edge while the rail
+   itself runs to the viewport edge, so the last cover is deliberately cut.
+   That peek is the scroll affordance: a row that ends flush reads as
+   finished. Header uses .sy-wrap; only the rail bleeds. */
+.sy-rail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-block: 22px 14px;
+  /* left gutter matches .sy-wrap; right gutter is small so covers bleed */
+  padding-inline: max(32px, calc((100vw - 1160px) / 2 + 32px)) 24px;
+  /* Must mirror padding-inline. Snap alignment is measured from the
+     scrollport edge, not the padding box, so without this the browser
+     scrolls the first card flush left on load and eats the gutter. */
+  scroll-padding-inline: max(32px, calc((100vw - 1160px) / 2 + 32px)) 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule) transparent;
+  overscroll-behavior-x: contain;
+}
+.sy-rail > * { flex: 0 0 auto; scroll-snap-align: start; }
+.sy-rail::-webkit-scrollbar { height: 8px; }
+.sy-rail::-webkit-scrollbar-thumb { background: var(--color-rule); border-radius: 999px; }
+.sy-rail::-webkit-scrollbar-track { background: transparent; }
+
+.sy-rail-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.sy-rail-item { width: 168px; text-decoration: none; color: inherit; display: block; }
+
+@media (max-width: 640px) {
+  .sy-rail { padding-inline: 20px 16px; scroll-padding-inline: 20px 16px; gap: 12px; }
+  .sy-rail-item { width: 140px; }
+}
+
+/* Bundle card — a flat panel reads as a tile, not a link. It gets the
+   same lift language as a cover plus an explicit "View →" that colours
+   on hover, so the whole card is legibly one target. */
+.sy-bundle-card {
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.sy-bundle-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(26, 29, 27, 0.16);
+  border-color: var(--color-ink-faint) !important;
+}
+.sy-bundle-go {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-action);
+  white-space: nowrap;
+}
+.sy-bundle-card:hover .sy-bundle-go { color: var(--color-action-deep); }
+
+/* Listing detail — cover column plus a details column with a readable
+   measure. Single-column at 640px centred read as a thin strip on desktop;
+   the cover column is sticky so the buy action stays in view while the
+   description scrolls. */
+.sy-listing-split {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+  margin-bottom: 40px;
+}
+.sy-listing-split > :first-child { position: sticky; top: 24px; }
+@media (max-width: 900px) {
+  .sy-listing-split { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .sy-listing-split > :first-child { position: static; max-width: 300px; }
+}
+
+/* Edition facts — a small definition table, not a row of chips. The ISBN
+   in particular is something a buyer checks against a copy they own, so it
+   has to be readable and selectable rather than a 12px pill. */
+.sy-editiontable {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px 24px;
+  margin: 0 0 22px;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-rule);
+  border-bottom: 1px solid var(--color-rule);
+}
+.sy-editiontable dt {
+  font-family: var(--font-display);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--color-ink-faint);
+  margin: 0 0 4px;
+}
+.sy-editiontable dd { margin: 0; font-size: 15px; color: var(--color-ink); }
+.sy-isbn { font-size: 15px; letter-spacing: 0.02em; user-select: all; }
+
+/* Shelf identity — a monogram is the only avatar available (avatar_url is
+   empty for every user), so it is treated as a deliberate mark rather than
+   a placeholder for a missing photo. */
+.sy-monogram {
+  width: 72px; height: 72px; flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-ground);
+  color: var(--color-on-ground);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 21px; font-weight: 600; letter-spacing: 0.02em;
+}
+.sy-shelf-facts {
+  display: flex; flex-wrap: wrap; gap: 8px 24px;
+  margin-top: 16px;
+  font-size: 14px; color: var(--color-ink-soft);
+}
+.sy-shelf-facts b { color: var(--color-ink); font-weight: 600; }
+
+/* The page utility row: where you are on the left, what you can do with
+   this page on the right. Share lives here — never in the buy column,
+   where a third pill of the same shape would dilute Add to basket.
+   min-width:0 on the left child so long breadcrumbs wrap instead of
+   pushing the action off the page. */
+.sy-pagebar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 24px;
+}
+.sy-pagebar > :first-child { min-width: 0; margin-bottom: 0; }
+.sy-pagebar > :last-child { flex-shrink: 0; }
+/* The shelf header has no breadcrumb row to hang the action from, so the
+   share lifts into the header's own top-right corner. Below the narrow
+   breakpoint it drops back into flow — see the note at the call site. */
+.sy-shelf-head { position: relative; }
+.sy-shelf-share { width: 100%; display: flex; justify-content: flex-end; margin-top: 18px; }
+@media (min-width: 641px) {
+  .sy-shelf-share {
+    position: absolute; top: 0; right: 32px;
+    width: auto; margin-top: 0;
+  }
+}
+
+/* Long-form body copy. A step larger than UI prose (15px) because here the
+   reader is settling in rather than scanning, and darker for the same
+   reason — Ink Soft over a whole article is a strain Ink is not. */
+.sy-body {
+  font-size: 17px; line-height: 1.7; color: var(--color-ink);
+  margin: 0 0 20px; text-wrap: pretty;
+}
+.sy-list { padding-left: 22px; }
+.sy-body-link {
+  color: var(--color-action); text-decoration: underline;
+  text-underline-offset: 2px; text-decoration-thickness: 1px;
+}
+.sy-body-link:hover { color: var(--color-action-deep); }
+
+/* The reading column. 680px is the measure that keeps a line at roughly
+   70 characters at 17px — long-form is the one place on this site where
+   the text, not a cover, is the object. */
+.sy-article {
+  max-width: 680px; margin: 0 auto; padding: 40px 32px 64px;
+}
+.sy-backlink {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 14px; color: var(--color-ink-faint); text-decoration: none;
+}
+.sy-backlink:hover { color: var(--color-ink); }
+
+/* A post in the blog index: a hairline-ruled row, no card, no border, no
+   tinted panel. The title is the object; the rule is the only chrome. */
+.sy-post-row {
+  display: block; text-decoration: none; color: inherit;
+  padding: 28px 0; border-bottom: 1px solid var(--color-rule);
+}
+.sy-post-row:hover h2 { color: var(--color-action); }
+.sy-post-row h2 { transition: color 120ms ease; }
+
+/* Breadcrumb trail. It shares its row with the share action, so it has to
+   survive a narrow screen without wrapping into the action's lap. */
+.sy-crumbs {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 13px; color: var(--color-ink-faint);
+}
+.sy-crumbs a { color: inherit; text-decoration: none; }
+.sy-crumbs a:hover { color: var(--color-ink); }
+.sy-crumbs .sy-crumb-sep { color: var(--color-rule); }
+.sy-crumbs .sy-crumb-here { color: var(--color-ink); }
+
+@media (max-width: 640px) {
+  /* One line, no wrapping. Long middle crumbs (a book title) drop out —
+     the trail's job on a phone is the way back, not the full lineage.
+     A trailing crumb that can't be dropped truncates instead. */
+  .sy-crumbs { flex-wrap: nowrap; overflow: hidden; }
+  .sy-crumbs > * { white-space: nowrap; }
+  .sy-crumbs > .sy-crumb-drop { display: none; }
+  .sy-crumbs > .sy-crumb-clip { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Share collapses to its icon. Same position, same affordance, no label
+     competing for a line it can't have — the accessible name is on the
+     button. This is why the header row still holds at 375px. */
+  .sy-pagebar .sy-share { padding: 9px; gap: 0; }
+  .sy-pagebar .sy-share .sy-share-label { display: none; }
+}
+
+/* A card with a quick action. The action sits outside the anchor so the
+   markup stays valid and the button remains independently clickable. */
+.sy-card-wrap { display: flex; flex-direction: column; }
+.sy-card-wrap .sy-card { flex: 1; }
+.sy-card-action { margin-top: 14px; }
+
+/* Native select, dressed to match the chip language. Kept native rather
+   than rebuilt as a custom listbox — the browser control is keyboard and
+   screen-reader correct for free, and a bespoke one rarely is. */
+.sy-select {
+  font-family: var(--font-body);
+  font-size: 14px; font-weight: 500;
+  color: var(--color-ink);
+  background: transparent;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  padding: 9px 34px 9px 16px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2355605A' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.sy-select:hover { background-color: var(--color-paper-warm); }
+
+/* Panel — white sheet on paper */
+.sy-panel {
+  background: var(--color-sheet); border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md); padding: 24px;
+}
+
+/* The two breakpoints. There is no third. */
+@media (max-width: 900px) {
+  .sy-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+}
+@media (max-width: 640px) {
+  .sy-wrap { padding-left: 20px; padding-right: 20px; }
+  .sy-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+}
+
+/* Browser surfaces carry the design too. */
+::selection {
+  background: var(--color-accent);
+  color: var(--color-ground-deep);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+html {
+  background: var(--color-ground);
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+/* Ink helper for content pages migrating off Tailwind's cool greys. */
+.sy-ink { color: var(--color-ink); }

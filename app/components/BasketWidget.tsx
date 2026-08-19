@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useBasket, useBasketShipping } from './BasketProvider'
 import { useShelfInventory, ShelfListing } from './ShelfInventoryProvider'
 import { resolveBookCover } from '@/app/lib/coverUrl'
@@ -19,14 +20,15 @@ import {
   trackCrossSellerModalAction,
 } from '@/app/lib/basketAnalytics'
 
-const FOREST = '#2D4A3E'
-const FOREST_DEEP = '#1F3329'
-const CREAM = '#FAF8F5'
-const GOLD = '#C9A961'
+const FOREST = 'var(--color-ground)'
+const FOREST_DEEP = 'var(--color-ground-deep)'
+const CREAM = 'var(--color-paper)'
+const GOLD = 'var(--color-accent)'
 
 export default function BasketWidget() {
   const { basket, itemCount } = useBasket()
   const { state, subtotal } = useBasketShipping()
+  const pathname = usePathname() ?? ''
 
   const [flash, setFlash] = useState(false)
   const [suggestionsOpen, setSuggestionsOpen] = useState(false)
@@ -52,6 +54,12 @@ export default function BasketWidget() {
   }, [state.kind])
 
   if (!basket || state.kind === 'empty') return null
+
+  // Nothing to float on the pages that already *are* the basket: offering
+  // "View basket" on /basket is noise, and on /checkout it covers the
+  // footer while competing with the only action that matters there.
+  // ...and nothing to float over the internal tooling either.
+  if (pathname === '/basket' || pathname.startsWith('/checkout') || pathname.startsWith('/admin')) return null
 
   return (
     <>
@@ -248,10 +256,10 @@ function SuggestionsExpander({
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
-          background: 'rgba(201,169,97,0.10)',
+          background: 'rgba(192,138,62,0.10)',
           color: GOLD,
-          border: `1px solid rgba(201,169,97,0.35)`,
-          borderRadius: 8,
+          border: `1px solid rgba(192,138,62,0.35)`,
+          borderRadius: 999,
           padding: '8px 12px',
           fontSize: 12,
           fontWeight: 600,
@@ -387,10 +395,14 @@ function ProgressBar({ pct, unlocked = false }: { pct: number; unlocked?: boolea
       <div
         style={{
           height: '100%',
-          width: `${pct}%`,
-          background: unlocked ? GOLD : `linear-gradient(90deg, ${GOLD} 0%, #E5C988 100%)`,
-          transition: 'width 360ms cubic-bezier(0.22, 1, 0.36, 1)',
-          boxShadow: unlocked ? '0 0 12px rgba(201,169,97,0.55)' : 'none',
+          // scaleX rather than width: width animation relayouts every frame,
+          // transform is composited. transformOrigin keeps it growing left→right.
+          width: '100%',
+          transform: `scaleX(${Math.max(0, Math.min(100, pct)) / 100})`,
+          transformOrigin: 'left center',
+          background: unlocked ? GOLD : `linear-gradient(90deg, ${GOLD} 0%, var(--color-notice-line) 100%)`,
+          transition: 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1)',
+          boxShadow: unlocked ? '0 0 12px rgba(192,138,62,0.55)' : 'none',
         }}
       />
     </div>
@@ -454,7 +466,7 @@ function CrossSellerModal() {
         <div style={{ fontSize: 17, fontWeight: 600, color: FOREST_DEEP, marginBottom: 10 }}>
           One seller at a time
         </div>
-        <p style={{ fontSize: 14, color: '#333', lineHeight: 1.5, margin: 0 }}>
+        <p style={{ fontSize: 14, color: 'var(--color-ink)', lineHeight: 1.5, margin: 0 }}>
           You have{' '}
           {currentCount !== null ? (
             <strong>{currentCount} {currentCount === 1 ? 'book' : 'books'}</strong>
@@ -478,12 +490,12 @@ function CrossSellerModal() {
               dismissConflict()
             }}
             style={{
-              background: FOREST,
-              color: CREAM,
-              fontSize: 14,
-              fontWeight: 500,
-              padding: '11px 16px',
-              borderRadius: 8,
+              background: 'var(--color-action)',
+              color: '#fff',
+              fontSize: 15,
+              fontWeight: 600,
+              padding: '13px 20px',
+              borderRadius: 999,
               textDecoration: 'none',
               textAlign: 'center',
             }}
@@ -501,13 +513,13 @@ function CrossSellerModal() {
               dismissConflict()
             }}
             style={{
-              background: '#fff',
-              color: FOREST,
-              fontSize: 14,
-              fontWeight: 500,
-              padding: '11px 16px',
-              borderRadius: 8,
-              border: `1px solid ${FOREST}`,
+              background: 'transparent',
+              color: 'var(--color-ink)',
+              fontSize: 15,
+              fontWeight: 600,
+              padding: '13px 20px',
+              borderRadius: 999,
+              border: '1px solid var(--color-ink-faint)',
               cursor: 'pointer',
             }}
           >
@@ -524,9 +536,10 @@ function CrossSellerModal() {
             }}
             style={{
               background: 'transparent',
-              color: '#666',
-              fontSize: 13,
-              padding: '8px 16px',
+              color: 'var(--color-ink-soft)',
+              fontSize: 14,
+              fontWeight: 600,
+              padding: '10px 16px',
               border: 'none',
               cursor: 'pointer',
             }}
@@ -544,7 +557,8 @@ function CrossSellerModal() {
 const containerStyle: React.CSSProperties = {
   position: 'fixed',
   zIndex: 900,
-  // Desktop: top-right. Mobile: bottom centred. We use a CSS media query via inline <style>.
+  // Bottom on both: full-width on mobile, right-hand corner on desktop.
+  // The desktop half is a media query in the inline <style> below.
   bottom: 16,
   left: 16,
   right: 16,
@@ -557,7 +571,7 @@ const cardStyle = (flash: boolean): React.CSSProperties => ({
   borderRadius: 14,
   padding: '14px 16px 14px 16px',
   boxShadow: flash
-    ? '0 0 0 3px rgba(201,169,97,0.55), 0 20px 50px rgba(0,0,0,0.32)'
+    ? '0 0 0 3px rgba(192,138,62,0.55), 0 20px 50px rgba(0,0,0,0.32)'
     : '0 14px 40px rgba(0,0,0,0.25)',
   border: `1px solid rgba(250,248,245,0.08)`,
   maxWidth: 360,
@@ -573,7 +587,10 @@ const messageBelowStyle: React.CSSProperties = {
 
 const messageUnlockedStyle: React.CSSProperties = {
   fontSize: 13,
-  color: GOLD,
+  // Paper, not brass. Brass is the action colour, and this sits directly
+  // above a brass Checkout button — in brass the panel reads as one flat
+  // block with no hierarchy between state and action.
+  color: 'var(--color-on-ground)',
   fontWeight: 600,
   marginBottom: 12,
 }
@@ -591,11 +608,14 @@ const messageExceededStyle: React.CSSProperties = {
   marginBottom: 12,
 }
 
-const ctaStyle = (unlocked: boolean): React.CSSProperties => ({
+// Paper on green: 12.57:1 for the label and 12.57:1 against the panel.
+// Light brass measured 4.44:1 for its text — under AA — and white on it
+// was 3.02:1, so neither brass option was usable here.
+const ctaStyle = (_unlocked: boolean): React.CSSProperties => ({
   display: 'block',
   textAlign: 'center',
-  background: unlocked ? GOLD : CREAM,
-  color: unlocked ? FOREST_DEEP : FOREST_DEEP,
+  background: 'var(--color-paper)',
+  color: 'var(--color-ground-deep)',
   fontSize: 14,
   fontWeight: 600,
   padding: '10px 0',
@@ -610,10 +630,23 @@ const flashKeyframes = `
   70%  { transform: scale(0.995); }
   100% { transform: scale(1); }
 }
+/* This <style> mounts only while the widget is on screen, so the space it
+   reserves exists exactly when something is there to occupy it. Without it
+   the panel sits over the last rows of the footer once you reach the
+   bottom of the page. The footer sets its padding inline, so this has to
+   outrank it. */
+footer { padding-bottom: 200px !important; }
 @media (min-width: 720px) {
+  footer { padding-bottom: 150px !important; }
   [data-sys-basket-widget] {
-    bottom: auto !important;
-    top: 16px !important;
+    /* Bottom-right, the same corner it holds on mobile. It was top-right
+       (and before that top:16, which covered the nav) — but a fixed panel
+       under the nav covers the top of every page: breadcrumbs, the shelf
+       name, and the share action that sits at the right of that row.
+       Bottom-right is the corner nothing else wants, so the panel can stay
+       up permanently without hiding anything. */
+    top: auto !important;
+    bottom: 16px !important;
     left: auto !important;
     right: 16px !important;
   }
