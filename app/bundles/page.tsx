@@ -16,6 +16,7 @@
  */
 
 import Link from 'next/link'
+import { formatCount } from '@/app/components/ui'
 import { createClient } from '@supabase/supabase-js'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
@@ -283,17 +284,15 @@ export default async function BundlesIndexPage({
     <div className="sy-page">
       <SiteNav current="bundles" />
 
-      <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '32px 24px 24px' }}>
-        <div style={{ maxWidth: 840, margin: '0 auto' }}>
-          <div style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginBottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
-            <Link href="/" style={{ color: 'var(--color-ink-faint)', textDecoration: 'none' }}>Home</Link>
-            <span style={{ color: 'var(--color-rule)' }}>/</span>
-            <span style={{ color: 'var(--color-ink-soft)' }}>Bundles</span>
+      <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '48px 0 36px' }}>
+        <div className="sy-wrap">
+          <div className="sy-crumbs" style={{ marginBottom: 14 }}>
+            <Link href="/">Home</Link>
+            <span className="sy-crumb-sep">/</span>
+            <span className="sy-crumb-here">Bundles</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 500, color: 'var(--color-ink)', marginBottom: 4 }}>
-            Bundles
-          </div>
-          <div style={{ fontSize: 14, color: 'var(--color-ink-soft)', maxWidth: 540 }}>
+          <h1 className="sy-h1" style={{ marginBottom: 10 }}>Bundles</h1>
+          <div className="sy-lede" style={{ maxWidth: 620 }}>
             Curated by independent sellers — one shipment, one discount. Tap any bundle to see the
             seller&apos;s shelf and add the whole set to your basket.
           </div>
@@ -302,7 +301,7 @@ export default async function BundlesIndexPage({
 
       {/* Category pills + sort. Both submit via plain links so no client JS. */}
       <div style={{ borderBottom: '1px solid var(--color-rule)', padding: '12px 16px', background: 'var(--color-paper)' }}>
-        <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="sy-wrap" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', whiteSpace: 'nowrap', paddingBottom: 2 }}>
             <Link
               href={buildHref({ category: null, page: 1 })}
@@ -343,9 +342,9 @@ export default async function BundlesIndexPage({
               )
             })}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: 'var(--color-ink-soft)' }}>
-            <span>{totalCount} {totalCount === 1 ? 'bundle' : 'bundles'}</span>
-            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="sy-sortbar">
+            <span style={{ whiteSpace: 'nowrap' }}>{formatCount(totalCount)} {totalCount === 1 ? 'bundle' : 'bundles'}</span>
+            <div className="sy-sortbar-options">
               <span style={{ color: 'var(--color-ink-faint)' }}>Sort:</span>
               {(['newest', 'biggest_savings', 'lowest_price', 'most_books'] as SortOption[]).map((s) => {
                 const isActive = sort === s
@@ -368,7 +367,7 @@ export default async function BundlesIndexPage({
         </div>
       </div>
 
-      <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px' }}>
+      <div className="sy-wrap" style={{ padding: '28px 32px 8px' }}>
         {bundles.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--color-ink-soft)' }}>
             
@@ -393,108 +392,48 @@ export default async function BundlesIndexPage({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-              gap: 14,
+              gridTemplateColumns: 'repeat(auto-fill, minmax(228px, 1fr))',
+              gap: '34px 24px',
             }}
           >
             {bundles.map((b) => (
-              <Link
-                key={b.id}
-                href={`/bundle/${b.id}`}
-                style={{
-                  background: '#fff',
-                  border: `1px solid ${GOLD}`,
-                  borderRadius: 10,
-                  padding: 12,
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                }}
-              >
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {b.members.slice(0, 4).map((m) => (
-                    <div
-                      key={m.id}
-                      title={m.title}
-                      style={{
-                        width: 44,
-                        height: 66,
-                        background: FOREST,
-                        borderRadius: 3,
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {m.cover_url ? (
-                        <img
-                          src={m.cover_url}
-                          alt={m.title}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : null}
+              <Link key={b.id} href={`/bundle/${b.id}`} className="sy-bundle-tile">
+                {/* Three covers, whole. The rest of the set is counted in
+                    words below — a dashed "+2" box was a placeholder wearing
+                    a cover's shape, and it read as a missing image. */}
+                <div className="sy-bundle-stack">
+                  {b.members.slice(0, 3).map((m) => (
+                    <div key={m.id} className="sy-cover" title={m.title}>
+                      {m.cover_url ? <img src={m.cover_url} alt={m.title} /> : null}
                     </div>
                   ))}
-                  {b.members.length > 4 && (
-                    <div
-                      style={{
-                        width: 44,
-                        height: 66,
-                        borderRadius: 3,
-                        border: `1px dashed ${GOLD}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--color-ink-faint)',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        flexShrink: 0,
-                      }}
-                    >
-                      +{b.members.length - 4}
-                    </div>
-                  )}
                 </div>
 
-                <div style={{ fontSize: 14, fontWeight: 600, color: FOREST_DEEP, lineHeight: 1.3 }}>
-                  {b.name}
-                </div>
+                <div className="sy-bundle-name">{b.name}</div>
 
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: FOREST_DEEP }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: 5 }}>
+                  <span className="sy-figure" style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-ink)' }}>
                     £{b.bundlePriceGbp.toFixed(2)}
                   </span>
                   {b.savingsGbp > 0 && (
                     <>
-                      <span style={{ fontSize: 12, color: 'var(--color-ink-faint)', textDecoration: 'line-through' }}>
+                      <span className="sy-figure" style={{ fontSize: 13, color: 'var(--color-ink-faint)', textDecoration: 'line-through' }}>
                         £{b.subtotalGbp.toFixed(2)}
                       </span>
-                      <span style={{ fontSize: 12, color: FOREST, fontWeight: 600 }}>
+                      <span style={{ fontSize: 13, color: FOREST, fontWeight: 600 }}>
                         Save £{b.savingsGbp.toFixed(2)}
                       </span>
                     </>
                   )}
                 </div>
 
-                {b.description && (
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: 'var(--color-ink-soft)',
-                      lineHeight: 1.4,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical' as const,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {b.description}
-                  </div>
-                )}
-
-                <div style={{ fontSize: 12, color: 'var(--color-ink-soft)' }}>
-                  from @{b.sellerUsername}
+                {/* Count and seller, one quiet line. The free-text description
+                    varied from a full sentence to nothing, so cards never
+                    shared a baseline; it lives on the bundle page instead. */}
+                <div className="sy-bundle-meta">
+                  <span>{b.members.length} books</span>
+                  <span aria-hidden>·</span>
+                  <span>@{b.sellerUsername}</span>
                 </div>
               </Link>
             ))}
