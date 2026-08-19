@@ -37,13 +37,13 @@ export async function generateMetadata({ params }: Props) {
 
   const { data } = await supabase
     .from('marketplace_listings')
-    .select('title, author, asking_price_gbp, condition, book_id, edition_cover, work_cover, edition_cover_hosted, work_cover_hosted')
+    // Covers are no longer needed here — the opengraph-image route
+    // fetches its own and composes the share card.
+    .select('title, author, asking_price_gbp, condition, book_id')
     .eq('id', id)
     .single()
 
   if (!data) return { title: 'Listing not found — Sell Your Shelf' }
-
-  const cover = data.edition_cover_hosted || data.edition_cover || data.work_cover_hosted || data.work_cover
 
   // Canonical: copies of the same book are near-duplicate pages. Pointing
   // them at the book hub concentrates ranking signal on one URL per title —
@@ -64,10 +64,11 @@ export async function generateMetadata({ params }: Props) {
     title: `${data.title} — Sell Your Shelf`,
     description,
     alternates: { canonical },
+    // `images` omitted so the opengraph-image route supplies the card —
+    // see the note in app/lib/ogCard.tsx on why a raw cover fares badly.
     openGraph: {
       title: `${data.title} on Sell Your Shelf`,
       description,
-      images: cover ? [{ url: cover }] : [],
     },
     twitter: { card: 'summary_large_image' },
   }
