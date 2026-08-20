@@ -392,8 +392,12 @@ export default async function BundlesIndexPage({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(228px, 1fr))',
-              gap: '34px 24px',
+              // Three up, not four. A bundle card holds three covers side by
+              // side, so a narrow column pushes them back down to thumbnails —
+              // the exact problem the redesign set out to fix. 300px floors
+              // the column at ~336px on a desktop, which gives ~106px covers.
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+              gap: '38px 28px',
             }}
           >
             {bundles.map((b) => (
