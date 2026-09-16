@@ -243,7 +243,7 @@ export default async function Home() {
             {[
               { n: '01', t: 'Scan your shelf', d: 'Pan your camera across the spines. Our AI reads every title in real time — about 30 books in 90 seconds.' },
               { n: '02', t: 'Review & price', d: 'We check live market data and suggest a fair price for each book. Accept it, or set your own — you’re in control.' },
-              { n: '03', t: 'Ship & get paid', d: 'Drop it at any InPost/Yodel point with the £2.50 label — no printer needed. Cash lands once it’s delivered.' },
+              { n: '03', t: 'Ship & get paid', d: 'Drop it at any InPost point with the £2.50 label — no printer needed. Cash lands once it’s delivered.' },
             ].map((s) => (
               <div key={s.n} className="sl-step">
                 <span className="sl-stepnum sy-figure">{s.n}</span>
