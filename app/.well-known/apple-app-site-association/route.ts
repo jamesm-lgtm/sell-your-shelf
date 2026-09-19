@@ -43,6 +43,10 @@ export async function GET() {
             // shelf and the app can open it, so the catch-all stays — but it
             // must not swallow the site's own pages, or those links open the
             // app and land the person on Browse with nothing to show.
+            // /scan comes off this list the moment a build carrying its
+            // deep-link routing is live. Until then the welcome email's button
+            // should land on the website, not open the app onto Browse.
+            'NOT /scan',
             'NOT /about', 'NOT /admin/*', 'NOT /api/*', 'NOT /basket',
             'NOT /blog/*', 'NOT /books/*', 'NOT /browse', 'NOT /bundles',
             'NOT /category/*', 'NOT /checkout', 'NOT /contact',
