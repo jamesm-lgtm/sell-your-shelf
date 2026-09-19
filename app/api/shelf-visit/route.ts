@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { isTestUsername } from '@/app/lib/testAccounts'
-import { isBotUserAgent } from '@/app/lib/botDetect'
+import { trafficSignals } from '@/app/lib/botDetect'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,9 +24,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, skipped: 'test_account' })
   }
 
-  const country = req.headers.get('x-vercel-ip-country') || null
-  const city = req.headers.get('x-vercel-ip-city') || null
-  const userAgent = req.headers.get('user-agent') || null
+  const { userAgent, isBot, ipHash, country, city } = trafficSignals(req)
 
   const { error } = await supabase.from('shelf_visits').insert({
     username,
@@ -39,7 +37,8 @@ export async function POST(req: NextRequest) {
     utm_medium: utm_medium || null,
     utm_campaign: utm_campaign || null,
     platform: 'web',
-    is_bot: isBotUserAgent(userAgent),
+    is_bot: isBot,
+    ip_hash: ipHash,
     // user_id stays null on web until cookie-based auth lands.
   })
 

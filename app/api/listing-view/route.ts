@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { getTestAccountUserIds } from '@/app/lib/testAccounts'
-import { isBotUserAgent } from '@/app/lib/botDetect'
+import { trafficSignals } from '@/app/lib/botDetect'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,9 +20,7 @@ export async function POST(req: NextRequest) {
 
   if (!listingId) return NextResponse.json({ error: 'listingId required' }, { status: 400 })
 
-  const country = req.headers.get('x-vercel-ip-country') || null
-  const city = req.headers.get('x-vercel-ip-city') || null
-  const userAgent = req.headers.get('user-agent') || null
+  const { userAgent, isBot, ipHash, country, city } = trafficSignals(req)
 
   // Skip inserts for listings owned by test accounts.
   const { data: listing } = await supabase
@@ -49,7 +47,8 @@ export async function POST(req: NextRequest) {
     utm_medium: utm_medium || null,
     utm_campaign: utm_campaign || null,
     platform: 'web',
-    is_bot: isBotUserAgent(userAgent),
+    is_bot: isBot,
+    ip_hash: ipHash,
     // user_id stays null on web until cookie-based auth lands.
   })
 
