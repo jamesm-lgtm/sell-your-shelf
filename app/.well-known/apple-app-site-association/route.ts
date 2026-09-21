@@ -43,10 +43,12 @@ export async function GET() {
             // shelf and the app can open it, so the catch-all stays — but it
             // must not swallow the site's own pages, or those links open the
             // app and land the person on Browse with nothing to show.
-            // /scan comes off this list the moment a build carrying its
-            // deep-link routing is live. Until then the welcome email's button
-            // should land on the website, not open the app onto Browse.
-            'NOT /scan',
+            // The three lifecycle-email landing pages. Each comes off this list
+            // the moment a build carrying its deep-link routing is live; until
+            // then the email buttons should land on the website, not open the
+            // app onto Browse. /scan's routing is written but missed the 2.0.0
+            // cut, so all three are still excluded.
+            'NOT /scan', 'NOT /drafts', 'NOT /get-paid',
             'NOT /about', 'NOT /admin/*', 'NOT /api/*', 'NOT /basket',
             'NOT /blog/*', 'NOT /books/*', 'NOT /browse', 'NOT /bundles',
             'NOT /category/*', 'NOT /checkout', 'NOT /contact',
