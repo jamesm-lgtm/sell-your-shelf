@@ -30,14 +30,39 @@ interface Props {
   compact?: boolean
 }
 
+// A shared link is indistinguishable from someone typing the address: no
+// referrer survives WhatsApp, Messages or email, so every share landed as
+// "(direct)" and the whole channel was invisible. One seller was driving
+// real traffic from Facebook and we only saw it because Facebook happens to
+// send a referrer of its own.
+//
+// utm_content carries WHO shared it, which is the part worth having — it
+// separates "sharing works" from "these sellers drive traffic".
+function trackedShareUrl(url: string, kind: string): string {
+  try {
+    const u = new URL(url)
+    if (u.searchParams.has('utm_source')) return url
+    u.searchParams.set('utm_source', 'share')
+    u.searchParams.set('utm_medium', kind)
+    // Last path segment identifies the thing shared: a username on a shelf,
+    // an id or slug elsewhere. Empty for the homepage, which is fine.
+    const seg = u.pathname.split('/').filter(Boolean).pop()
+    if (seg) u.searchParams.set('utm_content', seg)
+    return u.toString()
+  } catch {
+    return url
+  }
+}
+
 export default function ShareButton({ url, title, description, kind = 'bundle', compact = false }: Props) {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState(false)
 
   const handleShare = async () => {
     setError(false)
+    const shareUrl = trackedShareUrl(url, kind)
     const shareData = {
-      url,
+      url: shareUrl,
       title,
       // The body of the share — most apps display title prominently
       // and text underneath. Description gives recipients a clue
@@ -56,7 +81,7 @@ export default function ShareButton({ url, title, description, kind = 'bundle', 
         return
       }
       // Fallback: copy-link.
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(shareUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
     } catch (err) {
