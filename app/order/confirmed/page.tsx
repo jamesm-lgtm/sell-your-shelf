@@ -71,9 +71,12 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
   const book = transaction?.listings as any
   const seller = transaction?.users as any
   const cover = book?.books?.cover_url
-  const totalPaid = transaction
-    ? (Number(transaction.sale_price_gbp) + Number(transaction.shipping_cost_gbp)).toFixed(2)
-    : null
+  // sale_price_gbp is ALREADY the full amount charged: create-payment-intent
+  // stores `totalPence = bookPricePence + shippingPence` into it, and keeps
+  // shipping_cost_gbp alongside only as a breakdown. Adding the two double-
+  // counted postage, so this page told buyers they paid £2.50 more than they
+  // did — and fed the same inflated figure to the GA purchase event.
+  const totalPaid = transaction ? Number(transaction.sale_price_gbp).toFixed(2) : null
   return (
     <div className="sy-page">
       {transaction && totalPaid && (
