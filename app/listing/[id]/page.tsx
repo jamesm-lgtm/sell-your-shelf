@@ -45,23 +45,42 @@ export async function generateMetadata({ params }: Props) {
 
   if (!data) return { title: 'Listing not found — Sell Your Shelf' }
 
-  // Canonical: copies of the same book are near-duplicate pages. Pointing
-  // them at the book hub concentrates ranking signal on one URL per title —
-  // the page that shows every copy — instead of splitting it across
-  // per-copy pages that die when the copy sells.
+  // Canonical: when several sellers list the same book these pages really are
+  // near-duplicates, and pointing them at the book hub concentrates ranking
+  // signal on the one URL that shows every copy.
+  //
+  // But 92% of books have exactly ONE active copy. There the hub and this page
+  // describe the same single item, so the canonical was handing away the
+  // signal and getting no aggregation for it. Google noticed: listing pages
+  // average position 13 against 31 for book pages, i.e. it was ranking the
+  // page we told it to ignore. Only defer to the hub when the hub genuinely
+  // aggregates something.
   const { data: bookRow } = data.book_id
     ? await supabase.from('books').select('slug').eq('id', data.book_id).single()
     : { data: null }
-  const canonical = bookRow?.slug ? `/books/${bookRow.slug}` : `/listing/${id}`
+  const { count: siblingCopies } = data.book_id
+    ? await supabase
+        .from('marketplace_listings')
+        .select('id', { count: 'exact', head: true })
+        .eq('book_id', data.book_id)
+    : { count: null }
+  const canonical = bookRow?.slug && (siblingCopies ?? 1) > 1
+    ? `/books/${bookRow.slug}`
+    : `/listing/${id}`
 
   const condition = CONDITIONS[data.condition as string] ?? null
+  const price = `£${Number(data.asking_price_gbp).toFixed(2)}`
   const description =
     `${data.author ? `by ${data.author} — ` : ''}` +
     `${condition ? `${condition} condition, ` : ''}` +
-    `£${Number(data.asking_price_gbp).toFixed(2)} on Sell Your Shelf`
+    `${price} on Sell Your Shelf`
 
   return {
-    title: `${data.title} — Sell Your Shelf`,
+    // Lead with the price and "used". These pages rank first for exact-title
+    // searches and still take no clicks, because the truncated title showed
+    // nothing but the book's own name on an unfamiliar domain — nothing to
+    // choose it over Amazon sitting next to it.
+    title: `${data.title} — Used, ${price} | Sell Your Shelf`,
     description,
     alternates: { canonical },
     // `images` omitted so the opengraph-image route supplies the card —

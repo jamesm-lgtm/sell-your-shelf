@@ -54,6 +54,34 @@ const FORMAT_LABELS: Record<string, string> = {
 const FREE_SHIPPING_THRESHOLD_GBP = 10
 const SHIPPING_FLAT_GBP = 2.5
 
+// Google truncates around 70 characters and rejects titles over 150. Cut on a
+// word boundary rather than mid-word.
+const MAX_TITLE_CHARS = 150
+
+function clampTitle(title: string): string {
+  if (title.length <= MAX_TITLE_CHARS) return title
+  const cut = title.slice(0, MAX_TITLE_CHARS)
+  const lastSpace = cut.lastIndexOf(' ')
+  return (lastSpace > MAX_TITLE_CHARS - 30 ? cut.slice(0, lastSpace) : cut).trimEnd()
+}
+
+// Images must be fetchable by Google indefinitely. Amazon and Google Books
+// block or rate-limit hotlinking, so items served from them flap in and out of
+// disapproval; treat those as "no usable image" and fall back to a hosted one.
+const HOTLINK_BLOCKED = /(^|\.)media-amazon\.com|(^|\.)images-amazon\.com|(^|\.)books\.google\./i
+
+function usableImage(...candidates: (string | null | undefined)[]): string | null {
+  for (const url of candidates) {
+    if (!url) continue
+    try {
+      if (!HOTLINK_BLOCKED.test(new URL(url).hostname)) return url
+    } catch {
+      // Not a parseable URL — skip it rather than emit a broken image_link.
+    }
+  }
+  return null
+}
+
 // Normalise an ISBN to a 13-digit GTIN. ISBN-13 passes through; ISBN-10 is
 // converted (978 prefix + recomputed check digit). Anything else → null.
 function isbnToGtin13(raw: string | null): string | null {
@@ -80,7 +108,11 @@ export async function GET() {
       const { data, error } = await supabase
         .from('marketplace_listings')
         .select('id, title, author, asking_price_gbp, condition, isbn, description, edition_description, work_description, edition_cover, work_cover, edition_cover_hosted, work_cover_hosted, seller_cover_url, edition_publisher, format, category')
-        .gte('asking_price_gbp', 3)
+        // No price floor. A £3 minimum made sense when this fed paid Shopping
+        // campaigns, where every click costs; for free listings it withheld
+        // 2,574 of 5,720 eligible listings — 45% of the catalogue — from a
+        // channel that costs nothing. Google only requires a price above zero.
+        .gt('asking_price_gbp', 0)
         .order('id', { ascending: true })
         .range(from, from + PAGE_SIZE - 1)
 
@@ -97,23 +129,32 @@ export async function GET() {
     // image are excluded outright — image_link is mandatory and imageless
     // items are disapproved anyway, so they'd only pollute the feed's
     // quality metrics.
-    const items = listings.filter(l => {
-      if (!l.title || !l.asking_price_gbp) return false
-      const image = l.seller_cover_url || l.edition_cover_hosted || l.edition_cover || l.work_cover_hosted || l.work_cover
-      if (!image) return false
+    // Resolve images once, here, so the XML builder below cannot disagree with
+    // the eligibility check about which items have a usable one.
+    const items = listings.flatMap(l => {
+      if (!l.title || !l.asking_price_gbp) return []
       const desc = l.edition_description || l.work_description || l.description || ''
-      return isLikelyEnglish(desc)
-    })
+      if (!isLikelyEnglish(desc)) return []
 
-    const xmlItems = items.map(listing => {
       // Seller's own photo first (it's the actual product being sold),
       // stock cover as fallback + additional image.
-      const sellerPhoto = listing.seller_cover_url
-      const stockCover = listing.edition_cover_hosted || listing.edition_cover || listing.work_cover_hosted || listing.work_cover
+      const sellerPhoto = usableImage(l.seller_cover_url)
+      const stockCover = usableImage(
+        l.edition_cover_hosted, l.edition_cover,
+        l.work_cover_hosted, l.work_cover,
+      )
       const image = sellerPhoto || stockCover
-      const additionalImage = sellerPhoto && stockCover ? stockCover : null
+      if (!image) return []
 
-      const desc = listing.edition_description || listing.work_description || listing.description || ''
+      return [{
+        listing: l,
+        desc,
+        image,
+        additionalImage: sellerPhoto && stockCover ? stockCover : null,
+      }]
+    })
+
+    const xmlItems = items.map(({ listing, desc, image, additionalImage }) => {
       const conditionLabel = CONDITION_LABELS[listing.condition] || listing.condition
       const priceNum = Number(listing.asking_price_gbp)
       const price = priceNum.toFixed(2)
@@ -122,10 +163,24 @@ export async function GET() {
       const gtin = isbnToGtin13(listing.isbn)
       const formatLabel = FORMAT_LABELS[listing.format] ?? null
 
-      const title = `${listing.title}${listing.author ? ` - ${listing.author}` : ''}${formatLabel ? ` (${formatLabel})` : ''}`
+      const title = clampTitle(
+        `${listing.title}${listing.author ? ` - ${listing.author}` : ''}${formatLabel ? ` (${formatLabel})` : ''}`,
+      )
 
-      // Build description: condition + truncated book description
-      const fullDesc = `Used copy in ${conditionLabel} condition. ${desc}`.slice(0, 5000)
+      // Build description: condition + the book's own blurb. Roughly 8% of
+      // listings have no blurb at all, which left the description as a single
+      // stock sentence identical across hundreds of items — no keywords for
+      // Google to match and nothing for a shopper to read. Fall back to the
+      // facts we do hold.
+      const fullDesc = (desc.trim()
+        ? `Used copy in ${conditionLabel} condition. ${desc}`
+        : [
+            `${listing.title}${listing.author ? ` by ${listing.author}` : ''}`,
+            `${formatLabel ? `${formatLabel}, u` : 'U'}sed copy in ${conditionLabel} condition`,
+            listing.edition_publisher ? `Published by ${listing.edition_publisher}` : null,
+            'Sold by a UK seller on Sell Your Shelf, with tracked delivery and 14-day returns.',
+          ].filter(Boolean).join('. ')
+      ).slice(0, 5000)
 
       return `    <item>
       <g:id>listing-${listing.id}</g:id>
