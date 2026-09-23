@@ -97,6 +97,13 @@ function isbnToGtin13(raw: string | null): string | null {
   return null
 }
 
+// Removing the price floor roughly doubles the feed (2,779 items -> ~5,150),
+// and generation is linear in item count: ~5s became ~10s, past the default
+// serverless limit. Google refetches this at most daily, so a slow response is
+// cheap; a timeout means a feed of zero items and mass "product not found"
+// disapprovals.
+export const maxDuration = 300
+
 export async function GET() {
   try {
     // Fetch ALL eligible listings — Supabase caps unpaginated queries at
