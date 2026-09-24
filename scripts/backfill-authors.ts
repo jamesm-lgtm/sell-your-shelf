@@ -101,9 +101,16 @@ async function main() {
       ambiguous.set(result.raw, seen)
       continue
     }
+    // Two contributors on one book can collapse to the same slug — "J.K.
+    // Rowling" and "J K Rowling" both give j-k-rowling. Left in, that puts the
+    // same (book_id, author_id) twice in one upsert batch, which Postgres
+    // rejects outright: "ON CONFLICT DO UPDATE command cannot affect row a
+    // second time". Dedupe per book, keeping the earliest credit position.
+    const seenOnThisBook = new Set<string>()
     result.contributors.forEach((c, i) => {
       const slug = slugify(c.name)
-      if (!slug) return
+      if (!slug || seenOnThisBook.has(slug)) return
+      seenOnThisBook.add(slug)
       // First spelling wins the display form; ties are broken by the corpus
       // upstream, not here, so this stays deterministic across runs.
       if (!authorsBySlug.has(slug)) authorsBySlug.set(slug, c)
