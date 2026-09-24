@@ -7,6 +7,7 @@
  * publisher. It earns the same template, not a block.
  */
 import { createClient } from '@supabase/supabase-js'
+import { generateSlug } from '@/app/lib/bookLookup'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,6 +54,45 @@ export type AuthorHub = {
   sellers: number
 }
 
+/**
+ * The URL for a book page.
+ *
+ * Only 7% of books with a live listing have a persisted `slug` — 381 of 5,199
+ * — so reading the column alone would leave most titles here as dead text.
+ * The sitemap already solves this with `book.slug || generateSlug(...)`, and
+ * findBookBySlug resolves both forms. Using anything else would mint a second
+ * URL for the same book and put this page in conflict with the canonical the
+ * listing pages point at, which is the failure the last release unpicked.
+ */
+function bookSlug(b: { slug: string | null; title_normalized: string | null; title: string; author_normalized: string | null }): string | null {
+  return b.slug || generateSlug(b.title_normalized || b.title || '', b.author_normalized || '') || null
+}
+
+/**
+ * Key for grouping duplicate catalogue rows onto one entry.
+ *
+ * Deliberately conservative. It strips one thing: the ": A book by <author>"
+ * suffix some rows carry, which is publisher boilerplate rather than part of
+ * the title — and which reads absurdly on an author page, where every book is
+ * by that author. "Code Name Bananas" and "Code Name Bananas: A book by David
+ * Walliams" are the same book and were showing as two entries at different
+ * prices.
+ *
+ * It does NOT strip trailing parentheticals. "Gangsta Granny (original)" still
+ * groups apart from "Gangsta Granny", because a bracketed qualifier can be a
+ * real distinction — a graphic novel, an abridgement — and merging those would
+ * put genuinely different books on one row at a price that belongs to neither.
+ * That leaves a small number of visible duplicates, which is the honest
+ * outcome for rows the catalogue itself doesn't distinguish cleanly.
+ */
+function groupingKey(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/:\s*a book by\b.*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export async function getAuthorHub(
   slug: string,
   kind: 'person' | 'publisher',
@@ -88,11 +128,11 @@ export async function getAuthorHub(
   // Books an author has written can exceed 1,000 for a prolific one, and
   // listings certainly can, so both reads page explicitly. The sitemap learnt
   // this the hard way when active listings passed 1,000.
-  const books: { id: number; title: string; slug: string | null; cover_url_hosted: string | null; cover_url: string | null }[] = []
+  const books: { id: number; title: string; title_normalized: string | null; author_normalized: string | null; slug: string | null; cover_url_hosted: string | null; cover_url: string | null }[] = []
   for (let i = 0; i < bookIds.length; i += 500) {
     const { data } = await supabase
       .from('books')
-      .select('id, title, slug, cover_url_hosted, cover_url')
+      .select('id, title, title_normalized, author_normalized, slug, cover_url_hosted, cover_url')
       .in('id', bookIds.slice(i, i + 500))
     if (data) books.push(...data)
   }
@@ -126,15 +166,38 @@ export async function getAuthorHub(
     byBook.set(l.book_id, copies)
   }
 
-  const titles: HubTitle[] = books
-    .filter((b) => byBook.has(b.id))
-    .map((b) => ({
-      bookId: b.id,
-      title: b.title,
-      slug: b.slug,
-      coverUrl: b.cover_url_hosted ?? b.cover_url,
-      copies: (byBook.get(b.id) ?? []).sort((x, y) => x.priceGbp - y.priceGbp),
-    }))
+  /**
+   * Group by title, not by book row.
+   *
+   * The catalogue holds more than one `books` row for the same title — David
+   * Walliams' "Code Name Bananas" exists twice, and grouping on book_id showed
+   * it as two separate entries with different prices, which reads as a broken
+   * page. Duplicate rows also don't reliably share a slug, so the merge keeps
+   * the first one that has both a slug and a cover.
+   */
+  const byTitle = new Map<string, HubTitle>()
+  for (const b of books) {
+    if (!byBook.has(b.id)) continue
+    const key = groupingKey(b.title_normalized ?? b.title ?? '')
+    if (!key) continue
+    const existing = byTitle.get(key)
+    if (!existing) {
+      byTitle.set(key, {
+        bookId: b.id,
+        title: b.title,
+        slug: bookSlug(b),
+        coverUrl: b.cover_url_hosted ?? b.cover_url,
+        copies: [...(byBook.get(b.id) ?? [])],
+      })
+      continue
+    }
+    existing.copies.push(...(byBook.get(b.id) ?? []))
+    existing.slug ??= bookSlug(b)
+    existing.coverUrl ??= b.cover_url_hosted ?? b.cover_url
+  }
+
+  const titles: HubTitle[] = [...byTitle.values()]
+    .map((t) => ({ ...t, copies: t.copies.sort((x, y) => x.priceGbp - y.priceGbp) }))
     // Most copies first: the titles somebody is most likely to want are the
     // ones several sellers happen to hold.
     .sort((a, b) => b.copies.length - a.copies.length || a.title.localeCompare(b.title))
