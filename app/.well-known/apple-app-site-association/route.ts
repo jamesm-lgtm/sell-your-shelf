@@ -49,12 +49,13 @@ export async function GET() {
             // app onto Browse. /scan's routing is written but missed the 2.0.0
             // cut, so all three are still excluded.
             'NOT /scan', 'NOT /drafts', 'NOT /get-paid',
-            'NOT /about', 'NOT /admin/*', 'NOT /api/*', 'NOT /basket',
+            'NOT /about', 'NOT /admin/*', 'NOT /api/*', 'NOT /author/*',
+            'NOT /basket',
             'NOT /blog/*', 'NOT /books/*', 'NOT /browse', 'NOT /bundles',
             'NOT /category/*', 'NOT /checkout', 'NOT /contact',
             'NOT /delete-account', 'NOT /feed', 'NOT /new', 'NOT /order/*',
-            'NOT /orders', 'NOT /privacy', 'NOT /returns', 'NOT /search',
-            'NOT /stripe/*', 'NOT /support', 'NOT /terms',
+            'NOT /orders', 'NOT /privacy', 'NOT /publisher/*', 'NOT /returns',
+            'NOT /search', 'NOT /stripe/*', 'NOT /support', 'NOT /terms',
             '/*',
           ],
         },

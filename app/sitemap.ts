@@ -256,5 +256,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...blogPosts, ...categoryPages, ...bookPages, ...listingPages, ...sellerPages];
+  // Author and publisher hubs.
+  //
+  // Only pages at or above the index threshold go in, and the threshold is
+  // read from the same view the page uses (author_live_counts), so the sitemap
+  // and the noindex tag can never disagree — a page listed here but tagged
+  // noindex is the classic way to teach Google to distrust a sitemap.
+  //
+  // Wrapped in its own try/catch and tolerant of the table being absent, so a
+  // sitemap build before the authors migration is applied degrades to the
+  // existing pages instead of failing outright.
+  let authorPages: MetadataRoute.Sitemap = [];
+  try {
+    const { data, error } = await supabase
+      .from('author_live_counts')
+      .select('slug, kind, live_copies')
+      .gte('live_copies', 5);
+    if (error) throw error;
+    authorPages = (data ?? []).map((a) => ({
+      url: `https://www.sellyourshelf.com/${a.kind === 'publisher' ? 'publisher' : 'author'}/${a.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 0.7,
+    }));
+  } catch (e) {
+    console.error('Sitemap: failed to fetch author hubs', e);
+  }
+
+  return [...staticPages, ...blogPosts, ...categoryPages, ...bookPages, ...listingPages, ...sellerPages, ...authorPages];
 }

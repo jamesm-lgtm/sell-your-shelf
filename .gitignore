@@ -53,3 +53,6 @@ gsc-service-account.json
 # Impeccable working artifacts: review rasters, session logs, hook cache.
 # DESIGN.md and PRODUCT.md are the durable outputs and stay tracked.
 .impeccable/
+
+# Written by scripts/backfill-authors.ts for the phase-2 model pass.
+ambiguous-credits.json
