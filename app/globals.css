@@ -613,75 +613,12 @@ body {
 /* Ink helper for content pages migrating off Tailwind's cool greys. */
 .sy-ink { color: var(--color-ink); }
 
-/* ── Author / publisher hubs ─────────────────────────────────────────────
-   Two layouts for one page, because the range is 5 to 137 live copies.
-   Above ~15 the page groups by title (sy-authorgroup); below it, copies are
-   listed flat (sy-authorlist). Both are indexes pointing at /books/[slug] and
-   /listing/[id] — the hub never restates what those pages say. */
-
 .sy-textlink {
   color: var(--color-ground-raised);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 .sy-textlink:hover { text-decoration-thickness: 2px; }
-
-.sy-authorgroups {
-  display: grid;
-  gap: 2px;
-  border-top: 1px solid var(--color-rule);
-}
-
-.sy-authorgroup { border-bottom: 1px solid var(--color-rule); }
-
-.sy-authorgroup-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 0;
-}
-
-.sy-authorlist {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--color-rule);
-}
-
-.sy-authorlist-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--color-rule);
-}
-
-.sy-authorlist-main {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0; /* so a long title wraps instead of shoving the price off */
-}
-
-.sy-authorlist-title {
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
-.sy-authorlist-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  font-size: 13px;
-  color: var(--color-ink-faint);
-}
-
-@media (max-width: 540px) {
-  .sy-authorgroup-head { flex-direction: column; align-items: flex-start; gap: 6px; }
-}
 
 /* ── Author index (/authors) ─────────────────────────────────────────────
    A directory, so it is scanned by letter rather than read. Two columns of

@@ -82,6 +82,18 @@ function bookSlug(b: { slug: string | null; title_normalized: string | null; tit
  * That leaves a small number of visible duplicates, which is the honest
  * outcome for rows the catalogue itself doesn't distinguish cleanly.
  */
+/**
+ * Display title with the publisher boilerplate removed.
+ *
+ * groupingKey() already strips ": A book by <author>" to merge duplicate rows,
+ * but it lowercases, so it can't be used for display. Without this the card on
+ * David Walliams' own page reads "Demon Dentist: A book by David Walliams",
+ * which is both redundant and faintly absurd in context.
+ */
+export function displayTitle(title: string): string {
+  return title.replace(/:\s*a book by\b.*$/i, '').replace(/\s+/g, ' ').trim() || title
+}
+
 function groupingKey(title: string): string {
   return title
     .toLowerCase()
@@ -181,7 +193,7 @@ export async function getAuthorHub(
     if (!existing) {
       byTitle.set(key, {
         bookId: b.id,
-        title: b.title,
+        title: displayTitle(b.title),
         slug: bookSlug(b),
         coverUrl: b.cover_url_hosted ?? b.cover_url,
         copies: [...(byBook.get(b.id) ?? [])],
@@ -191,6 +203,10 @@ export async function getAuthorHub(
     existing.copies.push(...(byBook.get(b.id) ?? []))
     existing.slug ??= bookSlug(b)
     existing.coverUrl ??= b.cover_url_hosted ?? b.cover_url
+    // Duplicate rows differ by trailing publisher boilerplate, so the shorter
+    // title is the cleaner one.
+    const candidate = displayTitle(b.title)
+    if (candidate.length < existing.title.length) existing.title = candidate
   }
 
   const titles: HubTitle[] = [...byTitle.values()]

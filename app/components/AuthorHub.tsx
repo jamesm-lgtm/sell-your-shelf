@@ -2,6 +2,7 @@ import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import ShareButton from '@/app/components/ShareButton'
+import { BookCover, Price } from '@/app/components/ui'
 import { INDEX_THRESHOLD, type AuthorHub as Hub } from '@/app/lib/authorHub'
 
 /**
@@ -22,13 +23,15 @@ import { INDEX_THRESHOLD, type AuthorHub as Hub } from '@/app/lib/authorHub'
  * just spent a release unpicking when listing pages were canonicalised to book
  * pages that then ranked worse.
  *
- * ONE layout, at every size. It shipped with two — grouped by title above 15
- * copies, a flat list of individual copies below — which put 22 pages on one
- * design and 140 on another, and the difference was the first thing anyone
- * noticed. Grouping is also the only one of the two that's true to the job
- * above: the flat list linked to /listing/[id] and showed per-copy price and
- * condition, which is the book page's work being done twice. At five copies a
- * grouped page reads as a short list of titles, which is exactly right.
+ * ONE layout at every size, and it's the cover grid the rest of the site
+ * browses in. It shipped with two text layouts — grouped by title above 15
+ * copies, a flat list of copies below — which put 22 pages on one design and
+ * 140 on another. Both were wrong anyway: books are browsed by cover here,
+ * and a text list made this the only section that didn't.
+ *
+ * One card per TITLE rather than per copy. That's what keeps the page an
+ * index of book pages instead of a second listings page — the card says "3
+ * copies from £2.50" and links to /books/[slug], restating nothing.
  */
 export default function AuthorHub({ hub }: { hub: Hub }) {
   const isPublisher = hub.kind === 'publisher'
@@ -109,27 +112,39 @@ export default function AuthorHub({ hub }: { hub: Hub }) {
           </div>
         )}
 
-        <div className="sy-authorgroups">
-          {hub.titles.map((t) => (
-            <section key={t.bookId} className="sy-authorgroup">
-              <div className="sy-authorgroup-head">
-                <div>
-                  <h2 className="sy-h3" style={{ marginBottom: 2 }}>
-                    {t.slug ? <Link href={`/books/${t.slug}`}>{t.title}</Link> : t.title}
-                  </h2>
-                  <p style={{ fontSize: 13, color: 'var(--color-ink-faint)' }}>
-                    {t.copies.length} {t.copies.length === 1 ? 'copy' : 'copies'} from{' '}
-                    £{t.copies[0].priceGbp.toFixed(2)}
-                  </p>
-                </div>
-                {t.slug && (
-                  <Link href={`/books/${t.slug}`} className="sy-textlink" style={{ fontSize: 14, whiteSpace: 'nowrap' }}>
-                    See all →
-                  </Link>
-                )}
-              </div>
-            </section>
-          ))}
+        {/* The same cover grid the rest of the site browses in — .sy-grid and
+            .sy-card are shared, so this matches /new, search and a shelf
+            exactly rather than inventing a fourth way to show books. 95% of
+            books with a live listing have a cover, and every title on the
+            biggest hubs does, so a grid reads as covers rather than as gaps.
+
+            One card per TITLE, not per copy: the card carries "3 copies from
+            £2.50" and links to /books/[slug], which keeps this an index of
+            book pages rather than a second listings page. */}
+        <div className="sy-grid">
+          {hub.titles.map((t) => {
+            const card = (
+              <>
+                <BookCover book={{ title: t.title, cover: t.coverUrl, price: t.copies[0].priceGbp }} />
+                <span className="sy-card-meta">
+                  <span className="sy-card-title">{t.title}</span>
+                  <span className="sy-card-foot">
+                    <Price value={t.copies[0].priceGbp} />
+                    <span className="sy-card-author">
+                      {t.copies.length} {t.copies.length === 1 ? 'copy' : 'copies'}
+                    </span>
+                  </span>
+                </span>
+              </>
+            )
+            return t.slug ? (
+              <Link key={t.bookId} href={`/books/${t.slug}`} className="sy-card">
+                {card}
+              </Link>
+            ) : (
+              <div key={t.bookId} className="sy-card">{card}</div>
+            )
+          })}
         </div>
 
         {hub.liveCopies > 0 && hub.liveCopies < INDEX_THRESHOLD && (
