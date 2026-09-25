@@ -61,6 +61,7 @@ export default function Footer() {
               <FieldLabel>Marketplace</FieldLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <Link href="/new" style={linkStyle}>Browse books</Link>
+                <Link href="/authors" style={linkStyle}>Browse by author</Link>
                 <Link href="/bundles" style={linkStyle}>Bundles</Link>
                 <Link href="/about" style={linkStyle}>About</Link>
                 <Link href="/support" style={linkStyle}>Support</Link>

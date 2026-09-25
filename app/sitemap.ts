@@ -46,6 +46,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
+      url: 'https://www.sellyourshelf.com/authors',
+      lastModified: new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 0.7,
+    },
+    {
       url: 'https://www.sellyourshelf.com/new',
       lastModified: new Date(),
       changeFrequency: 'daily',

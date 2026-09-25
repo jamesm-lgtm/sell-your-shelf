@@ -50,6 +50,7 @@ export async function GET() {
             // cut, so all three are still excluded.
             'NOT /scan', 'NOT /drafts', 'NOT /get-paid',
             'NOT /about', 'NOT /admin/*', 'NOT /api/*', 'NOT /author/*',
+            'NOT /authors',
             'NOT /basket',
             'NOT /blog/*', 'NOT /books/*', 'NOT /browse', 'NOT /bundles',
             'NOT /category/*', 'NOT /checkout', 'NOT /contact',
