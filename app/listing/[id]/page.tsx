@@ -2,6 +2,7 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { offerShippingDetails, merchantReturnPolicy } from '@/app/lib/offerSchema'
 import Link from 'next/link'
+import { getAuthorLinkForBook } from '@/app/lib/authorHub'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import AppBadges from '@/app/components/AppBadges'
@@ -165,6 +166,8 @@ export default async function ListingPage({ params }: Props) {
       .slice(0, 12)
   }
   const hasEditionData = !!(listing.edition_cover || listing.edition_publisher || listing.edition_page_count)
+
+  const authorLink = listing.book_id ? await getAuthorLinkForBook(listing.book_id) : null
 
   // Get normalized fields for slug from books table
   const { data: bookData } = listing.book_id ? await supabase
@@ -386,7 +389,15 @@ export default async function ListingPage({ params }: Props) {
             </h1>
             {listing.author && (
               <p style={{ fontSize: 16, color: 'var(--color-ink-soft)', marginBottom: 10 }}>
-                {listing.author}
+                {/* Linked only when the author has a hub above the index
+                    threshold — see getAuthorLinkForBook. */}
+                {authorLink ? (
+                  <Link href={`/${authorLink.kind === 'publisher' ? 'publisher' : 'author'}/${authorLink.slug}`} className="sy-textlink">
+                    {listing.author}
+                  </Link>
+                ) : (
+                  listing.author
+                )}
               </p>
             )}
 

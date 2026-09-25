@@ -10,6 +10,7 @@ import { Price, ConditionMarker } from '@/app/components/ui'
 import ShareButton from '@/app/components/ShareButton'
 import { offerShippingDetails, merchantReturnPolicy } from '@/app/lib/offerSchema'
 import { findBookBySlug } from '@/app/lib/bookLookup'
+import { getAuthorLinkForBook } from '@/app/lib/authorHub'
 
 export const revalidate = 0
 
@@ -109,6 +110,8 @@ export default async function BookPage({ params }: Props) {
   const book = await findBookBySlug(slug)
 
   if (!book) return notFound()
+
+  const authorLink = await getAuthorLinkForBook(book.id)
 
   const { data: listingRows } = await supabase
     .from('listings')
@@ -251,7 +254,16 @@ export default async function BookPage({ params }: Props) {
             </h1>
             {book.author && (
               <p style={{ fontSize: 16, color: 'var(--color-ink-soft)', marginBottom: 14 }}>
-                {book.author}
+                {/* Linked only when the author has a hub above the index
+                    threshold — see getAuthorLinkForBook. Otherwise plain text,
+                    because a link to a noindex page helps nobody. */}
+                {authorLink ? (
+                  <Link href={`/${authorLink.kind === 'publisher' ? 'publisher' : 'author'}/${authorLink.slug}`} className="sy-textlink">
+                    {book.author}
+                  </Link>
+                ) : (
+                  book.author
+                )}
               </p>
             )}
 
