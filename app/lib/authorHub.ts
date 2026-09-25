@@ -25,9 +25,6 @@ const supabase = createClient(
  */
 export const INDEX_THRESHOLD = 5
 
-/** Above this, copies are grouped by title rather than listed flat. */
-export const GROUPING_THRESHOLD = 15
-
 export type HubCopy = {
   listingId: number
   priceGbp: number

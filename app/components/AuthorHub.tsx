@@ -2,12 +2,7 @@ import Link from 'next/link'
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import ShareButton from '@/app/components/ShareButton'
-import { Price, ConditionMarker } from '@/app/components/ui'
-import {
-  GROUPING_THRESHOLD,
-  INDEX_THRESHOLD,
-  type AuthorHub as Hub,
-} from '@/app/lib/authorHub'
+import { INDEX_THRESHOLD, type AuthorHub as Hub } from '@/app/lib/authorHub'
 
 /**
  * The author / publisher hub.
@@ -26,17 +21,19 @@ import {
  * keeps the two from competing for the same query, which is the failure we
  * just spent a release unpicking when listing pages were canonicalised to book
  * pages that then ranked worse.
+ *
+ * ONE layout, at every size. It shipped with two — grouped by title above 15
+ * copies, a flat list of individual copies below — which put 22 pages on one
+ * design and 140 on another, and the difference was the first thing anyone
+ * noticed. Grouping is also the only one of the two that's true to the job
+ * above: the flat list linked to /listing/[id] and showed per-copy price and
+ * condition, which is the book page's work being done twice. At five copies a
+ * grouped page reads as a short list of titles, which is exactly right.
  */
 export default function AuthorHub({ hub }: { hub: Hub }) {
   const isPublisher = hub.kind === 'publisher'
   const base = isPublisher ? 'publisher' : 'author'
   const url = `https://www.sellyourshelf.com/${base}/${hub.slug}`
-
-  // Above ~15 copies a flat list stops being useful: David Walliams has 137
-  // copies across 57 titles, and a reader wants "Gangsta Granny, four copies
-  // from £2.50", not 137 undifferentiated cards. Below it, grouping just adds
-  // a layer over a list that was already readable.
-  const grouped = hub.liveCopies > GROUPING_THRESHOLD
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -79,7 +76,7 @@ export default function AuthorHub({ hub }: { hub: Hub }) {
           <div className="sy-crumbs">
             <Link href="/">Home</Link>
             <span className="sy-crumb-sep">/</span>
-            <Link href="/new">Browse</Link>
+            <Link href="/authors">Authors</Link>
             <span className="sy-crumb-sep">/</span>
             <span className="sy-crumb-here sy-crumb-clip">{hub.displayName}</span>
           </div>
@@ -106,57 +103,34 @@ export default function AuthorHub({ hub }: { hub: Hub }) {
           <div style={{ marginBottom: 28 }}>
             <p style={{ fontSize: 16, color: 'var(--color-ink-soft)', marginBottom: 14 }}>
               Nobody is selling {hub.displayName} on Sell Your Shelf right now. Shelves change daily,
-              so it's worth looking again.
+              so it&apos;s worth looking again.
             </p>
-            <Link href="/new" className="sy-textlink">Browse what's in stock</Link>
+            <Link href="/new" className="sy-textlink">Browse what&apos;s in stock</Link>
           </div>
         )}
 
-        {grouped ? (
-          <div className="sy-authorgroups">
-            {hub.titles.map((t) => (
-              <section key={t.bookId} className="sy-authorgroup">
-                <div className="sy-authorgroup-head">
-                  <div>
-                    <h2 className="sy-h3" style={{ marginBottom: 2 }}>
-                      {t.slug ? (
-                        <Link href={`/books/${t.slug}`}>{t.title}</Link>
-                      ) : (
-                        t.title
-                      )}
-                    </h2>
-                    <p style={{ fontSize: 13, color: 'var(--color-ink-faint)' }}>
-                      {t.copies.length} {t.copies.length === 1 ? 'copy' : 'copies'} from{' '}
-                      £{t.copies[0].priceGbp.toFixed(2)}
-                    </p>
-                  </div>
-                  {t.slug && (
-                    <Link href={`/books/${t.slug}`} className="sy-textlink" style={{ fontSize: 14, whiteSpace: 'nowrap' }}>
-                      See all →
-                    </Link>
-                  )}
+        <div className="sy-authorgroups">
+          {hub.titles.map((t) => (
+            <section key={t.bookId} className="sy-authorgroup">
+              <div className="sy-authorgroup-head">
+                <div>
+                  <h2 className="sy-h3" style={{ marginBottom: 2 }}>
+                    {t.slug ? <Link href={`/books/${t.slug}`}>{t.title}</Link> : t.title}
+                  </h2>
+                  <p style={{ fontSize: 13, color: 'var(--color-ink-faint)' }}>
+                    {t.copies.length} {t.copies.length === 1 ? 'copy' : 'copies'} from{' '}
+                    £{t.copies[0].priceGbp.toFixed(2)}
+                  </p>
                 </div>
-              </section>
-            ))}
-          </div>
-        ) : (
-          <ul className="sy-authorlist">
-            {hub.titles.flatMap((t) =>
-              t.copies.map((c) => (
-                <li key={c.listingId} className="sy-authorlist-row">
-                  <Link href={`/listing/${c.listingId}`} className="sy-authorlist-main">
-                    <span className="sy-authorlist-title">{t.title}</span>
-                    <span className="sy-authorlist-meta">
-                      <ConditionMarker condition={c.condition} />
-                      {c.sellerUsername && <span>@{c.sellerUsername}</span>}
-                    </span>
+                {t.slug && (
+                  <Link href={`/books/${t.slug}`} className="sy-textlink" style={{ fontSize: 14, whiteSpace: 'nowrap' }}>
+                    See all →
                   </Link>
-                  <Price value={c.priceGbp} />
-                </li>
-              )),
-            )}
-          </ul>
-        )}
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
 
         {hub.liveCopies > 0 && hub.liveCopies < INDEX_THRESHOLD && (
           /* Below the threshold the page still serves — anyone holding the
