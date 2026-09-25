@@ -215,6 +215,44 @@ export async function getAuthorHub(
   }
 }
 
+/**
+ * The author hub to link to from a book or listing page, if there is one.
+ *
+ * Returns null unless the hub clears the index threshold. That gate is the
+ * whole point: linking to a page carrying `noindex` spends crawl budget on
+ * something we've told Google to ignore, and sends a reader somewhere with
+ * two books on it. Links therefore appear and disappear as inventory moves,
+ * which is correct — the link is only worth following while the page is.
+ *
+ * Without this the hubs are orphans, reachable only from the sitemap. Internal
+ * links are how they get discovered and how a reader ever finds them.
+ */
+export async function getAuthorLinkForBook(
+  bookId: number,
+): Promise<{ slug: string; kind: string; displayName: string } | null> {
+  const { data: links } = await supabase
+    .from('book_authors')
+    .select('author_id, position')
+    .eq('book_id', bookId)
+    .order('position', { ascending: true })
+
+  const authorIds = (links ?? []).map((l) => l.author_id)
+  if (!authorIds.length) return null
+
+  // The primary credit first — an illustrator shouldn't outrank the author
+  // just because their page happens to be bigger.
+  const { data } = await supabase
+    .from('author_live_counts')
+    .select('author_id, slug, display_name, kind, live_copies')
+    .in('author_id', authorIds)
+    .gte('live_copies', INDEX_THRESHOLD)
+
+  if (!data?.length) return null
+  const best = authorIds.map((id) => data.find((d) => d.author_id === id)).find(Boolean)
+  if (!best) return null
+  return { slug: best.slug, kind: best.kind, displayName: best.display_name }
+}
+
 /** Slugs worth putting in the sitemap — indexed pages only. */
 export async function getIndexableHubSlugs(kind: 'person' | 'publisher'): Promise<string[]> {
   const { data } = await supabase
