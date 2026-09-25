@@ -51,6 +51,29 @@ const ROLE = /\b(illustrated|illustrator|translated|translator|edited|editor|for
 
 const SUFFIX = /^(jr|sr|i{1,3}|iv|v|phd|md|obe|mbe|cbe)\.?$/i
 
+/**
+ * A corporate suffix is part of a company's name, not another contributor.
+ *
+ * "Egmont Books, Limited" and "HarperCollins Canada, Limited" are single
+ * publishers that happen to contain a comma. Split naively they produced a
+ * contributor called "Limited", which cleared five copies and would have gone
+ * live as a page titled Limited.
+ */
+const CORPORATE_TAIL = /^(limited|ltd|inc|incorporated|llc|plc|co|company|gmbh|sa|bv|pty)\.?$/i
+
+/**
+ * Trailing corporate suffix, stripped for grouping only.
+ *
+ * "Igloo Books" and "Igloo Books Ltd" are the same publisher and were two
+ * separate pages. Applied to publishers alone — a person can legitimately be
+ * called Co or Sa, and this must never touch a personal name.
+ */
+const dropCorporateTail = (name: string) => {
+  const words = name.split(/\s+/)
+  while (words.length > 1 && CORPORATE_TAIL.test(words[words.length - 1])) words.pop()
+  return words.join(' ')
+}
+
 const titleCase = (s: string) =>
   s
     .split(/\s+/)
@@ -143,6 +166,16 @@ export function parseCredit(raw: string, standalone: Set<string> = new Set()): P
     }
 
     const [a, b] = parts
+
+    // "Egmont Books, Limited" is one publisher, not two contributors. Check
+    // this before any of the inversion logic, which would otherwise read it
+    // as "Limited Egmont Books".
+    if (CORPORATE_TAIL.test(b)) {
+      const joined = `${a} ${b}`
+      out.push({ name: titleCase(dropCorporateTail(joined)), kind: classify(joined) })
+      continue
+    }
+
     const flipped = `${b} ${a}`.toLowerCase()
     const flipExists = standalone.has(flipped)
     const bothStandAlone = standalone.has(a.toLowerCase()) && standalone.has(b.toLowerCase())
@@ -174,7 +207,11 @@ export function parseCredit(raw: string, standalone: Set<string> = new Set()): P
     out.push({ name: titleCase(`${b} ${a}`), kind: 'person' })
   }
 
-  const kept = out.filter((c) => c.name.length > 2 && !JUNK.test(c.name))
+  const kept = out
+    // Publishers only: a trailing Ltd/Limited/Inc is the same company written
+    // differently, and left alone it mints a second page for it.
+    .map((c) => (c.kind === 'publisher' ? { ...c, name: titleCase(dropCorporateTail(c.name)) } : c))
+    .filter((c) => c.name.length > 2 && !JUNK.test(c.name) && !CORPORATE_TAIL.test(c.name))
   return kept.length ? { status: 'resolved', contributors: kept } : { status: 'junk' }
 }
 
