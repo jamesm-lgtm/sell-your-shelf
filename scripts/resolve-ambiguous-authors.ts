@@ -95,6 +95,7 @@ async function main() {
   let empty = 0
   let unmatched = 0
   const flagExamples: string[] = []
+  const resolutions: ModelResult[] = []
 
   for (let i = 0; i < ambiguous.length; i += BATCH) {
     const chunk = ambiguous.slice(i, i + BATCH)
@@ -113,6 +114,7 @@ async function main() {
       if (!bookIds) { unmatched++; continue }
       if (!r.contributors?.length) { empty++; continue }
 
+      resolutions.push(r)
       const invented = inventedTokens(r.raw, r.contributors)
       const needsReview = invented.length > 0
       if (needsReview) {
@@ -136,6 +138,31 @@ async function main() {
     process.stdout.write(`\r  resolved ${Math.min(i + BATCH, ambiguous.length)}/${ambiguous.length}`)
   }
   console.log('\n')
+
+  /**
+   * A dry run has to show the actual mappings, not just counts.
+   *
+   * inventedTokens() catches a fabricated name, but it cannot catch a WRONG
+   * SPLIT: "Malpas, Jodi Ellen" → "Malpas" + "Jodi Ellen" invents no token and
+   * passes the guardrail while being completely wrong. The only thing that
+   * catches that is a person reading the output, so print it.
+   *
+   * Splits vs flips is the number to watch. These are all two-part comma
+   * strings, and most are expected to be one person written surname-first —
+   * so a high split rate means the prompt is mis-reading the comma.
+   */
+  if (DRY_RUN) {
+    const flips = resolutions.filter((r) => r.contributors.length === 1).length
+    const splits = resolutions.length - flips
+    console.log(`read as ONE person (inversion): ${flips}`)
+    console.log(`read as SEVERAL contributors  : ${splits}`)
+    console.log('\nevery resolution:')
+    for (const r of resolutions) {
+      const shape = r.contributors.length === 1 ? 'flip ' : 'split'
+      console.log(`  ${shape}  "${r.raw}"  →  ${r.contributors.map((c) => `${c.name} (${c.kind})`).join('  +  ')}`)
+    }
+    console.log('')
+  }
 
   console.log(`clean (every token was in the input): ${clean}`)
   console.log(`FLAGGED needs_review (invented a token): ${flagged}`)
