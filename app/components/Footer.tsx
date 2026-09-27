@@ -74,6 +74,12 @@ export default function Footer() {
                 <Link href="/privacy" style={linkStyle}>Privacy</Link>
                 <Link href="/returns" style={linkStyle}>Returns</Link>
                 <Link href="/contact" style={linkStyle}>Contact</Link>
+                {/* /delete-account existed only to satisfy the Play Store's
+                    public-URL requirement and was linked from nowhere. A seller
+                    who wanted to close her account on 27 Sep wrote "I can't see
+                    anywhere to delete it" — she was on the web, where there was
+                    genuinely nowhere to look. */}
+                <Link href="/delete-account" style={linkStyle}>Delete account</Link>
               </div>
             </div>
             <div>
