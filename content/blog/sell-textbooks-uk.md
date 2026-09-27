@@ -1,94 +1,97 @@
 ---
 title: "How to Sell Textbooks Online in the UK: A Student's Guide for 2026"
-description: "The best ways to sell your university textbooks in the UK. Where to sell, when to sell, and how to get the best price for course books you no longer need."
-date: "2026-04-20"
+description: "Where to sell university textbooks in the UK, what each channel actually pays, and how to time your sale. Subject-by-subject prices for medicine, law, STEM and humanities."
+date: "2026-09-27"
 category: "Textbooks"
 author: "James Mumberson"
-keywords: "sell textbooks uk, sell university textbooks, sell used textbooks uk, how to sell textbooks, sell old textbooks, sell textbooks online uk, sell course books"
+keywords: "sell textbooks uk, sell university textbooks, sell uni textbooks, sell academic books, sell used textbooks uk, how to sell textbooks, sell old textbooks, sell textbooks online uk, sell course books, sell your university books, where to sell university books, sell uni books online"
 ---
 
-The best time to sell university textbooks is August and September, when students are buying for the new academic year. The best place depends on how quickly you need the money and how much effort you're willing to put in.
+The best place to sell university textbooks depends on what you've got. Current-edition course texts sell for £10–25 to individual buyers on marketplaces. Outdated editions are worth pennies anywhere. The single most important thing you can do is check whether your edition is still on the reading list before you spend any time listing it.
 
-If you're finishing exams and want your textbooks gone, here's everything you need to know.
+If you've just finished your degree, or you're clearing out before the new academic year, here's where to sell and what to expect.
 
-## How much are university textbooks worth?
+## How much are university textbooks actually worth?
 
-More than you'd think — but only if the edition is still current.
+More than most books, but the range is enormous.
 
-A textbook that's on this year's reading list can sell for £10–25 secondhand, depending on the subject and original price. Medical, law, and engineering texts tend to hold their value best because the cover prices are higher and students have no choice but to buy them.
+**Medicine, nursing, and dentistry: £15–30.** High cover prices and guaranteed demand every September. Anatomy atlases, pharmacology references, and clinical handbooks hold value better than almost any other category of book.
 
-A textbook that's been superseded by a newer edition is essentially worthless. Nobody's buying the 4th edition when the 5th is on the reading list. Check your university's current course pages or ask a student in the year below before listing.
+**Law: £10–25.** Core texts like contract, tort, and criminal law sell reliably. The catch is that new editions come frequently, so timing matters more here than in most subjects.
 
-**Rough guide by subject:**
+**STEM: £10–20.** Engineering, maths, and computing texts hold value well, and some classics stay on reading lists for a decade. If your textbook is a "standard text" rather than a specific edition requirement, it can stay sellable for years.
 
-- **Medicine and nursing:** £15–30 (high original price, always in demand)
-- **Law:** £10–25 (new editions every few years, so timing matters)
-- **Engineering and computing:** £10–20 (some classics hold value for years)
-- **Business and economics:** £8–15 (lots of copies in circulation)
-- **Humanities and social sciences:** £5–12 (cheaper to buy new, so lower secondhand ceiling)
-- **GCSE and A-Level revision guides:** £3–8 (seasonal demand, huge volume)
+**Business and economics: £8–15.** Solid demand but a lot of supply, since these are among the most popular degree subjects in the UK.
 
-## When should I sell my textbooks?
+**Humanities and social sciences: £5–12.** Lower cover prices mean a lower secondhand ceiling. Set texts for popular modules (the ones every English or history student needs) sell better than niche monographs.
 
-Timing is everything with textbooks. The same book that fetches £20 in September might go for £5 in January.
+**GCSE and A-Level revision guides: £3–8.** Seasonal demand and huge volume, but low cover prices cap what you can charge.
 
-**August–September** is the peak. First-year students are buying set texts before term starts, and they're looking for secondhand copies to save money. This is when you'll get the highest price with the fastest sale.
+The rule that trumps everything: **the edition must be current.** A superseded edition is worth almost nothing regardless of subject. Nobody's buying the 4th edition when the 5th is on the reading list. Check your university's current reading list or the publisher's website before listing.
 
-**January** sees a smaller spike for second-semester modules that have different reading lists.
+## When is the best time to sell university textbooks?
 
-**May–June** is the worst time to sell. Everyone's finishing exams and trying to offload their books simultaneously. Supply floods the market and prices drop.
+**Late August to early October.** Freshers and returning students are buying for the new academic year, often working through reading lists with a maintenance loan that just landed. Demand and prices both peak in this window.
 
-If you've just finished your final exams and can bear to wait, hold your textbooks until August. The price difference is significant.
+**January.** A smaller second spike as semester-two modules start and students buy for new courses.
 
-## Where to sell textbooks in the UK
+**Avoid May–July.** Everyone who just finished exams is selling at once. Supply floods in, prices sag. If you've just sat your finals and can bear to wait, holding until August is worth real money — the same book can fetch £20 in September and £5 in June.
 
-### Trade-in services (Ziffit, WeBuyBooks)
-
-They'll buy textbooks, but the offers are low — typically £1–3 for books that would sell for £10+ to another student. The convenience is the only selling point: scan the barcode, post them for free, get paid in a few days.
-
-**Best for:** Textbooks you've already checked and know are outdated editions. Get something rather than nothing.
-
-### eBay
-
-Good prices for textbooks — often £10–20 for current editions. But you're listing each book individually with photos, managing questions from buyers, and handling postage yourself. For one or two valuable textbooks it's worth it. For a stack of ten, it's a time sink.
-
-**Best for:** High-value individual textbooks where the effort of a detailed listing is justified by the price.
-
-### Your university's buy/sell group
-
-Most universities have a Facebook group or forum where students buy and sell textbooks directly. No fees, no postage (if you arrange campus collection), and buyers who know exactly which edition they need.
-
-The downside: these groups are seasonal and disorganised. Your post gets buried within hours, and there's no pricing data to help you set a fair price.
-
-**Best for:** Selling to students at your own university, especially for niche course texts.
+## Where to sell university textbooks in the UK
 
 ### Sell Your Shelf
 
-Full disclosure — I built this. You film your shelf and the AI identifies each book, checks live market pricing, and creates the listings. When a book sells, you ship it for £2.50 and the buyer pays the shipping.
+Full disclosure: I built this, so weigh accordingly. You film your shelf with your phone, the AI identifies each book and checks live market pricing, and your listings go up in about 90 seconds. Textbooks work particularly well because the pricing data stops you underselling — a textbook you'd guess is worth £5 might be selling for £18, and the app catches that.
 
-For textbooks specifically, the advantage is pricing accuracy. The app checks what each textbook is actually selling for right now, so you're not guessing. You can [browse what's currently listed](https://www.sellyourshelf.com/new) to get a feel for how it works.
+When something sells, you ship it for £2.50 (paid by the buyer) with a printerless QR code drop-off. You can [browse what's currently listed in education and reference](https://www.sellyourshelf.com/category/reference-education) to see how others price.
 
-**Best for:** Selling multiple textbooks at once without spending hours on individual listings.
+**Best for:** Selling a stack of textbooks quickly without pricing guesswork.
+
+### eBay
+
+Strong prices for high-value individual textbooks — £15–25 for current-edition medical or law texts is realistic. But each book needs its own listing with photos and a description, fees run 12.8% plus 30p, and you handle postage yourself. Textbooks are heavy, so postage costs bite harder than with paperbacks.
+
+**Best for:** One or two valuable textbooks where the listing effort is justified.
+
+### University Facebook groups and noticeboards
+
+Most universities have buy/sell groups where students trade textbooks directly. No fees, no postage if you arrange campus collection, and buyers who need your exact edition. The downsides: posts get buried fast, you're coordinating meetups, there's no pricing data to guide you, and demand only exists during term time.
+
+**Best for:** Selling to students on your own course, especially niche module texts.
 
 ### Amazon Marketplace
 
 Amazon takes a larger cut than most platforms — around 20–25% for books, plus a monthly seller fee if you list more than a few items. The buyer pool is huge, though, and textbooks with an ISBN match quickly to existing catalogue entries.
 
-**Best for:** Textbooks with high demand where Amazon's large buyer pool outweighs the fees.
+**Best for:** Textbooks with high demand where Amazon's buyer pool outweighs the fees.
 
-## How to get the best price for your textbooks
+### Trade-in services (Ziffit, WeBuyBooks)
 
-**Check the edition is current.** This is the single most important thing. An outdated edition won't sell at any price. Check your university's reading list or ask a current student.
+They accept some textbooks, but offers are typically £1–3 for books that would fetch £10+ from a student. For current-edition texts this is leaving serious money on the table.
 
-**Sell before the new edition drops.** Publishers love releasing new editions. If you know a new version is coming, sell the current one before it becomes obsolete. Your course tutor or the publisher's website will usually give you advance warning.
+**Best for:** Outdated editions that nothing else will shift. Something beats nothing.
 
-**Remove your highlighting and notes — or don't.** This is debatable. Some buyers prefer clean copies. Others actively seek out annotated textbooks from students who did well. If your notes are genuinely useful (not just random highlighting), mention it in the description. It can be a selling point.
+### Campus bookshop buyback schemes
 
-**Bundle course packs.** If you've got three or four books from the same course, listing them as a bundle can attract buyers who want the complete set. "First-year law bundle — Contract, Tort, and Public Law" is more appealing than three separate listings.
+Some university bookshops buy back course texts. Convenient, but offers are usually well below what you'd get selling to another student directly. Check the offer before committing — it's rarely the best deal.
 
-**Include any extras.** Access codes, companion workbooks, and supplementary materials add value — but only if they haven't been used. An expired online access code is worthless; mention that it's been redeemed so buyers aren't surprised.
+**Best for:** Convenience when you're leaving halls and out of time.
 
-**Price slightly below the lowest current listing.** If other copies of the same textbook are listed at £15, price yours at £13–14. For textbooks, buyers are comparing identical products and will pick the cheapest one in acceptable condition every time.
+## How to get the best price for university textbooks
+
+**Verify the edition first.** This is worth repeating because it's the difference between £20 and 20p. Check the current reading list for your course, or search the ISBN on the publisher's site to see if a newer edition exists.
+
+**Sell before the new edition drops.** Publishers love releasing new editions. If you know a new version is coming, sell the current one before it becomes obsolete — your course tutor or the publisher's website will usually give advance warning.
+
+**Mention the module or course.** "Contract law textbook — core text for first-year LLB" helps buyers confirm it's the right book. Students search by module, not just title.
+
+**Sell access codes honestly.** If your textbook came with an online access code, say whether it's been used. A redeemed code is worthless; an unused one adds real value.
+
+**Bundle by course year.** "Complete first-year law bundle" or "Year 1 mechanical engineering set" sells faster than five individual listings, and freshers love buying a whole reading list in one go. Bundles over £10 also ship free on Sell Your Shelf, which matters when textbooks are heavy.
+
+**Annotations can be a selling point.** Unlike fiction, marked-up academic texts don't always sell for less. Good marginal notes from a student who got a first are genuinely valuable to some buyers. Be honest about the extent, and mention it if your notes are actually useful.
+
+**Price against sold listings, not asking prices.** eBay's sold-listings filter shows what textbooks actually fetch, which is often well below what hopeful sellers list them at.
 
 ## What about revision guides and A-Level books?
 
@@ -96,21 +99,25 @@ GCSE and A-Level revision guides (CGP, Letts, Pearson) sell well but cheaply —
 
 The smart move with revision guides is timing. List them in August before the school year starts, not in June when everyone else is dumping them. And bundle them by subject — "GCSE Science revision bundle, 4 books" will sell faster than four individual listings.
 
-One thing to watch: curriculum changes can make revision guides obsolete overnight. If the exam board has updated the specification, last year's guide might not cover the right content. Check before you list.
+One thing to watch: curriculum changes can make revision guides obsolete overnight. If the exam board has updated the specification, last year's guide might not cover the right content. Check before you list. There's more detail in our guide to [selling GCSE and A-Level revision books](https://www.sellyourshelf.com/blog/sell-gcse-a-level-revision-books).
 
 ## Frequently asked questions
 
-### Can I sell textbooks with highlighting in them?
+### Are old edition textbooks worth selling?
 
-Yes. Light highlighting and marginal notes are generally accepted by buyers, especially for academic texts. Heavy highlighting throughout the book will knock the price down. Be honest about the extent of the annotations in your listing.
+Usually not, with one exception: if the changes between editions are trivial (a new preface, renumbered chapters), some students deliberately buy the older edition to save money. If the reading list says "any recent edition," yours is still sellable. If it specifies the current edition, an old one is effectively worthless.
 
-### Should I sell textbooks back to my university bookshop?
+### Can I sell textbooks with highlighting?
 
-If your university has a buyback scheme, check the offer before committing. Most institutional buyback programmes offer less than you'd get selling directly to another student. They're convenient but rarely the best deal.
+Yes. Academic buyers are far more tolerant of highlighting and notes than fiction buyers. Describe the extent honestly — "light highlighting in first three chapters" — and price slightly below a clean copy.
+
+### Is it worth selling Open University books?
+
+Yes — OU course books have a steady market because the same courses run year after year and materials aren't always included in fees. Check the module is still running with the same materials before listing.
 
 ### How much does it cost to post a textbook?
 
-A single textbook typically costs £2.50–3.50 to post with a tracked service in the UK. Heavier textbooks (medical, engineering) can push towards £4–5. Some platforms include shipping labels that reduce this cost.
+Heavier than a paperback, so £3–5 for most single textbooks with a tracked service. On Sell Your Shelf, shipping is a flat £2.50 paid by the buyer, which works in your favour for heavy books.
 
 ### Are international edition textbooks worth selling?
 
@@ -119,3 +126,7 @@ International editions (often printed in India or Southeast Asia) are cheaper to
 ### What if I can't find my textbook when I scan the barcode?
 
 Not every textbook has a barcode that matches online databases, especially older editions or international prints. Most platforms also support manual listing by ISBN or title search. On Sell Your Shelf, the AI spine scanning picks up most textbooks automatically, but you can also add books manually using the ISBN barcode scanner.
+
+### Should I sell my textbooks or keep them for reference?
+
+Honestly? Most graduates never open their textbooks again, and editions date quickly. If you're in a field where the reference genuinely matters (medicine, law practice), keep the one or two you'll actually use. Sell the rest while the editions are current — a textbook depreciates faster than almost anything else on your shelf.
