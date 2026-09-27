@@ -26,10 +26,23 @@ export default function DeleteAccount() {
               </p>
 
               <h3 className="sy-h3" style={{ fontSize: 16, marginBottom: 8 }}>By email</h3>
-              <p>
-                Email <a href="mailto:support@sellyourshelf.com" className="text-emerald-700 hover:underline">support@sellyourshelf.com</a> from
-                the address registered to the account. Requests are processed within 7 days.
+              <p className="mb-4">
+                If you no longer have the app — or would rather not hunt through it — email us from the
+                address registered to the account and we&apos;ll do it for you. Requests are processed within 7 days.
               </p>
+              {/* A one-click mailto rather than an address to copy out. The
+                  person reading this has already decided to leave; making them
+                  compose an email from scratch is a last small indignity. */}
+              <a
+                href={'mailto:support@sellyourshelf.com' +
+                  '?subject=' + encodeURIComponent('Please delete my account') +
+                  '&body=' + encodeURIComponent(
+                    "Hello,\n\nPlease delete my Sell Your Shelf account and the data associated with it.\n\n" +
+                    "I'm sending this from the email address registered to the account.\n\nThanks")}
+                className="inline-block rounded-lg bg-emerald-700 px-5 py-3 font-semibold text-white no-underline hover:bg-emerald-800"
+              >
+                Email us to delete your account
+              </a>
             </section>
 
             <section>
