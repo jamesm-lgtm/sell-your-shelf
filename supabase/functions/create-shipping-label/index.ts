@@ -1,12 +1,12 @@
 // create-shipping-label
 //
-// Creates a Yodel Print-at-Store label via ShipEngine. Accepts ONE of:
+// Creates an InPost (formerly Yodel) Print-at-Store label via ShipEngine. Accepts ONE of:
 //   { transaction_id }  — legacy single-item iOS flow
 //   { order_id }        — new multi-item flow (Phase 1B). Scales the
 //                         parcel weight from summed order_items.
 //
 // Returns the QR code URL + tracking number for the seller to show at
-// any Yodel drop-off point. Stores label state on the transaction or
+// an InPost SHOP counter — not a locker; our labels are shop-only. Stores label state on the transaction or
 // order row so it can be retrieved later.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
@@ -21,7 +21,11 @@ const SHIPENGINE_API_KEY = Deno.env.get('SHIPENGINE_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-// Yodel Print at Store — printerless drop-off at 4,000+ UK locations.
+// InPost Print at Store — printerless drop-off at ~3,795 operating UK shops.
+// NOTE: SERVICE_CODE and shipping_method below are ShipEngine identifiers and
+// stored values. They keep the yodel_ prefix from before the July 2026 rebrand
+// and must NOT be renamed — changing either breaks label creation or orphans
+// existing rows.
 const CARRIER_ID = 'se-355478'
 const SERVICE_CODE = 'yodel_direct_print_at_store'
 
@@ -214,7 +218,7 @@ async function createLabelForOrder(supabase: SupabaseClient, orderId: string): P
     handoff_code: labelData.paperless_download?.handoff_code,
     instructions:
       labelData.paperless_download?.instructions ||
-      `Show the QR code at any Yodel drop-off point. Or give them the code: ${labelData.paperless_download?.handoff_code}`,
+      `Take it to an InPost shop — a counter inside a shop, not an outdoor locker. Show the QR code, or give them the code: ${labelData.paperless_download?.handoff_code}`,
     parcel_weight_kg: weightKg,
     parcel_tier: order.parcel_tier,
   })
@@ -343,7 +347,7 @@ async function createLabelForTransaction(
     handoff_code: labelData.paperless_download?.handoff_code,
     instructions:
       labelData.paperless_download?.instructions ||
-      `Show the QR code at any Yodel drop-off point. Or give them the code: ${labelData.paperless_download?.handoff_code}`,
+      `Take it to an InPost shop — a counter inside a shop, not an outdoor locker. Show the QR code, or give them the code: ${labelData.paperless_download?.handoff_code}`,
     shipping_cost: labelData.shipment_cost?.amount,
   })
 }
