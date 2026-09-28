@@ -329,7 +329,7 @@ function multiNewSale(data: EmailRequest['data']): { subject: string; html: stri
       <li style="margin-bottom: 8px;">Open the Sell Your Shelf app</li>
       <li style="margin-bottom: 8px;">Go to Orders → tap this order</li>
       <li style="margin-bottom: 8px;">Generate the combined shipping label</li>
-      <li style="margin-bottom: 0;">Drop the parcel at any Yodel point — no printer needed!</li>
+      <li style="margin-bottom: 0;">Take it to an InPost shop — a counter inside a shop, not an outdoor locker. No printer needed.</li>
     </ol>
   `)
 
@@ -384,7 +384,7 @@ function multiOrderShipped(data: EmailRequest['data']): { subject: string; html:
     </p>
     ${itemsCard}
     ${trackingCard}
-    <p style="color: #666666; font-size: 14px; margin: 0;">Expect delivery within ${escapeHtml(deliveryDays)} via Yodel.</p>
+    <p style="color: #666666; font-size: 14px; margin: 0;">Expect delivery within ${escapeHtml(deliveryDays)} via InPost.</p>
   `
 
   return { subject, html: wrapper('Your Order Has Shipped 📦', body) }
@@ -450,7 +450,7 @@ function legacyNewSale(data: EmailRequest['data']): { subject: string; html: str
           <li style="margin-bottom: 8px;">Open the Sell Your Shelf app</li>
           <li style="margin-bottom: 8px;">Go to Orders → tap this sale</li>
           <li style="margin-bottom: 8px;">Generate your shipping label</li>
-          <li style="margin-bottom: 0;">Drop off at any Yodel point — no printer needed!</li>
+          <li style="margin-bottom: 0;">Take it to an InPost shop — a counter inside a shop, not an outdoor locker. No printer needed.</li>
         </ol>
       `)}
     `,
@@ -482,7 +482,7 @@ function legacyOrderShipped(data: EmailRequest['data']): { subject: string; html
           `)
           : ''
       }
-      <p style="color: #666666; font-size: 14px; margin: 0;">Expect delivery within 2-3 working days via Yodel.</p>
+      <p style="color: #666666; font-size: 14px; margin: 0;">Expect delivery within 2-3 working days via InPost.</p>
     `,
   )
   return { subject, html }
