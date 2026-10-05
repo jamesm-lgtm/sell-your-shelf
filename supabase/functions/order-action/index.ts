@@ -36,12 +36,75 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const SECRET = Deno.env.get('PREFERENCE_CENTRE_SECRET')
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-)
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 
 const enc = new TextEncoder()
+
+/**
+ * Tell the buyer their parcel is on its way.
+ *
+ * There are three routes by which an order becomes "shipped" and until now
+ * only one of them — the app's mark-shipped button — told the buyer anything.
+ * This one wrote status straight to the table and emailed ops, while the page
+ * it returned told the seller "we've let the buyer know". That claim was
+ * false, and the chase emails now lead with this button, so the path was about
+ * to carry far more traffic than it used to.
+ *
+ * Returns whether a buyer was actually emailed, because the page should only
+ * claim it when it happened.
+ *
+ * eBay orders have no buyer_id on our side — the buyer is eBay's customer and
+ * never had an account here — so there is nobody to write to and this returns
+ * false. Note that we do NOT push fulfilment back to eBay either, so an eBay
+ * buyer who is told by this route is told by nobody. That gap is real and
+ * wants its own fix; it is not this function's to close.
+ *
+ * Never throws. A seller did their part by tapping the button, and losing that
+ * because our mail provider blinked would be the worst possible outcome — the
+ * same rule notifyOps follows.
+ */
+async function notifyBuyerShipped(orderId: string): Promise<boolean> {
+  try {
+    const { data: order, error } = await supabase
+      .from('orders').select('buyer_id').eq('id', orderId).maybeSingle()
+    if (error) {
+      console.error('[order-action] buyer lookup failed', orderId, error.message)
+      return false
+    }
+    if (!order?.buyer_id) return false  // eBay order — no account on our side
+
+    const { data: buyer } = await supabase
+      .from('users').select('email, first_name, username').eq('id', order.buyer_id).maybeSingle()
+    if (!buyer?.email) return false
+
+    const { data: rows } = await supabase
+      .from('order_items').select('title, author').eq('order_id', orderId)
+    const items = rows ?? []
+    const buyerName = buyer.first_name ?? buyer.username ?? ''
+
+    // send-email picks the multi-item template off the presence of `items`,
+    // so a three-book order lists all three rather than naming one of them.
+    const payload = items.length > 1
+      ? { buyerName, items: items.map((i) => ({ title: i.title, author: i.author })) }
+      : { buyerName, bookTitle: items[0]?.title ?? 'Your book', bookAuthor: items[0]?.author ?? '' }
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_KEY}` },
+      body: JSON.stringify({ type: 'order_shipped', to: buyer.email, data: payload }),
+    })
+    if (!res.ok) {
+      console.error('[order-action] order_shipped failed', res.status, (await res.text()).slice(0, 300))
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[order-action] notifyBuyerShipped threw', err)
+    return false
+  }
+}
 
 /**
  * Tell James a seller needs something done.
@@ -219,8 +282,12 @@ Deno.serve(async (req: Request) => {
           .update({ status: 'shipped', shipped_at: now, seller_response: 'posted', seller_response_at: now })
           .eq('id', orderId).eq('status', 'paid')
         if (error) throw error
+        // Only claim the buyer was told when they actually were. eBay buyers
+        // have no account here, so there is nobody for us to write to.
+        const told = await notifyBuyerShipped(orderId)
         return page('Thank you', bookLine +
-          `<h1>Thanks — marked as posted</h1><p>We've let the buyer know it's on its way.</p>
+          `<h1>Thanks — marked as posted</h1>
+           <p>${told ? `We've let the buyer know it's on its way.` : `That's logged at our end.`}</p>
            <p class="f">If you haven't actually posted it yet, just reply to your email and we'll put it back.</p>`)
       }
 
