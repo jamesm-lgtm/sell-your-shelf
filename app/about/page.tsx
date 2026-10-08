@@ -1,6 +1,7 @@
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
 import AppBadges from '@/app/components/AppBadges'
+import { DROP_OFF_LINE } from '@/app/lib/dropOff'
 
 export const metadata = {
   title: 'About — Sell Your Shelf',
@@ -28,8 +29,8 @@ export default function About() {
               Accept our recommendations or adjust them yourself, then publish your listings with one tap.
             </p>
             <p>
-              When a book sells, we generate a shipping label. Drop the parcel at any InPost drop-off point —
-              no printing required, just show the QR code. Payment lands in your account once delivered.
+              When a book sells, we generate a shipping label. {DROP_OFF_LINE}{' '}
+              Payment lands in your account once delivered.
             </p>
 
             <h2 className="sy-h3" style={{ paddingTop: 22 }}>How it works for buyers</h2>

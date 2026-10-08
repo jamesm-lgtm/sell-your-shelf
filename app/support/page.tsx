@@ -1,5 +1,6 @@
 import SiteNav from '@/app/components/SiteNav'
 import Footer from '@/app/components/Footer'
+import { DROP_OFF_LINE } from '@/app/lib/dropOff'
 
 export default function Support() {
   return (
@@ -57,7 +58,7 @@ export default function Support() {
               <h3 className="font-semibold text-lg mb-2">How does shipping work?</h3>
               <p className="sy-prose">
                 When you sell a book, go to My Orders → Sales to generate a shipping label.
-                You&apos;ll get a QR code to show at any InPost drop-off point — no printing required.
+                {DROP_OFF_LINE}
                 Shipping costs £2.50 and is paid by the buyer.
               </p>
             </div>
