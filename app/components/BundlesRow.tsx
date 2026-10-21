@@ -183,7 +183,18 @@ function BundleCard({ bundle, basketHasItem, onAdd }: BundleCardProps) {
         gap: 10,
       }}
     >
-      <div style={{ display: 'flex', gap: 6 }}>
+      {/* The cover strip has to survive the narrowest grid track.
+          Cards sit in repeat(auto-fill, minmax(240px, 1fr)) with 12px padding
+          each side, so the inner width bottoms out at 216px — while five
+          covers plus the +N chip want 6x52 + 5x6 = 342px. Every child was
+          flexShrink: 0 with no overflow handling, so the last element simply
+          left the card. The last element is the +N chip, which is the one
+          piece of information a truncated strip actually needs to carry.
+
+          Covers now give way instead: they shrink from 52px and crop (height
+          and object-fit hold the proportions), while the chip keeps its size.
+          overflow: hidden is the backstop for the extreme case. */}
+      <div style={{ display: 'flex', gap: 6, overflow: 'hidden' }}>
         {bundle.members.slice(0, 5).map((m) => {
           const cover = resolveBookCover(m.books, m.listing_images)
           return (
@@ -191,12 +202,12 @@ function BundleCard({ bundle, basketHasItem, onAdd }: BundleCardProps) {
               key={m.id}
               title={m.title}
               style={{
-                width: 52,
+                flex: '0 1 52px',
+                minWidth: 0,
                 height: 66,
                 background: 'var(--color-ground-raised)',
                 borderRadius: 'var(--radius-sm)',
                 overflow: 'hidden',
-                flexShrink: 0,
               }}
             >
               {cover ? (
